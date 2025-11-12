@@ -1,0 +1,202 @@
+/* Shelby Light Terminal Theme for WebTUI */
+@layer base {
+  [data-webtui-theme="shelby-light"] {
+    /* Shelby Brand Colors */
+    --pink: #FF77C9;
+    --pink-20: #FFC2E1;
+    --pink-10: #FFDFEF;
+    --purple: #470B64;
+    --lilac: #DEBAFF;
+    --lilac-20: #E2C9F8;
+    --lilac-10: #EEE2FF;
+    --lime: #9FE878;
+    --lime-20: #C8FAAE;
+    --lime-10: #DFFFCC;
+    --orange: #FDB565;
+    --orange-20: #FFC2AD;
+    --orange-10: #FFCDD9;
+    --maroon: #4F192A;
+    --forest: #21351A;
+    --brown: #322312;
+    --black: #161008;
+    --black-80: #454039;
+    --white-20: #F7F1E9;
+    --white: #FCFAF8;
+
+    /* WebTUI Color Mappings - Light Theme */
+    --background0: var(--white);
+    --background1: var(--white-20);
+    --background2: var(--lilac-10);
+    --background3: var(--lilac-20);
+    --foreground0: var(--black);
+    --foreground1: var(--black-80);
+    --foreground2: #8B8680;
+
+    /* Overrides - Use PINK for borders */
+    --box-border-color: var(--pink);
+    --table-border-color: var(--pink);
+    --separator-color: var(--pink);
+
+    /* Button colors */
+    --button-primary: var(--pink);
+    --button-secondary: var(--white);
+
+    /* Progress bar - Terminal style with characters */
+    --progress-value-background: transparent;
+    --progress-value-color: var(--pink);
+    --progress-value-content: '████████████████████████████████████████████████████████████████████████████████████████████████';
+    --progress-empty-background: transparent;
+    --progress-empty-color: var(--pink-10);
+    --progress-empty-content: '░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░';
+  }
+}
+
+@layer components {
+  /* Badge Variants */
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="pink"] {
+    --badge-color: var(--pink);
+    --badge-text: var(--purple);
+    background: var(--pink-10);
+    border: 0.1ch solid var(--pink-20);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="purple"] {
+    --badge-color: var(--purple);
+    --badge-text: var(--white);
+    background: var(--purple);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="lilac"] {
+    --badge-color: var(--lilac);
+    --badge-text: var(--purple);
+    background: var(--lilac-10);
+    border: 0.1ch solid var(--lilac-20);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="lime"] {
+    --badge-color: var(--lime);
+    --badge-text: var(--forest);
+    background: var(--lime-10);
+    border: 0.1ch solid var(--lime-20);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="orange"] {
+    --badge-color: var(--orange);
+    --badge-text: var(--maroon);
+    background: var(--orange-10);
+    border: 0.1ch solid var(--orange-20);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="green"] {
+    --badge-color: var(--lime);
+    --badge-text: var(--forest);
+    background: var(--lime-10);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="blue"] {
+    --badge-color: var(--purple);
+    --badge-text: var(--white);
+    background: var(--lilac-20);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="yellow"] {
+    --badge-color: var(--orange);
+    --badge-text: var(--maroon);
+    background: var(--orange-10);
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="badge"][variant-="red"] {
+    --badge-color: var(--pink);
+    --badge-text: var(--purple);
+    background: var(--pink-10);
+  }
+
+  /* Button Variants */
+  [data-webtui-theme="shelby-light"] button[variant-="primary"] {
+    --button-primary: var(--purple);
+    --button-secondary: var(--white);
+    background: var(--purple);
+    color: var(--white);
+    border-color: var(--purple);
+  }
+
+  [data-webtui-theme="shelby-light"] button[variant-="secondary"] {
+    --button-primary: var(--white);
+    --button-secondary: var(--purple);
+    background: var(--white);
+    color: var(--purple);
+    border-color: var(--purple);
+  }
+
+  [data-webtui-theme="shelby-light"] button[variant-="pink"] {
+    background: var(--pink);
+    color: var(--white);
+    border-color: var(--pink);
+  }
+
+  /* Box styling with grainy texture */
+  [data-webtui-theme="shelby-light"] [is-~="box"] {
+    position: relative;
+  }
+
+  [data-webtui-theme="shelby-light"] [is-~="box"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.02;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+/* Monospace numbers */
+.mono {
+  font-family: 'Repro Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Big gradient number */
+.big-number {
+  font-family: 'Repro Mono', 'JetBrains Mono', monospace;
+  font-size: 3em;
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
