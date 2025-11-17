@@ -1,23 +1,32 @@
-# dependencies
-node_modules
+# Dependencies
+node_modules/
+.pnpm-store/
 
-# build outputs
-dist
-build
+# Build outputs
+dist/
+build/
+*.local
 .turbo
 
-# env
+# Editor directories
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
 .env
 .env.local
+.env.*.local
 .env.*
+
+# Vite
+.vite/
 
 # logs & data artifacts
 logs
 metrics
 artifacts
 data/cache
-
-# editor
-.DS_Store
-.idea
-.vscode
