@@ -4,6 +4,8 @@ node_modules/
 
 # Build outputs
 dist/
+!css/dist/
+!theme-shelby/dist/
 build/
 *.local
 .turbo
