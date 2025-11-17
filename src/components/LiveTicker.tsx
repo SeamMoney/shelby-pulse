@@ -15,7 +15,7 @@ interface TickerItem {
   timestamp: number
 }
 
-export default function LiveTicker({ stats }: Props) {
+export default function LiveTicker({ stats: _stats }: Props) {
   const [items, setItems] = useState<TickerItem[]>([])
 
   // Simulate new items appearing

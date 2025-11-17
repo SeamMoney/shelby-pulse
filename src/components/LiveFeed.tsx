@@ -6,11 +6,10 @@ interface Props {
 }
 
 export default function LiveFeed({ blobs }: Props) {
-  const [elapsed, setElapsed] = useState(0)
-
+  // Track elapsed time for potential future animations
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(prev => prev + 1)
+      // Tick for animations
     }, 1000)
     return () => clearInterval(interval)
   }, [])

@@ -6,7 +6,7 @@ interface Props {
   stats: NetworkStats | undefined
 }
 
-export default function ActivityChart({ stats }: Props) {
+export default function ActivityChart({ stats: _stats }: Props) {
   const [data, setData] = useState<Array<{ time: string; blobs: number }>>([])
 
   // Simulate real-time chart data

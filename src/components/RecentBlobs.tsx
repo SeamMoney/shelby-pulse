@@ -66,7 +66,7 @@ export default function RecentBlobs({ blobs }: Props) {
       </row>
 
       <column gap-="1" style={{ overflow: 'auto' }}>
-        {displayBlobs.map((blob, index) => (
+        {displayBlobs.map((blob) => (
           <column
             key={blob.id}
             box-="square"
@@ -77,11 +77,11 @@ export default function RecentBlobs({ blobs }: Props) {
               transition: 'all 0.2s ease',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => {
+            onMouseEnter={(e: React.MouseEvent<HTMLElement>) => {
               e.currentTarget.style.background = 'var(--pink-10)'
               e.currentTarget.style.setProperty('--box-border-color', 'var(--pink)')
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={(e: React.MouseEvent<HTMLElement>) => {
               e.currentTarget.style.background = 'var(--background0)'
               e.currentTarget.style.removeProperty('--box-border-color')
             }}
