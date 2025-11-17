@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+
+# build outputs
+dist
+build
+.turbo
+
+# env
+.env
+.env.local
+.env.*
+
+# logs & data artifacts
+logs
+metrics
+artifacts
+data/cache
+
+# editor
+.DS_Store
+.idea
+.vscode
