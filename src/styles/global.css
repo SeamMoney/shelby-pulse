@@ -1,22 +1,22 @@
 @layer base, utils, components;
 
 /* WebTUI Base */
-@import '../../../../css/dist/base.css';
+@import '../../css/dist/base.css';
 
 /* WebTUI Utils */
-@import '../../../../css/dist/utils/box.css';
-@import '../../../../css/dist/utils/flexbox.css';
-@import '../../../../css/dist/utils/padding.css';
+@import '../../css/dist/utils/box.css';
+@import '../../css/dist/utils/flexbox.css';
+@import '../../css/dist/utils/padding.css';
 
 /* WebTUI Components */
-@import '../../../../css/dist/components/button.css';
-@import '../../../../css/dist/components/typography.css';
-@import '../../../../css/dist/components/badge.css';
-@import '../../../../css/dist/components/separator.css';
-@import '../../../../css/dist/components/table.css';
-@import '../../../../css/dist/components/progress.css';
-@import '../../../../css/dist/components/pre.css';
-@import '../../../../css/dist/components/spinner.css';
+@import '../../css/dist/components/button.css';
+@import '../../css/dist/components/typography.css';
+@import '../../css/dist/components/badge.css';
+@import '../../css/dist/components/separator.css';
+@import '../../css/dist/components/table.css';
+@import '../../css/dist/components/progress.css';
+@import '../../css/dist/components/pre.css';
+@import '../../css/dist/components/spinner.css';
 
 @layer base {
   :root {
