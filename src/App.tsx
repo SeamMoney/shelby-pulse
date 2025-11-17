@@ -47,17 +47,8 @@ function App() {
       setError(null)
       setIsLoading(false)
     } catch (err) {
-      console.error('Failed to fetch network stats, using mock data:', err)
-      // Fall back to mock data when API is unavailable
-      const mockStats: NetworkStats = {
-        totalBlobs: 208658 + Math.floor(Math.random() * 100),
-        totalStorage: 2470000000000 + Math.floor(Math.random() * 10000000000),
-        totalStorageFormatted: '2.47 TB',
-        uploadRate: 2.5 + Math.random() * 1.5,
-        timestamp: Date.now()
-      }
-      setNetworkStats(mockStats)
-      setError(null) // Clear error to show mock data instead
+      console.error('Failed to fetch network stats:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
       setIsLoading(false)
     }
   }
