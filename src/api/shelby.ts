@@ -16,22 +16,21 @@ export interface NetworkStats {
 }
 
 // Parse size string to bytes
-// Currently unused but kept for potential future use
-// function parseSize(sizeStr: string): number {
-//   if (sizeStr === '0 B' || !sizeStr) return 0
-//   const units: Record<string, number> = {
-//     'B': 1,
-//     'KB': 1024,
-//     'MB': 1024 * 1024,
-//     'GB': 1024 * 1024 * 1024,
-//     'TB': 1024 * 1024 * 1024 * 1024,
-//   }
-//   const match = sizeStr.match(/^([\d.]+)\s*([A-Z]+)$/i)
-//   if (!match) return 0
-//   const value = parseFloat(match[1])
-//   const unit = match[2].toUpperCase()
-//   return value * (units[unit] || 1)
-// }
+function parseSize(sizeStr: string): number {
+  if (sizeStr === '0 B' || !sizeStr) return 0
+  const units: Record<string, number> = {
+    'B': 1,
+    'KB': 1024,
+    'MB': 1024 * 1024,
+    'GB': 1024 * 1024 * 1024,
+    'TB': 1024 * 1024 * 1024 * 1024,
+  }
+  const match = sizeStr.match(/^([\d.]+)\s*([A-Z]+)$/i)
+  if (!match) return 0
+  const value = parseFloat(match[1])
+  const unit = match[2].toUpperCase()
+  return value * (units[unit] || 1)
+}
 
 // Format bytes to human-readable size
 export function formatBytes(bytes: number): string {
@@ -69,7 +68,7 @@ let callCount = 0
 
 export async function fetchNetworkStats(): Promise<NetworkStats> {
   callCount++
-  await scrapeBlobsPage(1)
+  const { blobs, total } = await scrapeBlobsPage(1)
 
   // Simulate increasing blob count
   const simulatedTotal = 208658 + callCount * Math.floor(Math.random() * 5)
