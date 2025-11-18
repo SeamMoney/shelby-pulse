@@ -27,9 +27,9 @@
     --background2: #FFC2E1;
     --background3: #FF77C9;
 
-    --foreground0: #2d2d2d;
-    --foreground1: #525252;
-    --foreground2: #737373;
+    --foreground0: #1a1a1a;
+    --foreground1: #404040;
+    --foreground2: #595959;
 
     /* Accent Colors */
     --accent: #FF77C9;
@@ -38,13 +38,13 @@
     --pink-bright: #FF77C9;
     --pink-pastel: #FFC2E1;
     --pink-soft: #FFDFEF;
-    --link: #FF77C9;
-    --link-hover: #FFC2E1;
-    --yellow: #fbbf24;
-    --red: #ef4444;
-    --blue: #3b82f6;
-    --green: #10b981;
-    --success: #22c55e;
+    --link: #d946ef;
+    --link-hover: #a855f7;
+    --yellow: #f59e0b;
+    --red: #dc2626;
+    --blue: #2563eb;
+    --green: #059669;
+    --success: #16a34a;
 
     --font-size: 16px;
     --line-height: 1.5;
