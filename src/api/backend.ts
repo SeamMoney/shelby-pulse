@@ -3,13 +3,8 @@
  * Fetches real data from the pulse-api service
  */
 
-// Use relative URL in production (Vercel will proxy to VM)
-// Use localhost for local development
-const API_BASE_URL = import.meta.env.VITE_API_URL || (
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:3001/api'
-    : '/api'
-);
+// Use /api (relative) - Vercel will proxy to VM backend
+const API_BASE_URL = '/api';
 
 export interface NetworkStats {
   totalBlobs: number;
