@@ -95,7 +95,7 @@ export class DataService {
 
       const blobs: BlobData[] = events.map((event) => {
         // Parse Shelby event data structure
-        const sizeBytes = Number.parseInt(event.data?.blob_size || "0", 10);
+        const sizeBytes = Number.parseInt(event.data?.size_bytes || "0", 10);
         const expirationMicros = Number.parseInt(
           event.data?.expiration_micros || "0",
           10,
@@ -105,8 +105,8 @@ export class DataService {
         return {
           id: event.data?.blob_commitment || event.sequence_number,
           owner: this.shortenAddress(event.data?.owner || "unknown"),
-          name: event.data?.blob_name?.split('/').pop() || this.generateBlobName(event.sequence_number),
-          encoding: event.data?.encoding?.__variant__?.includes('Clay') ? 'clay' : 'unknown',
+          name: event.data?.blob_id?.split('/').pop() || this.generateBlobName(event.sequence_number),
+          encoding: typeof event.data?.encoding === 'string' ? event.data.encoding : 'unknown',
           expires: expirationDate.toLocaleDateString("en-US"),
           size: this.formatBytes(sizeBytes),
           sizeBytes,
