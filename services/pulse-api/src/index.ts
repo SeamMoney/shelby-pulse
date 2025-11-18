@@ -1,10 +1,10 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { loadConfig } from "./config.ts";
-import { logger } from "./logger.ts";
-import { DataService } from "./data-service.ts";
-import { createRouter } from "./routes.ts";
+import { loadConfig } from "./config";
+import { logger } from "./logger";
+import { DataService } from "./data-service";
+import { createRouter } from "./routes";
 
 async function main() {
   const config = loadConfig();

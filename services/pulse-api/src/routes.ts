@@ -1,6 +1,6 @@
 import { Router } from "express";
-import type { DataService } from "./data-service.ts";
-import { logger } from "./logger.ts";
+import type { DataService } from "./data-service";
+import { logger } from "./logger";
 
 export function createRouter(dataService: DataService): Router {
   const router = Router();

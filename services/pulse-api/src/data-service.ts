@@ -1,7 +1,7 @@
 import NodeCache from "node-cache";
-import type { ApiConfig } from "./config.ts";
-import { ShelbyAptosClient, type BlobEvent, type StorageProvider } from "./aptos-client.ts";
-import { logger } from "./logger.ts";
+import type { ApiConfig } from "./config";
+import { ShelbyAptosClient, type BlobEvent, type StorageProvider } from "./aptos-client";
+import { logger } from "./logger";
 
 export interface NetworkStats {
   totalBlobs: number;

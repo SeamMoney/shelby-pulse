@@ -1,6 +1,6 @@
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
-import type { ApiConfig } from "./config.ts";
-import { logger } from "./logger.ts";
+import type { ApiConfig } from "./config";
+import { logger } from "./logger";
 
 export interface BlobEvent {
   type: string;
