@@ -3,8 +3,10 @@ export function MetricsTab() {
     <column gap-="1">
       {/* Real Shelby Metrics Grid */}
       <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-        <column box-="square" pad-="1" style={{ gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Read Latency</h3>
+        <column box-="round" shear-="top" pad-="1" style={{ gap: '1rem' }}>
+          <row gap-="1" style={{ marginTop: '-0.5rem' }}>
+            <span is-="badge" variant-="green" cap-="triangle slant-bottom">⚡ Read Latency</span>
+          </row>
 
           <column style={{ gap: '0.75rem' }}>
             <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -26,8 +28,10 @@ export function MetricsTab() {
           </small>
         </column>
 
-        <column box-="square" pad-="1" style={{ gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Shard Durability</h3>
+        <column box-="double" shear-="top" pad-="1" style={{ gap: '1rem' }}>
+          <row gap-="1" style={{ marginTop: '-0.5rem' }}>
+            <span is-="badge" variant-="accent" cap-="ribbon triangle">🛡️ Shard Durability</span>
+          </row>
 
           <column style={{ gap: '0.75rem' }}>
             <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -49,8 +53,10 @@ export function MetricsTab() {
           </small>
         </column>
 
-        <column box-="square" pad-="1" style={{ gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Audit Frequency</h3>
+        <column box-="round" shear-="top" pad-="1" style={{ gap: '1rem' }}>
+          <row gap-="1" style={{ marginTop: '-0.5rem' }}>
+            <span is-="badge" variant-="yellow" cap-="slant-top slant-bottom">🔍 Audit Frequency</span>
+          </row>
 
           <column style={{ gap: '0.75rem' }}>
             <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -74,8 +80,11 @@ export function MetricsTab() {
       </row>
 
       {/* Detailed Metrics Breakdown */}
-      <column box-="square" pad-="1" style={{ gap: '1rem' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Metric Details</h3>
+      <column box-="double round" shear-="top" pad-="1" style={{ gap: '1rem' }}>
+        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="blue" cap-="ribbon slant-bottom">📋 Metric Details</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">full breakdown</span>
+        </row>
         <table is-="table">
           <thead>
             <tr>

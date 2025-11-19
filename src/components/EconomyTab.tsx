@@ -99,16 +99,21 @@ export function EconomyTab() {
   return (
     <column gap-="2" pad-="1" style={{ overflowY: 'auto', height: '100%' }}>
       {/* Header */}
-      <column box-="square" pad-="1" gap-="1">
-        <h2 style={{ color: 'var(--accent)', margin: 0 }}>ShelbyUSD Economy</h2>
+      <column box-="double round" shear-="top" pad-="1" gap-="1">
+        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem' }}>
+          <span is-="badge" variant-="pink" cap-="ribbon triangle">SHELBYUSD ECONOMY</span>
+          <span is-="badge" variant-="success" cap-="round" size-="half">◉ LIVE</span>
+        </row>
         <small style={{ color: 'var(--foreground2)' }}>
           Network-wide ShelbyUSD statistics and leaderboards
         </small>
       </column>
 
       {/* Volume Stats */}
-      <column box-="square" pad-="1" gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>24-Hour Activity</h3>
+      <column box-="round" shear-="top" pad-="1" gap-="1">
+        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="blue" cap-="slant-top slant-bottom">24-Hour Activity</span>
+        </row>
         <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
           <column gap-="0">
             <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
@@ -138,11 +143,13 @@ export function EconomyTab() {
       </column>
 
       {/* Top Holders Leaderboard */}
-      <column box-="square" pad-="1" gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Top Holders</h3>
-        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-          Total Supply: {formatAmount(totalSupply)} ShelbyUSD
-        </small>
+      <column box-="double" shear-="top" pad-="1" gap-="1">
+        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="accent" cap-="triangle ribbon">💎 Top Holders</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">
+            Supply: {formatAmount(totalSupply)}
+          </span>
+        </row>
         <column gap-="0" style={{ fontSize: '0.9rem' }}>
           {data.leaderboard.slice(0, 10).map((entry, i) => (
             <row
@@ -185,11 +192,11 @@ export function EconomyTab() {
       </column>
 
       {/* Most Active Users */}
-      <column box-="square" pad-="1" gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Most Active Users</h3>
-        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-          By transaction count
-        </small>
+      <column box-="round" shear-="top" pad-="1" gap-="1">
+        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="blue" cap-="slant-bottom triangle">⚡ Most Active</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">by tx count</span>
+        </row>
         <column gap-="0" style={{ fontSize: '0.9rem' }}>
           {data.mostActive.slice(0, 10).map((entry, i) => (
             <row
@@ -232,11 +239,11 @@ export function EconomyTab() {
       </column>
 
       {/* Top Spenders */}
-      <column box-="square" pad-="1" gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Biggest Spenders</h3>
-        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-          By total withdraw amount
-        </small>
+      <column box-="double round" shear-="top" pad-="1" gap-="1">
+        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="yellow" cap-="ribbon slant-top">💸 Biggest Spenders</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">total withdrawn</span>
+        </row>
         <column gap-="0" style={{ fontSize: '0.9rem' }}>
           {data.topSpenders.slice(0, 10).map((entry, i) => (
             <row
@@ -279,11 +286,11 @@ export function EconomyTab() {
       </column>
 
       {/* Recent Transactions */}
-      <column box-="square" pad-="1" gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Recent Transactions</h3>
-        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-          Latest ShelbyUSD activity
-        </small>
+      <column box-="round" shear-="both" pad-="1" gap-="1">
+        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="green" cap-="triangle triangle">📊 Recent Transactions</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>
+        </row>
         <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>
           {data.recentTransactions.slice(0, 15).map((tx, i) => (
             <row

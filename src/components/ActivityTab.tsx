@@ -314,11 +314,18 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         onPointerCancel={handlePointerUp}
       />
 
-      <row box-="square" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', flexShrink: 0 }}>
+      <row box-="double round" shear-="top" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', flexShrink: 0 }}>
+        <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <row gap-="1">
+            <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">⚡ Latency Metrics</span>
+          </row>
+        </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>
-            {isInteracting && selectedIndex !== null ? 'Selected' : 'Current'}
-          </small>
+          <row gap-="0.5" align-="center">
+            <span is-="badge" variant-="pink-pastel" cap-="round" size-="half">
+              {isInteracting && selectedIndex !== null ? 'Selected' : 'Current'}
+            </span>
+          </row>
           <h2 style={{
             color: '#FF1493',
             fontSize: '2.25rem',
@@ -334,23 +341,23 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           </h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Average</small>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">Average</span>
           <h2 style={{ fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{avgLatency.toFixed(0)}ms</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Min</small>
+          <span is-="badge" variant-="green" cap-="round" size-="half">Min</span>
           <h2 style={{ color: '#00C896', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{minLatency.toFixed(0)}ms</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Max</small>
+          <span is-="badge" variant-="red" cap-="round" size-="half">Max</span>
           <h2 style={{ color: '#FF6B6B', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{maxLatency.toFixed(0)}ms</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Events</small>
+          <span is-="badge" variant-="blue" cap-="round" size-="half">Events</span>
           <h2 style={{ color: '#4A90E2', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{eventCount}</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>History</small>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">History</span>
           <h2 style={{ fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>
             {latencyData.length < 60
               ? `${latencyData.length}s`

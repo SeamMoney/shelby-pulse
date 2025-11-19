@@ -12,10 +12,10 @@ export function ProvidersTab() {
       {/* Real Shelby SPs Grid */}
       <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
         {sps.map((sp, i) => (
-          <column box-="square" pad-="1" key={i} style={{ gap: '1rem' }}>
-            <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>{sp.domain}</h3>
-              <span is-="badge" variant-="success" size-="half">ONLINE</span>
+          <column box-="round" shear-="top" pad-="1" key={i} style={{ gap: '1rem' }}>
+            <row gap-="1" align-="between" style={{ marginTop: '-0.5rem' }}>
+              <span is-="badge" variant-="blue" cap-="ribbon triangle">{sp.domain}</span>
+              <span is-="badge" variant-="success" cap-="round" size-="half">◉ ONLINE</span>
             </row>
 
             <column style={{ gap: '0.75rem' }}>
@@ -38,8 +38,10 @@ export function ProvidersTab() {
       </row>
 
       {/* SP Details Table */}
-      <column box-="square" pad-="1" style={{ gap: '1rem' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Provider Details</h3>
+      <column box-="double" shear-="top" pad-="1" style={{ gap: '1rem' }}>
+        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="accent" cap-="triangle slant-bottom">📊 Provider Details</span>
+        </row>
         <table is-="table">
           <thead>
             <tr>
@@ -67,27 +69,26 @@ export function ProvidersTab() {
       </column>
 
       {/* Summary Stats */}
-      <row box-="square" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+      <row box-="round" shear-="both" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem' }}>
+          <row gap-="1">
+            <span is-="badge" variant-="green" cap-="slant-top ribbon">📈 Network Summary</span>
+          </row>
+        </column>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Total Providers
-          </small>
+          <span is-="badge" variant-="success" cap-="round" size-="half">Total Providers</span>
           <h4 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, color: 'var(--success)' }}>{sps.length}</h4>
         </column>
 
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Avg Usage
-          </small>
+          <span is-="badge" variant-="accent" cap-="round" size-="half">Avg Usage</span>
           <h4 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, color: 'var(--accent)' }}>
             {(sps.reduce((a,b) => a + b.usage, 0) / sps.length).toFixed(1)}%
           </h4>
         </column>
 
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Avg Response
-          </small>
+          <span is-="badge" variant-="blue" cap-="round" size-="half">Avg Response</span>
           <h4 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0, color: 'var(--blue)' }}>45ms</h4>
         </column>
       </row>
