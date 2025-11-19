@@ -35,7 +35,10 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         const latency = performance.now() - start
         setCurrentLatency(latency)
         setLatencyData(prev => {
-          const newData = [...prev, latency].slice(-600) // 10 minutes of history
+          // Mobile-first: 2 minutes (120 points), Desktop: 3 minutes (180 points)
+          const isMobile = window.innerWidth < 768
+          const maxPoints = isMobile ? 120 : 180
+          const newData = [...prev, latency].slice(-maxPoints)
           // Persist to localStorage
           localStorage.setItem('shelby-latency-history', JSON.stringify(newData))
           return newData
@@ -110,8 +113,12 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
       // Chart line with smooth curves
       if (latencyData.length > 1) {
-        // Add 20% headroom so spikes don't compress the chart
-        const maxLatency = Math.max(...latencyData, 100) * 1.2
+        // Use 95th percentile instead of max to prevent outlier compression
+        const sorted = [...latencyData].sort((a, b) => a - b)
+        const p95Index = Math.floor(sorted.length * 0.95)
+        const p95Value = sorted[p95Index] || 100
+        // Add 25% headroom for visual breathing room
+        const maxLatency = Math.max(p95Value * 1.25, 100)
         const pointSpacing = renderWidth / latencyData.length
         const chartHeight = renderHeight - 80
 
@@ -339,7 +346,11 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         </column>
         <column style={{ gap: '0.5rem' }}>
           <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>History</small>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{(latencyData.length / 60).toFixed(1)}min</h2>
+          <h2 style={{ fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>
+            {latencyData.length < 60
+              ? `${latencyData.length}s`
+              : `${(latencyData.length / 60).toFixed(1)}min`}
+          </h2>
         </column>
       </row>
     </column>
