@@ -62,13 +62,19 @@ export function EconomyTab() {
   };
 
   const formatAmount = (amount: number) => {
-    if (amount >= 1_000_000) {
-      return `${(amount / 1_000_000).toFixed(2)}M`;
+    // ShelbyUSD has 8 decimals, so convert from smallest units first
+    const shelbyUSD = amount / 100_000_000;
+
+    if (shelbyUSD >= 1_000_000) {
+      return `${(shelbyUSD / 1_000_000).toFixed(2)}M`;
     }
-    if (amount >= 1_000) {
-      return `${(amount / 1_000).toFixed(2)}K`;
+    if (shelbyUSD >= 1_000) {
+      return `${(shelbyUSD / 1_000).toFixed(2)}K`;
     }
-    return amount.toFixed(0);
+    if (shelbyUSD >= 1) {
+      return shelbyUSD.toFixed(2);
+    }
+    return shelbyUSD.toFixed(4);
   };
 
   if (isLoading || !data) {
@@ -178,86 +184,8 @@ export function EconomyTab() {
         </column>
       </column>
 
-      {/* Top Earners & Spenders */}
-      <row
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1.5rem',
-        }}
-      >
-        {/* Top Earners */}
-        <column gap-="1">
-          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-            ┌─── Top Earners ───┐
-          </h3>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-            Accounts earning most from read rewards
-          </small>
-          <column gap-="0" style={{ fontSize: '0.85rem' }}>
-            {data.topEarners.map((entry, i) => (
-              <row
-                key={entry.address}
-                style={{
-                  padding: '0.4rem 0',
-                  borderBottom: i < data.topEarners.length - 1 ? '1px solid var(--background2)' : 'none',
-                  gap: '0.75rem',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
-                  {i + 1}.
-                </span>
-                <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', minWidth: '120px' }}>
-                  {shortenAddress(entry.address)}
-                </span>
-                <span style={{ flex: 1 }}>
-                  <AsciiBar width={entry.barWidth} color="#00C896" />
-                </span>
-                <span style={{ color: '#00C896', fontWeight: 600, minWidth: '60px', textAlign: 'right' }}>
-                  {formatAmount(entry.totalEarned)}
-                </span>
-              </row>
-            ))}
-          </column>
-        </column>
-
-        {/* Top Spenders */}
-        <column gap-="1">
-          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-            ┌─── Top Spenders ───┐
-          </h3>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-            Accounts spending most on upload costs
-          </small>
-          <column gap-="0" style={{ fontSize: '0.85rem' }}>
-            {data.topSpenders.map((entry, i) => (
-              <row
-                key={entry.address}
-                style={{
-                  padding: '0.4rem 0',
-                  borderBottom: i < data.topSpenders.length - 1 ? '1px solid var(--background2)' : 'none',
-                  gap: '0.75rem',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
-                  {i + 1}.
-                </span>
-                <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', minWidth: '120px' }}>
-                  {shortenAddress(entry.address)}
-                </span>
-                <span style={{ flex: 1 }}>
-                  <AsciiBar width={entry.barWidth} color="#FF6B6B" />
-                </span>
-                <span style={{ color: '#FF6B6B', fontWeight: 600, minWidth: '60px', textAlign: 'right' }}>
-                  {formatAmount(entry.totalSpent)}
-                </span>
-              </row>
-            ))}
-          </column>
-        </column>
-      </row>
+      {/* Note: Earners/Spenders temporarily disabled - need store-to-owner mapping */}
+      {/* Will be implemented in next update */}
     </column>
   );
 }
