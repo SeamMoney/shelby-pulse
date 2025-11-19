@@ -225,48 +225,76 @@ export class ShelbyAptosClient {
 
   /**
    * Get ShelbyUSD balances from current_fungible_asset_balances table
+   * Uses pagination to fetch ALL balances (GraphQL limit is ~100 per query)
    */
-  async getShelbyUSDBalances(limit = 100): Promise<Array<{owner: string, balance: number}>> {
+  async getShelbyUSDBalances(maxResults = 10000): Promise<Array<{owner: string, balance: number}>> {
     try {
-      const query = `
-        query GetShelbyUSDBalances($limit: Int!, $metadata: String!) {
-          current_fungible_asset_balances(
-            where: {asset_type: {_eq: $metadata}}
-            order_by: {amount: desc}
-            limit: $limit
-          ) {
-            owner_address
-            amount
+      const allBalances: Array<{owner: string, balance: number}> = [];
+      const pageSize = 100; // GraphQL server limit
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore && allBalances.length < maxResults) {
+        const query = `
+          query GetShelbyUSDBalances($limit: Int!, $offset: Int!, $metadata: String!) {
+            current_fungible_asset_balances(
+              where: {asset_type: {_eq: $metadata}}
+              order_by: {amount: desc}
+              limit: $limit
+              offset: $offset
+            ) {
+              owner_address
+              amount
+            }
           }
-        }
-      `;
+        `;
 
-      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          variables: {
-            limit,
-            metadata: SHELBYUSD_METADATA
+        const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        }),
-      });
+          body: JSON.stringify({
+            query,
+            variables: {
+              limit: pageSize,
+              offset,
+              metadata: SHELBYUSD_METADATA
+            },
+          }),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (result.errors) {
-        logger.warn({ errors: result.errors }, "GraphQL query returned errors");
-        return [];
+        if (result.errors) {
+          logger.warn({ errors: result.errors }, "GraphQL query returned errors");
+          break;
+        }
+
+        const balances = result.data?.current_fungible_asset_balances || [];
+
+        if (balances.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const b of balances) {
+          allBalances.push({
+            owner: b.owner_address,
+            balance: Number.parseInt(b.amount || "0", 10),
+          });
+        }
+
+        offset += pageSize;
+
+        // If we got fewer results than page size, we've reached the end
+        if (balances.length < pageSize) {
+          hasMore = false;
+        }
       }
 
-      const balances = result.data?.current_fungible_asset_balances || [];
-      return balances.map((b: any) => ({
-        owner: b.owner_address,
-        balance: Number.parseInt(b.amount || "0", 10),
-      }));
+      logger.info({ totalBalances: allBalances.length, totalSupply: allBalances.reduce((sum, b) => sum + b.balance, 0) }, "Fetched all ShelbyUSD balances");
+      return allBalances;
     } catch (error) {
       logger.error({ error }, "Failed to fetch ShelbyUSD balances");
       return [];
@@ -338,58 +366,98 @@ export class ShelbyAptosClient {
 
   /**
    * Get ShelbyUSD activities from fungible_asset_activities table
+   * Uses pagination to fetch ALL activities (GraphQL limit is ~100 per query)
    */
-  async getShelbyUSDActivities(limit = 1000): Promise<Array<{
+  async getShelbyUSDActivities(maxResults = 100000): Promise<Array<{
     owner: string;
     type: 'deposit' | 'withdraw';
     amount: number;
     version: string;
   }>> {
     try {
-      const query = `
-        query GetShelbyUSDActivities($limit: Int!, $metadata: String!) {
-          fungible_asset_activities(
-            where: {asset_type: {_eq: $metadata}}
-            order_by: {transaction_version: desc}
-            limit: $limit
-          ) {
-            owner_address
-            type
-            amount
-            transaction_version
-            is_frozen
+      const allActivities: Array<{
+        owner: string;
+        type: 'deposit' | 'withdraw';
+        amount: number;
+        version: string;
+      }> = [];
+      const pageSize = 100; // GraphQL server limit
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore && allActivities.length < maxResults) {
+        const query = `
+          query GetShelbyUSDActivities($limit: Int!, $offset: Int!, $metadata: String!) {
+            fungible_asset_activities(
+              where: {asset_type: {_eq: $metadata}}
+              order_by: {transaction_version: desc}
+              limit: $limit
+              offset: $offset
+            ) {
+              owner_address
+              type
+              amount
+              transaction_version
+              is_frozen
+            }
           }
-        }
-      `;
+        `;
 
-      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          variables: {
-            limit,
-            metadata: SHELBYUSD_METADATA
+        const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        }),
-      });
+          body: JSON.stringify({
+            query,
+            variables: {
+              limit: pageSize,
+              offset,
+              metadata: SHELBYUSD_METADATA
+            },
+          }),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (result.errors) {
-        logger.warn({ errors: result.errors }, "GraphQL query returned errors");
-        return [];
+        if (result.errors) {
+          logger.warn({ errors: result.errors }, "GraphQL query returned errors");
+          break;
+        }
+
+        const activities = result.data?.fungible_asset_activities || [];
+
+        if (activities.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const activity of activities) {
+          allActivities.push({
+            owner: activity.owner_address,
+            type: activity.type.toLowerCase() as 'deposit' | 'withdraw',
+            amount: Number.parseInt(activity.amount || "0", 10),
+            version: activity.transaction_version,
+          });
+        }
+
+        offset += pageSize;
+
+        // If we got fewer results than page size, we've reached the end
+        if (activities.length < pageSize) {
+          hasMore = false;
+        }
       }
 
-      const activities = result.data?.fungible_asset_activities || [];
-      return activities.map((activity: any) => ({
-        owner: activity.owner_address,
-        type: activity.type.toLowerCase() as 'deposit' | 'withdraw',
-        amount: Number.parseInt(activity.amount || "0", 10),
-        version: activity.transaction_version,
-      }));
+      logger.info(
+        {
+          totalActivities: allActivities.length,
+          deposits: allActivities.filter(a => a.type === 'deposit').length,
+          withdraws: allActivities.filter(a => a.type === 'withdraw').length
+        },
+        "Fetched all ShelbyUSD activities"
+      );
+      return allActivities;
     } catch (error) {
       logger.error({ error }, "Failed to fetch ShelbyUSD activities");
       return [];
