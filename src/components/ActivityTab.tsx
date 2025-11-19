@@ -131,14 +131,17 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           ctx.beginPath()
           latencyData.forEach((latency, i) => {
             const x = i * pointSpacing
-            const y = 40 + chartHeight - ((latency / maxLatency) * chartHeight)
+            // Clamp latency to maxLatency so outliers don't go off-screen
+            const clampedLatency = Math.min(latency, maxLatency)
+            const y = 40 + chartHeight - ((clampedLatency / maxLatency) * chartHeight)
 
             if (i === 0) {
               ctx.moveTo(x, y)
             } else {
               const prevLatency = latencyData[i - 1]
+              const clampedPrevLatency = Math.min(prevLatency, maxLatency)
               const prevX = (i - 1) * pointSpacing
-              const prevY = 40 + chartHeight - ((prevLatency / maxLatency) * chartHeight)
+              const prevY = 40 + chartHeight - ((clampedPrevLatency / maxLatency) * chartHeight)
               const cpX = prevX + (x - prevX) / 2
               const cpY = prevY + (y - prevY) / 2
               ctx.quadraticCurveTo(prevX, prevY, cpX, cpY)
@@ -147,8 +150,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
           if (latencyData.length > 0) {
             const lastLatency = latencyData[latencyData.length - 1]
+            const clampedLastLatency = Math.min(lastLatency, maxLatency)
             const lastX = (latencyData.length - 1) * pointSpacing
-            const lastY = 40 + chartHeight - ((lastLatency / maxLatency) * chartHeight)
+            const lastY = 40 + chartHeight - ((clampedLastLatency / maxLatency) * chartHeight)
             ctx.lineTo(lastX, lastY)
           }
         }
@@ -186,8 +190,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
             latencyData.length - 1
           )
           const latency = latencyData[index]
+          const clampedLatency = Math.min(latency, maxLatency)
           const x = index * pointSpacing
-          const y = 40 + chartHeight - ((latency / maxLatency) * chartHeight)
+          const y = 40 + chartHeight - ((clampedLatency / maxLatency) * chartHeight)
 
           // Crosshair vertical line - light grey
           ctx.beginPath()
