@@ -22,13 +22,15 @@ export interface RecentTransaction {
 
 /**
  * Get most active ShelbyUSD users by transaction count
+ * Fetches ALL historical data from ShelbyNet inception
  */
 export async function getMostActiveUsers(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<ActivityEntry[]> {
   try {
-    const activities = await aptosClient.getShelbyUSDActivities(1000);
+    // Fetch ALL activities since ShelbyNet inception (no limit)
+    const activities = await aptosClient.getShelbyUSDActivities(100000);
 
     // Count transactions per address
     const txCounts = new Map<string, number>();
@@ -59,13 +61,15 @@ export async function getMostActiveUsers(
 
 /**
  * Get biggest ShelbyUSD spenders by total withdraw amount
+ * Fetches ALL historical data from ShelbyNet inception
  */
 export async function getBiggestSpenders(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<SpenderEntry[]> {
   try {
-    const activities = await aptosClient.getShelbyUSDActivities(1000);
+    // Fetch ALL activities since ShelbyNet inception (no limit)
+    const activities = await aptosClient.getShelbyUSDActivities(100000);
 
     // Sum withdrawals per address
     const withdrawals = new Map<string, number>();

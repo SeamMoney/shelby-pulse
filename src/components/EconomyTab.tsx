@@ -14,6 +14,16 @@ interface VolumeData {
   velocity: number;
 }
 
+interface AllTimeStats {
+  totalSupply: number;
+  totalHolders: number;
+  totalTransactions: number;
+  totalVolume: number;
+  averageTransactionSize: number;
+  firstTransactionVersion: string;
+  lastTransactionVersion: string;
+}
+
 interface ActivityEntry {
   address: string;
   txCount: number;
@@ -36,6 +46,7 @@ interface RecentTransaction {
 interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
+  allTimeStats: AllTimeStats;
   mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
   recentTransactions: RecentTransaction[];
@@ -94,19 +105,62 @@ export function EconomyTab() {
     );
   }
 
-  const totalSupply = data.leaderboard.reduce((sum, entry) => sum + entry.balance, 0);
-
   return (
     <column gap-="2" pad-="1" style={{ overflowY: 'auto', height: '100%' }}>
       {/* Header */}
       <column box-="double round" shear-="top" pad-="1" gap-="1">
         <row gap-="1" align-="between" style={{ marginTop: '-0.5rem' }}>
           <span is-="badge" variant-="pink" cap-="ribbon triangle">SHELBYUSD ECONOMY</span>
-          <span is-="badge" variant-="success" cap-="round" size-="half">◉ LIVE</span>
+          <row gap-="0.5">
+            <span is-="badge" variant-="background2" cap-="round" size-="half">ShelbyNet (Devnet)</span>
+            <span is-="badge" variant-="success" cap-="round" size-="half">◉ LIVE</span>
+          </row>
         </row>
         <small style={{ color: 'var(--foreground2)' }}>
-          Network-wide ShelbyUSD statistics and leaderboards
+          All-time ShelbyUSD statistics since network inception • Value accrual preview for future $Shelby token
         </small>
+      </column>
+
+      {/* All-Time Stats */}
+      <column box-="double round" shear-="top" pad-="1" gap-="1">
+        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="accent" cap-="ribbon slant-bottom">📈 Network-Wide Stats</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">since inception</span>
+        </row>
+        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+          <column gap-="0">
+            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+              Total Supply
+            </small>
+            <h2 style={{ color: '#4A90E2', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
+              {formatAmount(data.allTimeStats.totalSupply)}
+            </h2>
+          </column>
+          <column gap-="0">
+            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+              Total Holders
+            </small>
+            <h2 style={{ color: '#00C896', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
+              {data.allTimeStats.totalHolders}
+            </h2>
+          </column>
+          <column gap-="0">
+            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+              All-Time Volume
+            </small>
+            <h2 style={{ color: '#FFA500', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
+              {formatAmount(data.allTimeStats.totalVolume)}
+            </h2>
+          </column>
+          <column gap-="0">
+            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+              Total Txs
+            </small>
+            <h2 style={{ color: '#FF1493', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
+              {data.allTimeStats.totalTransactions}
+            </h2>
+          </column>
+        </row>
       </column>
 
       {/* Volume Stats */}
@@ -147,7 +201,7 @@ export function EconomyTab() {
         <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
           <span is-="badge" variant-="accent" cap-="triangle ribbon">💎 Top Holders</span>
           <span is-="badge" variant-="background2" cap-="round" size-="half">
-            Supply: {formatAmount(totalSupply)}
+            of {data.allTimeStats.totalHolders} total
           </span>
         </row>
         <column gap-="0" style={{ fontSize: '0.9rem' }}>

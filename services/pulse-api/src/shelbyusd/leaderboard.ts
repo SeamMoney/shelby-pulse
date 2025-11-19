@@ -9,14 +9,15 @@ export interface LeaderboardEntry {
 
 /**
  * Get top ShelbyUSD holders from current balances table
+ * Queries ALL balances on ShelbyNet
  */
 export async function getShelbyUSDLeaderboard(
   aptosClient: ShelbyAptosClient,
   limit = 20
 ): Promise<LeaderboardEntry[]> {
   try {
-    // Fetch ShelbyUSD balances directly from the balances table
-    const balances = await aptosClient.getShelbyUSDBalances(limit);
+    // Fetch ALL ShelbyUSD balances on ShelbyNet (increased limit to capture all holders)
+    const balances = await aptosClient.getShelbyUSDBalances(10000);
 
     if (balances.length === 0) {
       return [];

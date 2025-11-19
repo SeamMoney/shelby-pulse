@@ -5,6 +5,7 @@ import { logger } from "./logger";
 import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/leaderboard";
 import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
 import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
+import { getAllTimeStats, type AllTimeStats } from "./shelbyusd/all-time-stats";
 
 export interface NetworkStats {
   totalBlobs: number;
@@ -28,6 +29,7 @@ export interface BlobData {
 export interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
+  allTimeStats: AllTimeStats;
   mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
   recentTransactions: RecentTransaction[];
@@ -196,6 +198,7 @@ export class DataService {
 
   /**
    * Get ShelbyUSD economy data with caching
+   * Includes all-time stats since ShelbyNet (devnet) inception
    */
   async getEconomyData(): Promise<EconomyData> {
     const cacheKey = "economy_data";
@@ -205,9 +208,10 @@ export class DataService {
     }
 
     try {
-      const [leaderboard, volume, mostActive, topSpenders, recentTransactions] = await Promise.all([
+      const [leaderboard, volume, allTimeStats, mostActive, topSpenders, recentTransactions] = await Promise.all([
         getShelbyUSDLeaderboard(this.aptosClient, 20),
         get24hVolume(this.aptosClient),
+        getAllTimeStats(this.aptosClient),
         getMostActiveUsers(this.aptosClient, 10),
         getBiggestSpenders(this.aptosClient, 10),
         getRecentTransactions(this.aptosClient, 20),
@@ -216,6 +220,7 @@ export class DataService {
       const economyData: EconomyData = {
         leaderboard,
         volume,
+        allTimeStats,
         mostActive,
         topSpenders,
         recentTransactions,
