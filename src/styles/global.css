@@ -403,10 +403,10 @@ body, html {
 
   /* Make canvas responsive on mobile */
   canvas {
-    height: calc(100vh - 450px) !important;
-    min-height: 350px !important;
+    flex: 1 1 auto !important;
+    min-height: 400px !important;
     max-height: none !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.5rem !important;
   }
 
   /* Reasonable stats sizing */

@@ -284,14 +284,14 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   }
 
   return (
-    <column gap-="1">
+    <column gap-="1" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <canvas
         ref={canvasRef}
         style={{
           width: '100%',
-          height: 'calc(100vh - 350px)',
-          minHeight: '500px',
-          marginBottom: '2rem',
+          flex: '1 1 auto',
+          minHeight: '600px',
+          marginBottom: '1rem',
           cursor: isInteracting ? 'grabbing' : 'grab',
           touchAction: 'none'
         }}
@@ -302,7 +302,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         onPointerCancel={handlePointerUp}
       />
 
-      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', padding: '1rem 0' }}>
+      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', padding: '1rem 0', flexShrink: 0 }}>
         <column style={{ gap: '0.5rem' }}>
           <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>
             {isInteracting && selectedIndex !== null ? 'Selected' : 'Current'}
