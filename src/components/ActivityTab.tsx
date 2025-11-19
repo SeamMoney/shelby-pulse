@@ -90,18 +90,29 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     if (!ctx) return
 
     const animate = () => {
-      const width = canvas.width = canvas.offsetWidth * 2
-      const height = canvas.height = 600 * 2  // Bigger chart!
-      canvas.style.width = `${width / 2}px`
-      canvas.style.height = `${height / 2}px`
+      const dpr = window.devicePixelRatio || 1
+      const rect = canvas.getBoundingClientRect()
 
-      ctx.clearRect(0, 0, width, height)
+      canvas.width = rect.width * dpr
+      canvas.height = rect.height * dpr
+      canvas.style.width = `${rect.width}px`
+      canvas.style.height = `${rect.height}px`
+
+      const width = canvas.width
+      const height = canvas.height
+
+      ctx.scale(dpr, dpr)
+      ctx.clearRect(0, 0, rect.width, rect.height)
+
+      // Actual rendering dimensions
+      const renderWidth = rect.width
+      const renderHeight = rect.height
 
       // Chart line with smooth curves
       if (latencyData.length > 1) {
         const maxLatency = Math.max(...latencyData, 100)
-        const pointSpacing = width / latencyData.length
-        const chartHeight = height - 80
+        const pointSpacing = renderWidth / latencyData.length
+        const chartHeight = renderHeight - 80
 
         // Glowing pink aesthetic
         const pinkGlow = '#FF69B4'  // Hot pink
@@ -176,8 +187,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
         // Draw interactive crosshair
         if (isInteracting && pointerX !== null && latencyData.length > 1) {
-          const pointSpacing = width / latencyData.length
-          const chartHeight = height - 80
+          const pointSpacing = renderWidth / latencyData.length
+          const chartHeight = renderHeight - 80
           const index = Math.min(
             Math.max(0, Math.floor(pointerX / pointSpacing)),
             latencyData.length - 1
@@ -186,39 +197,32 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           const x = index * pointSpacing
           const y = 40 + chartHeight - ((latency / maxLatency) * chartHeight)
 
-          // Vertical line with glow
+          // Thin vertical line - dark grey
           ctx.beginPath()
           ctx.moveTo(x, 40)
-          ctx.lineTo(x, height - 40)
-          ctx.strokeStyle = '#FF1493'
-          ctx.lineWidth = 3
-          ctx.globalAlpha = 0.6
-          ctx.shadowBlur = 20
-          ctx.shadowColor = '#FF69B4'
+          ctx.lineTo(x, renderHeight - 40)
+          ctx.strokeStyle = '#404040'
+          ctx.lineWidth = 1
+          ctx.globalAlpha = 0.8
+          ctx.shadowBlur = 0
           ctx.stroke()
 
-          // Crosshair circle at data point
+          // Small circle at data point
           ctx.beginPath()
-          ctx.arc(x, y, 12, 0, Math.PI * 2)
-          ctx.fillStyle = '#FF1493'
-          ctx.globalAlpha = 0.3
-          ctx.shadowBlur = 30
-          ctx.fill()
-
-          ctx.beginPath()
-          ctx.arc(x, y, 8, 0, Math.PI * 2)
+          ctx.arc(x, y, 6, 0, Math.PI * 2)
           ctx.fillStyle = '#FF1493'
           ctx.globalAlpha = 1
-          ctx.shadowBlur = 15
+          ctx.shadowBlur = 8
+          ctx.shadowColor = '#FF1493'
           ctx.fill()
 
           // Value label
-          ctx.font = 'bold 28px Cascadia Code, monospace'
-          ctx.fillStyle = '#FF1493'
+          ctx.font = 'bold 20px Cascadia Code, monospace'
+          ctx.fillStyle = '#1a1a1a'
           ctx.textAlign = 'center'
           ctx.globalAlpha = 1
-          ctx.shadowBlur = 10
-          ctx.fillText(`${Math.round(latency)}ms`, x, y - 30)
+          ctx.shadowBlur = 0
+          ctx.fillText(`${Math.round(latency)}ms`, x, y - 20)
 
           ctx.shadowBlur = 0
           ctx.globalAlpha = 1
@@ -256,7 +260,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left) * 2 // Account for 2x pixel ratio
+    const x = e.clientX - rect.left
     setTargetPointerX(x)
   }
 
@@ -265,7 +269,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left) * 2
+    const x = e.clientX - rect.left
     setTargetPointerX(x)
   }
 
