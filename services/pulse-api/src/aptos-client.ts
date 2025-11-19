@@ -31,7 +31,7 @@ export interface StorageProvider {
 }
 
 export interface ShelbyUSDEvent {
-  type: 'withdraw' | 'deposit';
+  type: 'withdraw' | 'deposit' | 'mint' | 'burn';
   account: string;
   amount: number;
   timestamp: number;
@@ -370,14 +370,14 @@ export class ShelbyAptosClient {
    */
   async getShelbyUSDActivities(maxResults = 100000): Promise<Array<{
     owner: string;
-    type: 'deposit' | 'withdraw';
+    type: 'deposit' | 'withdraw' | 'mint' | 'burn';
     amount: number;
     version: string;
   }>> {
     try {
       const allActivities: Array<{
         owner: string;
-        type: 'deposit' | 'withdraw';
+        type: 'deposit' | 'withdraw' | 'mint' | 'burn';
         amount: number;
         version: string;
       }> = [];
@@ -433,9 +433,23 @@ export class ShelbyAptosClient {
         }
 
         for (const activity of activities) {
+          // Parse the type from GraphQL (e.g., "0x1::fungible_asset::Deposit" -> "deposit")
+          const typeStr = activity.type.toLowerCase();
+          let activityType: 'deposit' | 'withdraw' | 'mint' | 'burn' = 'deposit';
+
+          if (typeStr.includes('withdraw')) {
+            activityType = 'withdraw';
+          } else if (typeStr.includes('mint')) {
+            activityType = 'mint';
+          } else if (typeStr.includes('burn')) {
+            activityType = 'burn';
+          } else if (typeStr.includes('deposit')) {
+            activityType = 'deposit';
+          }
+
           allActivities.push({
             owner: activity.owner_address,
-            type: activity.type.toLowerCase() as 'deposit' | 'withdraw',
+            type: activityType,
             amount: Number.parseInt(activity.amount || "0", 10),
             version: activity.transaction_version,
           });
@@ -453,7 +467,9 @@ export class ShelbyAptosClient {
         {
           totalActivities: allActivities.length,
           deposits: allActivities.filter(a => a.type === 'deposit').length,
-          withdraws: allActivities.filter(a => a.type === 'withdraw').length
+          withdraws: allActivities.filter(a => a.type === 'withdraw').length,
+          mints: allActivities.filter(a => a.type === 'mint').length,
+          burns: allActivities.filter(a => a.type === 'burn').length,
         },
         "Fetched all ShelbyUSD activities"
       );

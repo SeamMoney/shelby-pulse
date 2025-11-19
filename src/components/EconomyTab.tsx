@@ -38,9 +38,16 @@ interface SpenderEntry {
 
 interface RecentTransaction {
   address: string;
-  type: 'deposit' | 'withdraw';
+  type: 'deposit' | 'withdraw' | 'mint' | 'burn';
   amount: number;
   version: number;
+}
+
+interface MinterEntry {
+  address: string;
+  totalMinted: number;
+  mintCount: number;
+  barWidth: number;
 }
 
 interface EconomyData {
@@ -49,6 +56,7 @@ interface EconomyData {
   allTimeStats: AllTimeStats;
   mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
+  topMinters: MinterEntry[];
   recentTransactions: RecentTransaction[];
   timestamp: number;
 }
@@ -94,6 +102,21 @@ export function EconomyTab() {
       return shelbyUSD.toFixed(2);
     }
     return shelbyUSD.toFixed(4);
+  };
+
+  const getTransactionLabel = (type: RecentTransaction['type']) => {
+    switch (type) {
+      case 'mint':
+        return { icon: '✨', label: 'Minted', color: '#00C896' };
+      case 'deposit':
+        return { icon: '↓', label: 'Received', color: '#4A90E2' };
+      case 'withdraw':
+        return { icon: '↑', label: 'Sent', color: '#FFA500' };
+      case 'burn':
+        return { icon: '🔥', label: 'Burned', color: '#FF1493' };
+      default:
+        return { icon: '•', label: type, color: 'var(--foreground2)' };
+    }
   };
 
   if (isLoading || !data) {
@@ -339,58 +362,110 @@ export function EconomyTab() {
         </column>
       </column>
 
-      {/* Recent Transactions */}
-      <column box-="round" shear-="both" pad-="1" gap-="1">
+      {/* Top Minters - Airdrop Eligible */}
+      <column box-="double round" shear-="top" pad-="1" gap-="1">
         <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="green" cap-="triangle triangle">📊 Recent Transactions</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>
+          <span is-="badge" variant-="green" cap-="ribbon triangle">✨ Top Minters</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">
+            $SHELBY airdrop eligible
+          </span>
         </row>
-        <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>
-          {data.recentTransactions.slice(0, 15).map((tx, i) => (
+        <column gap-="0" style={{ fontSize: '0.9rem' }}>
+          {data.topMinters.slice(0, 10).map((entry, i) => (
             <row
-              key={`${tx.version}-${i}`}
+              key={entry.address}
               style={{
-                padding: '0.4rem 0',
-                borderBottom: i < 14 ? '1px solid var(--background2)' : 'none',
-                gap: '0.75rem',
+                padding: '0.5rem 0',
+                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
+                gap: '1rem',
                 alignItems: 'center',
               }}
             >
+              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
+                {i + 1}.
+              </span>
               <span
                 style={{
-                  color: tx.type === 'withdraw' ? '#FFA500' : '#00C896',
-                  minWidth: '60px',
-                  fontSize: '0.75rem',
+                  fontFamily: 'monospace',
+                  fontSize: '0.85rem',
+                  minWidth: '140px',
                 }}
               >
-                {tx.type === 'withdraw' ? '↓ WDRW' : '↑ DPST'}
+                {shortenAddress(entry.address)}
               </span>
-              <span style={{ minWidth: '120px', fontSize: '0.75rem' }}>
-                {shortenAddress(tx.address)}
-              </span>
-              <span
-                style={{
-                  color: 'var(--foreground)',
-                  fontWeight: 500,
-                  textAlign: 'right',
-                  flex: 1,
-                  fontSize: '0.75rem',
-                }}
-              >
-                {formatAmount(tx.amount)}
+              <span style={{ flex: 1 }}>
+                <AsciiBar width={entry.barWidth} />
               </span>
               <span
                 style={{
-                  color: 'var(--foreground2)',
-                  fontSize: '0.7rem',
-                  minWidth: '60px',
+                  color: '#00C896',
+                  fontWeight: 600,
+                  minWidth: '80px',
                   textAlign: 'right',
                 }}
               >
-                #{tx.version}
+                {formatAmount(entry.totalMinted)}
               </span>
             </row>
           ))}
+        </column>
+      </column>
+
+      {/* Recent Transactions */}
+      <column box-="round" shear-="both" pad-="1" gap-="1">
+        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          <span is-="badge" variant-="green" cap-="triangle triangle">📊 Recent Activity</span>
+          <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>
+        </row>
+        <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>
+          {data.recentTransactions.slice(0, 15).map((tx, i) => {
+            const txInfo = getTransactionLabel(tx.type);
+            return (
+              <row
+                key={`${tx.version}-${i}`}
+                style={{
+                  padding: '0.4rem 0',
+                  borderBottom: i < 14 ? '1px solid var(--background2)' : 'none',
+                  gap: '0.75rem',
+                  alignItems: 'center',
+                }}
+              >
+                <span
+                  style={{
+                    color: txInfo.color,
+                    minWidth: '80px',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {txInfo.icon} {txInfo.label}
+                </span>
+                <span style={{ minWidth: '120px', fontSize: '0.75rem' }}>
+                  {shortenAddress(tx.address)}
+                </span>
+                <span
+                  style={{
+                    color: 'var(--foreground)',
+                    fontWeight: 500,
+                    textAlign: 'right',
+                    flex: 1,
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {formatAmount(tx.amount)}
+                </span>
+                <span
+                  style={{
+                    color: 'var(--foreground2)',
+                    fontSize: '0.7rem',
+                    minWidth: '60px',
+                    textAlign: 'right',
+                  }}
+                >
+                  #{tx.version}
+                </span>
+              </row>
+            );
+          })}
         </column>
       </column>
     </column>
