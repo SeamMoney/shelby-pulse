@@ -3,8 +3,9 @@ import { backendApi } from './api/backend'
 import { MetricsTab } from './components/MetricsTab'
 import { ProvidersTab } from './components/ProvidersTab'
 import { ActivityTab } from './components/ActivityTab'
+import { EconomyTab } from './components/EconomyTab'
 
-type Tab = 'activity' | 'metrics' | 'providers'
+type Tab = 'activity' | 'metrics' | 'providers' | 'economy'
 
 interface NetworkStats {
   totalBlobs: number
@@ -127,6 +128,12 @@ function App() {
               Activity
             </button>
             <button
+              onClick={() => setActiveTab('economy')}
+              className={activeTab === 'economy' ? 'active' : ''}
+            >
+              Economy
+            </button>
+            <button
               onClick={() => setActiveTab('metrics')}
               className={activeTab === 'metrics' ? 'active' : ''}
             >
@@ -169,6 +176,7 @@ function App() {
         {/* Content */}
         <column className="terminal-content" pad-="1">
           {activeTab === 'activity' && <ActivityTab currentTime={currentTime} />}
+          {activeTab === 'economy' && <EconomyTab />}
           {activeTab === 'metrics' && <MetricsTab />}
           {activeTab === 'providers' && <ProvidersTab />}
         </column>

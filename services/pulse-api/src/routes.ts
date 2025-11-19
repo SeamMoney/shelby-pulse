@@ -78,6 +78,20 @@ export function createRouter(dataService: DataService): Router {
   });
 
   /**
+   * GET /api/economy
+   * Returns ShelbyUSD economy data (leaderboards, volume, earners, spenders)
+   */
+  router.get("/economy", async (req, res) => {
+    try {
+      const economy = await dataService.getEconomyData();
+      res.json(economy);
+    } catch (error) {
+      logger.error({ error }, "Failed to get economy data");
+      res.status(500).json({ error: "Failed to fetch economy data" });
+    }
+  });
+
+  /**
    * POST /api/cache/clear
    * Clear the cache (for debugging)
    */

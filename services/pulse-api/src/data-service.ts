@@ -2,6 +2,10 @@ import NodeCache from "node-cache";
 import type { ApiConfig } from "./config";
 import { ShelbyAptosClient, type BlobEvent, type StorageProvider } from "./aptos-client";
 import { logger } from "./logger";
+import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/leaderboard";
+import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
+import { getTopEarners, type EarnerEntry } from "./shelbyusd/earners";
+import { getTopSpenders, type SpenderEntry } from "./shelbyusd/spenders";
 
 export interface NetworkStats {
   totalBlobs: number;
@@ -20,6 +24,14 @@ export interface BlobData {
   size: string;
   sizeBytes: number;
   version: string;
+}
+
+export interface EconomyData {
+  leaderboard: LeaderboardEntry[];
+  volume: VolumeData;
+  topEarners: EarnerEntry[];
+  topSpenders: SpenderEntry[];
+  timestamp: number;
 }
 
 export class DataService {
@@ -179,6 +191,40 @@ export class DataService {
         status: "unhealthy",
         timestamp: Date.now(),
       };
+    }
+  }
+
+  /**
+   * Get ShelbyUSD economy data with caching
+   */
+  async getEconomyData(): Promise<EconomyData> {
+    const cacheKey = "economy_data";
+    const cached = this.cache.get<EconomyData>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const [leaderboard, volume, topEarners, topSpenders] = await Promise.all([
+        getShelbyUSDLeaderboard(this.aptosClient, 20),
+        get24hVolume(this.aptosClient),
+        getTopEarners(this.aptosClient, 10),
+        getTopSpenders(this.aptosClient, 10),
+      ]);
+
+      const economyData: EconomyData = {
+        leaderboard,
+        volume,
+        topEarners,
+        topSpenders,
+        timestamp: Date.now(),
+      };
+
+      this.cache.set(cacheKey, economyData);
+      return economyData;
+    } catch (error) {
+      logger.error({ error }, "Failed to fetch economy data");
+      throw error;
     }
   }
 

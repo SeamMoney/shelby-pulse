@@ -39,6 +39,38 @@ export interface BlobEvent {
   sequence_number: string;
 }
 
+export interface LeaderboardEntry {
+  address: string;
+  balance: number;
+  barWidth: number;
+}
+
+export interface VolumeData {
+  volume24h: number;
+  transferCount24h: number;
+  velocity: number;
+}
+
+export interface EarnerEntry {
+  address: string;
+  totalEarned: number;
+  barWidth: number;
+}
+
+export interface SpenderEntry {
+  address: string;
+  totalSpent: number;
+  barWidth: number;
+}
+
+export interface EconomyData {
+  leaderboard: LeaderboardEntry[];
+  volume: VolumeData;
+  topEarners: EarnerEntry[];
+  topSpenders: SpenderEntry[];
+  timestamp: number;
+}
+
 class BackendApiClient {
   private baseUrl: string;
 
@@ -75,6 +107,17 @@ class BackendApiClient {
     const response = await fetch(`${this.baseUrl}/events/recent?limit=${limit}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch events: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Fetch economy data
+   */
+  async getEconomy(): Promise<EconomyData> {
+    const response = await fetch(`${this.baseUrl}/economy`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch economy data: ${response.statusText}`);
     }
     return response.json();
   }

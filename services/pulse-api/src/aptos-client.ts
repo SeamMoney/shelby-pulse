@@ -30,6 +30,17 @@ export interface StorageProvider {
   audit_pass_rate: number;
 }
 
+export interface ShelbyUSDEvent {
+  type: 'withdraw' | 'deposit';
+  account: string;
+  amount: number;
+  timestamp: number;
+  version: string;
+}
+
+// ShelbyUSD fungible asset metadata address
+export const SHELBYUSD_METADATA = "0x1b18363a9f1fe5e6ebf247daba5cc1c18052bb232efdc4c50f556053922d98e1";
+
 export class ShelbyAptosClient {
   private aptos: Aptos;
   private config: ApiConfig;
@@ -208,6 +219,76 @@ export class ShelbyAptosClient {
       return [];
     } catch (error) {
       logger.warn({ error }, "Failed to fetch storage providers");
+      return [];
+    }
+  }
+
+  /**
+   * Fetch ShelbyUSD withdraw and deposit events
+   */
+  async getShelbyUSDEvents(limit = 1000): Promise<ShelbyUSDEvent[]> {
+    try {
+      // Query both WithdrawEvent and DepositEvent for ShelbyUSD
+      const query = `
+        query GetShelbyUSDEvents($limit: Int!) {
+          events(
+            limit: $limit
+            order_by: {transaction_version: desc}
+            where: {
+              _or: [
+                {type: {_like: "%0x1::fungible_asset::WithdrawEvent"}},
+                {type: {_like: "%0x1::fungible_asset::DepositEvent"}}
+              ]
+            }
+          ) {
+            type
+            data
+            transaction_version
+            account_address
+          }
+        }
+      `;
+
+      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: { limit },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.errors) {
+        logger.warn({ errors: result.errors }, "GraphQL query returned errors");
+        return [];
+      }
+
+      const events = result.data?.events || [];
+
+      // Filter for ShelbyUSD only and transform
+      const shelbyUSDEvents: ShelbyUSDEvent[] = [];
+      for (const event of events) {
+        // Check if this event is for ShelbyUSD by checking the metadata field
+        const metadata = event.data?.metadata;
+        if (metadata && metadata.toLowerCase() === SHELBYUSD_METADATA.toLowerCase()) {
+          const isWithdraw = event.type.includes('WithdrawEvent');
+          shelbyUSDEvents.push({
+            type: isWithdraw ? 'withdraw' : 'deposit',
+            account: event.account_address,
+            amount: Number.parseInt(event.data?.amount || "0", 10),
+            timestamp: Date.now(), // Use transaction_version to derive timestamp if available
+            version: event.transaction_version,
+          });
+        }
+      }
+
+      return shelbyUSDEvents;
+    } catch (error) {
+      logger.error({ error }, "Failed to fetch ShelbyUSD events");
       return [];
     }
   }
