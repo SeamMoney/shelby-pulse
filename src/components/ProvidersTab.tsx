@@ -12,7 +12,7 @@ export function ProvidersTab() {
       {/* Real Shelby SPs Grid */}
       <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
         {sps.map((sp, i) => (
-          <column key={i} style={{ gap: '1rem' }}>
+          <column box-="square" pad-="1" key={i} style={{ gap: '1rem' }}>
             <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>{sp.domain}</h3>
               <span is-="badge" variant-="success" size-="half">ONLINE</span>
@@ -38,8 +38,8 @@ export function ProvidersTab() {
       </row>
 
       {/* SP Details Table */}
-      <column style={{ gap: '1rem' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Provider Details</h3>
+      <column box-="square" pad-="1" style={{ gap: '1rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Provider Details</h3>
         <table is-="table">
           <thead>
             <tr>
@@ -67,7 +67,7 @@ export function ProvidersTab() {
       </column>
 
       {/* Summary Stats */}
-      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+      <row box-="square" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         <column style={{ gap: '0.5rem' }}>
           <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Total Providers

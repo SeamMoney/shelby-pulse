@@ -99,21 +99,15 @@ export function EconomyTab() {
   return (
     <column gap-="2" pad-="1" style={{ overflowY: 'auto', height: '100%' }}>
       {/* Header */}
-      <column gap-="1">
-        <h2 style={{ color: 'var(--accent)', margin: 0 }}>
-          ╔═══════════════════════════╗
-          <br />
-          ║  SHELBYUSD ECONOMY       ║
-          <br />
-          ╚═══════════════════════════╝
-        </h2>
+      <column box-="square" pad-="1" gap-="1">
+        <h2 style={{ color: 'var(--accent)', margin: 0 }}>ShelbyUSD Economy</h2>
         <small style={{ color: 'var(--foreground2)' }}>
           Network-wide ShelbyUSD statistics and leaderboards
         </small>
       </column>
 
       {/* Volume Stats */}
-      <column gap-="1" style={{ padding: '1rem', background: 'var(--background1)' }}>
+      <column box-="square" pad-="1" gap-="1">
         <h3 style={{ margin: 0, fontSize: '1.1rem' }}>24-Hour Activity</h3>
         <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
           <column gap-="0">
@@ -144,10 +138,8 @@ export function EconomyTab() {
       </column>
 
       {/* Top Holders Leaderboard */}
-      <column gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-          ┌─── Top Holders ───┐
-        </h3>
+      <column box-="square" pad-="1" gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Top Holders</h3>
         <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
           Total Supply: {formatAmount(totalSupply)} ShelbyUSD
         </small>
@@ -193,10 +185,8 @@ export function EconomyTab() {
       </column>
 
       {/* Most Active Users */}
-      <column gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-          ┌─── Most Active Users ───┐
-        </h3>
+      <column box-="square" pad-="1" gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Most Active Users</h3>
         <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
           By transaction count
         </small>
@@ -242,10 +232,8 @@ export function EconomyTab() {
       </column>
 
       {/* Top Spenders */}
-      <column gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-          ┌─── Biggest Spenders ───┐
-        </h3>
+      <column box-="square" pad-="1" gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Biggest Spenders</h3>
         <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
           By total withdraw amount
         </small>
@@ -291,10 +279,8 @@ export function EconomyTab() {
       </column>
 
       {/* Recent Transactions */}
-      <column gap-="1">
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-          ┌─── Recent Transactions ───┐
-        </h3>
+      <column box-="square" pad-="1" gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Recent Transactions</h3>
         <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
           Latest ShelbyUSD activity
         </small>

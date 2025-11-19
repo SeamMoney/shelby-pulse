@@ -3,7 +3,7 @@ export function MetricsTab() {
     <column gap-="1">
       {/* Real Shelby Metrics Grid */}
       <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-        <column style={{ gap: '1rem' }}>
+        <column box-="square" pad-="1" style={{ gap: '1rem' }}>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Read Latency</h3>
 
           <column style={{ gap: '0.75rem' }}>
@@ -26,7 +26,7 @@ export function MetricsTab() {
           </small>
         </column>
 
-        <column style={{ gap: '1rem' }}>
+        <column box-="square" pad-="1" style={{ gap: '1rem' }}>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Shard Durability</h3>
 
           <column style={{ gap: '0.75rem' }}>
@@ -49,7 +49,7 @@ export function MetricsTab() {
           </small>
         </column>
 
-        <column style={{ gap: '1rem' }}>
+        <column box-="square" pad-="1" style={{ gap: '1rem' }}>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Audit Frequency</h3>
 
           <column style={{ gap: '0.75rem' }}>
@@ -74,8 +74,8 @@ export function MetricsTab() {
       </row>
 
       {/* Detailed Metrics Breakdown */}
-      <column style={{ gap: '1rem' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Metric Details</h3>
+      <column box-="square" pad-="1" style={{ gap: '1rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Metric Details</h3>
         <table is-="table">
           <thead>
             <tr>
