@@ -1,3 +1,0 @@
-User-agent: *
-Disallow: /src/example/
-Disallow: /cdn-cgi/
