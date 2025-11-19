@@ -145,39 +145,23 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           }
         }
 
-        // Layer 1: Outer glow (widest)
+        // Subtle outer glow
         buildPath()
         ctx.strokeStyle = pinkGlow
-        ctx.lineWidth = 6
-        ctx.globalAlpha = 0.12
-        ctx.shadowBlur = 30
+        ctx.lineWidth = 2.5
+        ctx.globalAlpha = 0.2
+        ctx.shadowBlur = 15
         ctx.shadowColor = pinkBright
         ctx.lineJoin = 'round'
         ctx.lineCap = 'round'
         ctx.stroke()
 
-        // Layer 2: Mid glow
-        buildPath()
-        ctx.lineWidth = 4
-        ctx.globalAlpha = 0.25
-        ctx.shadowBlur = 20
-        ctx.shadowColor = pinkBright
-        ctx.stroke()
-
-        // Layer 3: Inner glow
-        buildPath()
-        ctx.lineWidth = 2.5
-        ctx.globalAlpha = 0.5
-        ctx.shadowBlur = 12
-        ctx.shadowColor = pinkBright
-        ctx.stroke()
-
-        // Layer 4: Core line (brightest)
+        // Core thin line with minimal glow
         buildPath()
         ctx.strokeStyle = pinkBright
-        ctx.lineWidth = 1.5
+        ctx.lineWidth = 1
         ctx.globalAlpha = 1
-        ctx.shadowBlur = 10
+        ctx.shadowBlur = 8
         ctx.shadowColor = '#FF69B4'
         ctx.stroke()
 
