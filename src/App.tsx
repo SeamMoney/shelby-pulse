@@ -20,6 +20,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('activity')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   useEffect(() => {
     // Initial fetch
@@ -44,6 +45,7 @@ function App() {
     try {
       const stats = await backendApi.getNetworkStats()
       setNetworkStats(stats)
+      setLastUpdate(new Date())
       setError(null)
       setIsLoading(false)
     } catch (err) {
@@ -51,6 +53,15 @@ function App() {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
       setIsLoading(false)
     }
+  }
+
+  function getTimeSinceUpdate() {
+    if (!lastUpdate) return 'never'
+    const seconds = Math.floor((Date.now() - lastUpdate.getTime()) / 1000)
+    if (seconds < 10) return 'just now'
+    if (seconds < 60) return `${seconds}s ago`
+    const minutes = Math.floor(seconds / 60)
+    return `${minutes}m ago`
   }
 
   if (isLoading) {
@@ -128,6 +139,31 @@ function App() {
               Providers
             </button>
           </row>
+        </row>
+
+        {/* Status Bar */}
+        <row
+          style={{
+            padding: '0.5rem 1rem',
+            background: 'var(--background0)',
+            borderBottom: '1px solid var(--background2)',
+            gap: '1rem',
+            fontSize: '0.85rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <span is-="badge" variant-="success">● LIVE</span>
+          <span style={{ color: 'var(--foreground2)' }}>
+            Aptos Devnet
+          </span>
+          <span style={{ color: 'var(--foreground2)' }}>|</span>
+          <span style={{ color: 'var(--foreground2)' }}>
+            Updated: {getTimeSinceUpdate()}
+          </span>
+          <span style={{ color: 'var(--foreground2)' }}>|</span>
+          <span style={{ color: 'var(--foreground2)' }}>
+            {networkStats.totalBlobs} blobs indexed
+          </span>
         </row>
 
         {/* Content */}
