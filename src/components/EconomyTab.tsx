@@ -219,38 +219,44 @@ export function EconomyTab() {
             $SHELBY airdrop eligible
           </span>
         </row>
-        <column gap-="0" style={{ fontSize: '0.9rem' }}>
+        <column gap-="0" style={{ fontSize: '0.9rem', overflow: 'hidden' }}>
           {data.leaderboard.slice(0, 10).map((entry, i) => (
             <row
               key={entry.address}
               style={{
                 padding: '0.5rem 0',
                 borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
-                gap: '1rem',
+                gap: '0.5rem',
                 alignItems: 'center',
+                maxWidth: '100%',
+                overflow: 'hidden',
               }}
             >
-              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
+              <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', flexShrink: 0 }}>
                 {i + 1}.
               </span>
               <span
                 style={{
                   fontFamily: 'monospace',
                   fontSize: '0.85rem',
-                  minWidth: '140px',
+                  flexShrink: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {shortenAddress(entry.address)}
               </span>
-              <span style={{ flex: 1 }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 <AsciiBar width={entry.barWidth} />
               </span>
               <span
                 style={{
                   color: 'var(--accent)',
                   fontWeight: 600,
-                  minWidth: '80px',
                   textAlign: 'right',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {formatAmount(entry.balance)}
@@ -266,38 +272,44 @@ export function EconomyTab() {
           <span is-="badge" variant-="blue" cap-="slant-bottom triangle">⚡ Most Active</span>
           <span is-="badge" variant-="background2" cap-="round" size-="half">by tx count</span>
         </row>
-        <column gap-="0" style={{ fontSize: '0.9rem' }}>
+        <column gap-="0" style={{ fontSize: '0.9rem', overflow: 'hidden' }}>
           {data.mostActive.slice(0, 10).map((entry, i) => (
             <row
               key={entry.address}
               style={{
                 padding: '0.5rem 0',
                 borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
-                gap: '1rem',
+                gap: '0.5rem',
                 alignItems: 'center',
+                maxWidth: '100%',
+                overflow: 'hidden',
               }}
             >
-              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
+              <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', flexShrink: 0 }}>
                 {i + 1}.
               </span>
               <span
                 style={{
                   fontFamily: 'monospace',
                   fontSize: '0.85rem',
-                  minWidth: '140px',
+                  flexShrink: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {shortenAddress(entry.address)}
               </span>
-              <span style={{ flex: 1 }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 <AsciiBar width={entry.barWidth} />
               </span>
               <span
                 style={{
                   color: '#4A90E2',
                   fontWeight: 600,
-                  minWidth: '80px',
                   textAlign: 'right',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {entry.txCount} txs
@@ -313,38 +325,44 @@ export function EconomyTab() {
           <span is-="badge" variant-="yellow" cap-="ribbon slant-top">💸 Biggest Spenders</span>
           <span is-="badge" variant-="background2" cap-="round" size-="half">total withdrawn</span>
         </row>
-        <column gap-="0" style={{ fontSize: '0.9rem' }}>
+        <column gap-="0" style={{ fontSize: '0.9rem', overflow: 'hidden' }}>
           {data.topSpenders.slice(0, 10).map((entry, i) => (
             <row
               key={entry.address}
               style={{
                 padding: '0.5rem 0',
                 borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
-                gap: '1rem',
+                gap: '0.5rem',
                 alignItems: 'center',
+                maxWidth: '100%',
+                overflow: 'hidden',
               }}
             >
-              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
+              <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', flexShrink: 0 }}>
                 {i + 1}.
               </span>
               <span
                 style={{
                   fontFamily: 'monospace',
                   fontSize: '0.85rem',
-                  minWidth: '140px',
+                  flexShrink: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {shortenAddress(entry.address)}
               </span>
-              <span style={{ flex: 1 }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 <AsciiBar width={entry.barWidth} />
               </span>
               <span
                 style={{
                   color: '#FFA500',
                   fontWeight: 600,
-                  minWidth: '80px',
                   textAlign: 'right',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {formatAmount(entry.totalSpent)}
@@ -360,7 +378,7 @@ export function EconomyTab() {
           <span is-="badge" variant-="green" cap-="triangle triangle">📊 Recent Activity</span>
           <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>
         </row>
-        <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>
+        <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace', overflow: 'hidden' }}>
           {data.recentTransactions.slice(0, 15).map((tx, i) => {
             const txInfo = getTransactionLabel(tx.type);
             return (
@@ -369,20 +387,31 @@ export function EconomyTab() {
                 style={{
                   padding: '0.4rem 0',
                   borderBottom: i < 14 ? '1px solid var(--background2)' : 'none',
-                  gap: '0.75rem',
+                  gap: '0.5rem',
                   alignItems: 'center',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
                 }}
               >
                 <span
                   style={{
                     color: txInfo.color,
-                    minWidth: '80px',
                     fontSize: '0.75rem',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {txInfo.icon} {txInfo.label}
                 </span>
-                <span style={{ minWidth: '120px', fontSize: '0.75rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    flexShrink: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {shortenAddress(tx.address)}
                 </span>
                 <span
@@ -390,8 +419,9 @@ export function EconomyTab() {
                     color: 'var(--foreground)',
                     fontWeight: 500,
                     textAlign: 'right',
-                    flex: 1,
                     fontSize: '0.75rem',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {formatAmount(tx.amount)}
@@ -400,8 +430,9 @@ export function EconomyTab() {
                   style={{
                     color: 'var(--foreground2)',
                     fontSize: '0.7rem',
-                    minWidth: '60px',
                     textAlign: 'right',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   #{tx.version}
