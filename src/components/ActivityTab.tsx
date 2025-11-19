@@ -110,7 +110,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
       // Chart line with smooth curves
       if (latencyData.length > 1) {
-        const maxLatency = Math.max(...latencyData, 100)
+        // Add 20% headroom so spikes don't compress the chart
+        const maxLatency = Math.max(...latencyData, 100) * 1.2
         const pointSpacing = renderWidth / latencyData.length
         const chartHeight = renderHeight - 80
 
@@ -288,7 +289,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         ref={canvasRef}
         style={{
           width: '100%',
-          height: '750px',
+          height: 'calc(100vh - 350px)',
+          minHeight: '500px',
           marginBottom: '2rem',
           cursor: isInteracting ? 'grabbing' : 'grab',
           touchAction: 'none'

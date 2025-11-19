@@ -401,10 +401,11 @@ body, html {
     padding: 0;
   }
 
-  /* Make canvas smaller on mobile but not tiny */
+  /* Make canvas responsive on mobile */
   canvas {
-    height: 300px !important;
-    max-height: 300px !important;
+    height: calc(100vh - 450px) !important;
+    min-height: 350px !important;
+    max-height: none !important;
     margin-bottom: 1rem !important;
   }
 
