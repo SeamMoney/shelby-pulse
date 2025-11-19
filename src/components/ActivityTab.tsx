@@ -148,9 +148,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         // Layer 1: Outer glow (widest)
         buildPath()
         ctx.strokeStyle = pinkGlow
-        ctx.lineWidth = 12
-        ctx.globalAlpha = 0.15
-        ctx.shadowBlur = 40
+        ctx.lineWidth = 6
+        ctx.globalAlpha = 0.12
+        ctx.shadowBlur = 30
         ctx.shadowColor = pinkBright
         ctx.lineJoin = 'round'
         ctx.lineCap = 'round'
@@ -158,26 +158,26 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
         // Layer 2: Mid glow
         buildPath()
-        ctx.lineWidth = 8
-        ctx.globalAlpha = 0.3
-        ctx.shadowBlur = 30
+        ctx.lineWidth = 4
+        ctx.globalAlpha = 0.25
+        ctx.shadowBlur = 20
         ctx.shadowColor = pinkBright
         ctx.stroke()
 
         // Layer 3: Inner glow
         buildPath()
-        ctx.lineWidth = 5
-        ctx.globalAlpha = 0.6
-        ctx.shadowBlur = 20
+        ctx.lineWidth = 2.5
+        ctx.globalAlpha = 0.5
+        ctx.shadowBlur = 12
         ctx.shadowColor = pinkBright
         ctx.stroke()
 
         // Layer 4: Core line (brightest)
         buildPath()
         ctx.strokeStyle = pinkBright
-        ctx.lineWidth = 3
+        ctx.lineWidth = 1.5
         ctx.globalAlpha = 1
-        ctx.shadowBlur = 15
+        ctx.shadowBlur = 10
         ctx.shadowColor = '#FF69B4'
         ctx.stroke()
 
@@ -197,23 +197,34 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           const x = index * pointSpacing
           const y = 40 + chartHeight - ((latency / maxLatency) * chartHeight)
 
-          // Thin vertical line - dark grey
+          // Crosshair vertical line - light grey
           ctx.beginPath()
           ctx.moveTo(x, 40)
           ctx.lineTo(x, renderHeight - 40)
-          ctx.strokeStyle = '#404040'
-          ctx.lineWidth = 1
-          ctx.globalAlpha = 0.8
+          ctx.strokeStyle = '#999999'
+          ctx.lineWidth = 2
+          ctx.globalAlpha = 0.7
           ctx.shadowBlur = 0
           ctx.stroke()
 
-          // Small circle at data point
+          // Pulsing effect - calculate based on time
+          const pulseTime = Date.now() / 800 // Pulse every 800ms
+          const pulseScale = 0.8 + Math.sin(pulseTime * Math.PI * 2) * 0.2
+
+          // Outer pulsing circle - light grey
           ctx.beginPath()
-          ctx.arc(x, y, 6, 0, Math.PI * 2)
-          ctx.fillStyle = '#FF1493'
+          ctx.arc(x, y, 10 * pulseScale, 0, Math.PI * 2)
+          ctx.fillStyle = '#AAAAAA'
+          ctx.globalAlpha = 0.3 * (1 - (pulseScale - 0.8) / 0.4)
+          ctx.shadowBlur = 0
+          ctx.fill()
+
+          // Inner circle - medium grey
+          ctx.beginPath()
+          ctx.arc(x, y, 5, 0, Math.PI * 2)
+          ctx.fillStyle = '#666666'
           ctx.globalAlpha = 1
-          ctx.shadowBlur = 8
-          ctx.shadowColor = '#FF1493'
+          ctx.shadowBlur = 0
           ctx.fill()
 
           // Value label
@@ -293,7 +304,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         ref={canvasRef}
         style={{
           width: '100%',
-          height: '600px',
+          height: '750px',
           marginBottom: '2rem',
           cursor: isInteracting ? 'grabbing' : 'grab',
           touchAction: 'none'
