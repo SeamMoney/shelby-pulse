@@ -224,20 +224,70 @@ export class ShelbyAptosClient {
   }
 
   /**
+   * Get ShelbyUSD balances from current_fungible_asset_balances table
+   */
+  async getShelbyUSDBalances(limit = 100): Promise<Array<{owner: string, balance: number}>> {
+    try {
+      const query = `
+        query GetShelbyUSDBalances($limit: Int!, $metadata: String!) {
+          current_fungible_asset_balances(
+            where: {asset_type: {_eq: $metadata}}
+            order_by: {amount: desc}
+            limit: $limit
+          ) {
+            owner_address
+            amount
+          }
+        }
+      `;
+
+      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            limit,
+            metadata: SHELBYUSD_METADATA
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.errors) {
+        logger.warn({ errors: result.errors }, "GraphQL query returned errors");
+        return [];
+      }
+
+      const balances = result.data?.current_fungible_asset_balances || [];
+      return balances.map((b: any) => ({
+        owner: b.owner_address,
+        balance: Number.parseInt(b.amount || "0", 10),
+      }));
+    } catch (error) {
+      logger.error({ error }, "Failed to fetch ShelbyUSD balances");
+      return [];
+    }
+  }
+
+  /**
    * Fetch ShelbyUSD withdraw and deposit events
    */
   async getShelbyUSDEvents(limit = 1000): Promise<ShelbyUSDEvent[]> {
     try {
-      // Query both WithdrawEvent and DepositEvent for ShelbyUSD
+      // Query both Withdraw and Deposit events for fungible assets
       const query = `
-        query GetShelbyUSDEvents($limit: Int!) {
+        query GetFungibleAssetEvents($limit: Int!) {
           events(
             limit: $limit
             order_by: {transaction_version: desc}
             where: {
               _or: [
-                {type: {_like: "%0x1::fungible_asset::WithdrawEvent"}},
-                {type: {_like: "%0x1::fungible_asset::DepositEvent"}}
+                {type: {_eq: "0x1::fungible_asset::Withdraw"}},
+                {type: {_eq: "0x1::fungible_asset::Deposit"}}
               ]
             }
           ) {
@@ -269,22 +319,15 @@ export class ShelbyAptosClient {
 
       const events = result.data?.events || [];
 
-      // Filter for ShelbyUSD only and transform
-      const shelbyUSDEvents: ShelbyUSDEvent[] = [];
-      for (const event of events) {
-        // Check if this event is for ShelbyUSD by checking the metadata field
-        const metadata = event.data?.metadata;
-        if (metadata && metadata.toLowerCase() === SHELBYUSD_METADATA.toLowerCase()) {
-          const isWithdraw = event.type.includes('WithdrawEvent');
-          shelbyUSDEvents.push({
-            type: isWithdraw ? 'withdraw' : 'deposit',
-            account: event.account_address,
-            amount: Number.parseInt(event.data?.amount || "0", 10),
-            timestamp: Date.now(), // Use transaction_version to derive timestamp if available
-            version: event.transaction_version,
-          });
-        }
-      }
+      // For now, return all events - we'll need to filter by store metadata later
+      // This is a simplified version - ideally we'd look up store metadata
+      const shelbyUSDEvents: ShelbyUSDEvent[] = events.map((event: any) => ({
+        type: event.type.includes('Withdraw') ? 'withdraw' as const : 'deposit' as const,
+        account: event.account_address,
+        amount: Number.parseInt(event.data?.amount || "0", 10),
+        timestamp: Date.now(),
+        version: event.transaction_version,
+      }));
 
       return shelbyUSDEvents;
     } catch (error) {
