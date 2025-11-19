@@ -20,6 +20,12 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
 
+  // Interactive state
+  const [isInteracting, setIsInteracting] = useState(false)
+  const [pointerX, setPointerX] = useState<number | null>(null)
+  const [targetPointerX, setTargetPointerX] = useState<number | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+
   // Measure API latency every 1 second
   useEffect(() => {
     const measureLatency = async () => {
@@ -57,6 +63,24 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     const interval = setInterval(fetchEvents, 5000)
     return () => clearInterval(interval)
   }, [])
+
+  // Smooth interpolation for pointer position
+  useEffect(() => {
+    if (targetPointerX === null || pointerX === null) {
+      if (targetPointerX !== null && pointerX === null) {
+        setPointerX(targetPointerX)
+      }
+      return
+    }
+
+    const smoothing = 0.15
+    const diff = targetPointerX - pointerX
+    if (Math.abs(diff) > 0.5) {
+      setPointerX(pointerX + diff * smoothing)
+    } else {
+      setPointerX(targetPointerX)
+    }
+  }, [targetPointerX, pointerX])
 
   // Chart rendering
   useEffect(() => {
@@ -149,6 +173,65 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         // Reset
         ctx.shadowBlur = 0
         ctx.globalAlpha = 1
+
+        // Draw interactive crosshair
+        if (isInteracting && pointerX !== null && latencyData.length > 1) {
+          const pointSpacing = width / latencyData.length
+          const chartHeight = height - 80
+          const index = Math.min(
+            Math.max(0, Math.floor(pointerX / pointSpacing)),
+            latencyData.length - 1
+          )
+          const latency = latencyData[index]
+          const x = index * pointSpacing
+          const y = 40 + chartHeight - ((latency / maxLatency) * chartHeight)
+
+          // Vertical line with glow
+          ctx.beginPath()
+          ctx.moveTo(x, 40)
+          ctx.lineTo(x, height - 40)
+          ctx.strokeStyle = '#FF1493'
+          ctx.lineWidth = 3
+          ctx.globalAlpha = 0.6
+          ctx.shadowBlur = 20
+          ctx.shadowColor = '#FF69B4'
+          ctx.stroke()
+
+          // Crosshair circle at data point
+          ctx.beginPath()
+          ctx.arc(x, y, 12, 0, Math.PI * 2)
+          ctx.fillStyle = '#FF1493'
+          ctx.globalAlpha = 0.3
+          ctx.shadowBlur = 30
+          ctx.fill()
+
+          ctx.beginPath()
+          ctx.arc(x, y, 8, 0, Math.PI * 2)
+          ctx.fillStyle = '#FF1493'
+          ctx.globalAlpha = 1
+          ctx.shadowBlur = 15
+          ctx.fill()
+
+          // Value label
+          ctx.font = 'bold 28px Cascadia Code, monospace'
+          ctx.fillStyle = '#FF1493'
+          ctx.textAlign = 'center'
+          ctx.globalAlpha = 1
+          ctx.shadowBlur = 10
+          ctx.fillText(`${Math.round(latency)}ms`, x, y - 30)
+
+          ctx.shadowBlur = 0
+          ctx.globalAlpha = 1
+
+          // Update selected index
+          if (index !== selectedIndex) {
+            setSelectedIndex(index)
+            // Haptic feedback on mobile
+            if ('vibrate' in navigator) {
+              navigator.vibrate(1)
+            }
+          }
+        }
       }
 
       animationRef.current = requestAnimationFrame(animate)
@@ -158,7 +241,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current)
     }
-  }, [latencyData])
+  }, [latencyData, isInteracting, pointerX, selectedIndex])
 
   const avgLatency = latencyData.length > 0
     ? latencyData.reduce((a, b) => a + b, 0) / latencyData.length
@@ -167,14 +250,75 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   const maxLatency = latencyData.length > 0 ? Math.max(...latencyData) : 0
   const minLatency = latencyData.length > 0 ? Math.min(...latencyData) : 0
 
+  // Event handlers for interactivity
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    setIsInteracting(true)
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const x = (e.clientX - rect.left) * 2 // Account for 2x pixel ratio
+    setTargetPointerX(x)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isInteracting) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const x = (e.clientX - rect.left) * 2
+    setTargetPointerX(x)
+  }
+
+  const handlePointerUp = () => {
+    setIsInteracting(false)
+    setPointerX(null)
+    setTargetPointerX(null)
+    setSelectedIndex(null)
+  }
+
+  const handlePointerLeave = () => {
+    setIsInteracting(false)
+    setPointerX(null)
+    setTargetPointerX(null)
+    setSelectedIndex(null)
+  }
+
   return (
     <column gap-="1">
-      <canvas ref={canvasRef} style={{ width: '100%', height: '600px', marginBottom: '2rem' }} />
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '100%',
+          height: '600px',
+          marginBottom: '2rem',
+          cursor: isInteracting ? 'grabbing' : 'grab',
+          touchAction: 'none'
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onPointerCancel={handlePointerUp}
+      />
 
       <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', padding: '1rem 0' }}>
         <column style={{ gap: '0.5rem' }}>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Current</small>
-          <h2 style={{ color: '#FF1493', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{currentLatency.toFixed(0)}ms</h2>
+          <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>
+            {isInteracting && selectedIndex !== null ? 'Selected' : 'Current'}
+          </small>
+          <h2 style={{
+            color: '#FF1493',
+            fontSize: '2.25rem',
+            fontWeight: 700,
+            margin: 0,
+            fontVariantNumeric: 'tabular-nums',
+            transition: 'transform 0.2s ease',
+            transform: isInteracting ? 'scale(1.05)' : 'scale(1)'
+          }}>
+            {isInteracting && selectedIndex !== null
+              ? latencyData[selectedIndex].toFixed(0)
+              : currentLatency.toFixed(0)}ms
+          </h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
           <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Average</small>
