@@ -43,20 +43,12 @@ interface RecentTransaction {
   version: number;
 }
 
-interface MinterEntry {
-  address: string;
-  totalMinted: number;
-  mintCount: number;
-  barWidth: number;
-}
-
 interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
   allTimeStats: AllTimeStats;
   mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
-  topMinters: MinterEntry[];
   recentTransactions: RecentTransaction[];
   timestamp: number;
 }
@@ -223,8 +215,8 @@ export function EconomyTab() {
       <column box-="double" shear-="top" pad-="1" gap-="1">
         <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
           <span is-="badge" variant-="accent" cap-="triangle ribbon">💎 Top Holders</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">
-            of {data.allTimeStats.totalHolders} total
+          <span is-="badge" variant-="green" cap-="round" size-="half">
+            $SHELBY airdrop eligible
           </span>
         </row>
         <column gap-="0" style={{ fontSize: '0.9rem' }}>
@@ -356,55 +348,6 @@ export function EconomyTab() {
                 }}
               >
                 {formatAmount(entry.totalSpent)}
-              </span>
-            </row>
-          ))}
-        </column>
-      </column>
-
-      {/* Top Minters - Airdrop Eligible */}
-      <column box-="double round" shear-="top" pad-="1" gap-="1">
-        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="green" cap-="ribbon triangle">✨ Top Minters</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">
-            $SHELBY airdrop eligible
-          </span>
-        </row>
-        <column gap-="0" style={{ fontSize: '0.9rem' }}>
-          {data.topMinters.slice(0, 10).map((entry, i) => (
-            <row
-              key={entry.address}
-              style={{
-                padding: '0.5rem 0',
-                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
-                gap: '1rem',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
-                {i + 1}.
-              </span>
-              <span
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: '0.85rem',
-                  minWidth: '140px',
-                }}
-              >
-                {shortenAddress(entry.address)}
-              </span>
-              <span style={{ flex: 1 }}>
-                <AsciiBar width={entry.barWidth} />
-              </span>
-              <span
-                style={{
-                  color: '#00C896',
-                  fontWeight: 600,
-                  minWidth: '80px',
-                  textAlign: 'right',
-                }}
-              >
-                {formatAmount(entry.totalMinted)}
               </span>
             </row>
           ))}
