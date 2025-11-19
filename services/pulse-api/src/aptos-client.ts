@@ -337,6 +337,66 @@ export class ShelbyAptosClient {
   }
 
   /**
+   * Get ShelbyUSD activities from fungible_asset_activities table
+   */
+  async getShelbyUSDActivities(limit = 1000): Promise<Array<{
+    owner: string;
+    type: 'deposit' | 'withdraw';
+    amount: number;
+    version: string;
+  }>> {
+    try {
+      const query = `
+        query GetShelbyUSDActivities($limit: Int!, $metadata: String!) {
+          fungible_asset_activities(
+            where: {asset_type: {_eq: $metadata}}
+            order_by: {transaction_version: desc}
+            limit: $limit
+          ) {
+            owner_address
+            type
+            amount
+            transaction_version
+            is_frozen
+          }
+        }
+      `;
+
+      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            limit,
+            metadata: SHELBYUSD_METADATA
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.errors) {
+        logger.warn({ errors: result.errors }, "GraphQL query returned errors");
+        return [];
+      }
+
+      const activities = result.data?.fungible_asset_activities || [];
+      return activities.map((activity: any) => ({
+        owner: activity.owner_address,
+        type: activity.type.toLowerCase() as 'deposit' | 'withdraw',
+        amount: Number.parseInt(activity.amount || "0", 10),
+        version: activity.transaction_version,
+      }));
+    } catch (error) {
+      logger.error({ error }, "Failed to fetch ShelbyUSD activities");
+      return [];
+    }
+  }
+
+  /**
    * Get the Aptos client instance for advanced queries
    */
   getClient(): Aptos {

@@ -14,9 +14,9 @@ interface VolumeData {
   velocity: number;
 }
 
-interface EarnerEntry {
+interface ActivityEntry {
   address: string;
-  totalEarned: number;
+  txCount: number;
   barWidth: number;
 }
 
@@ -26,11 +26,19 @@ interface SpenderEntry {
   barWidth: number;
 }
 
+interface RecentTransaction {
+  address: string;
+  type: 'deposit' | 'withdraw';
+  amount: number;
+  version: number;
+}
+
 interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
-  topEarners: EarnerEntry[];
+  mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
+  recentTransactions: RecentTransaction[];
   timestamp: number;
 }
 
@@ -184,8 +192,160 @@ export function EconomyTab() {
         </column>
       </column>
 
-      {/* Note: Earners/Spenders temporarily disabled - need store-to-owner mapping */}
-      {/* Will be implemented in next update */}
+      {/* Most Active Users */}
+      <column gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+          ┌─── Most Active Users ───┐
+        </h3>
+        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
+          By transaction count
+        </small>
+        <column gap-="0" style={{ fontSize: '0.9rem' }}>
+          {data.mostActive.slice(0, 10).map((entry, i) => (
+            <row
+              key={entry.address}
+              style={{
+                padding: '0.5rem 0',
+                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
+                gap: '1rem',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
+                {i + 1}.
+              </span>
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.85rem',
+                  minWidth: '140px',
+                }}
+              >
+                {shortenAddress(entry.address)}
+              </span>
+              <span style={{ flex: 1 }}>
+                <AsciiBar width={entry.barWidth} />
+              </span>
+              <span
+                style={{
+                  color: '#4A90E2',
+                  fontWeight: 600,
+                  minWidth: '80px',
+                  textAlign: 'right',
+                }}
+              >
+                {entry.txCount} txs
+              </span>
+            </row>
+          ))}
+        </column>
+      </column>
+
+      {/* Top Spenders */}
+      <column gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+          ┌─── Biggest Spenders ───┐
+        </h3>
+        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
+          By total withdraw amount
+        </small>
+        <column gap-="0" style={{ fontSize: '0.9rem' }}>
+          {data.topSpenders.slice(0, 10).map((entry, i) => (
+            <row
+              key={entry.address}
+              style={{
+                padding: '0.5rem 0',
+                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
+                gap: '1rem',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ color: 'var(--foreground2)', minWidth: '1.5rem' }}>
+                {i + 1}.
+              </span>
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.85rem',
+                  minWidth: '140px',
+                }}
+              >
+                {shortenAddress(entry.address)}
+              </span>
+              <span style={{ flex: 1 }}>
+                <AsciiBar width={entry.barWidth} />
+              </span>
+              <span
+                style={{
+                  color: '#FFA500',
+                  fontWeight: 600,
+                  minWidth: '80px',
+                  textAlign: 'right',
+                }}
+              >
+                {formatAmount(entry.totalSpent)}
+              </span>
+            </row>
+          ))}
+        </column>
+      </column>
+
+      {/* Recent Transactions */}
+      <column gap-="1">
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+          ┌─── Recent Transactions ───┐
+        </h3>
+        <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
+          Latest ShelbyUSD activity
+        </small>
+        <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>
+          {data.recentTransactions.slice(0, 15).map((tx, i) => (
+            <row
+              key={`${tx.version}-${i}`}
+              style={{
+                padding: '0.4rem 0',
+                borderBottom: i < 14 ? '1px solid var(--background2)' : 'none',
+                gap: '0.75rem',
+                alignItems: 'center',
+              }}
+            >
+              <span
+                style={{
+                  color: tx.type === 'withdraw' ? '#FFA500' : '#00C896',
+                  minWidth: '60px',
+                  fontSize: '0.75rem',
+                }}
+              >
+                {tx.type === 'withdraw' ? '↓ WDRW' : '↑ DPST'}
+              </span>
+              <span style={{ minWidth: '120px', fontSize: '0.75rem' }}>
+                {shortenAddress(tx.address)}
+              </span>
+              <span
+                style={{
+                  color: 'var(--foreground)',
+                  fontWeight: 500,
+                  textAlign: 'right',
+                  flex: 1,
+                  fontSize: '0.75rem',
+                }}
+              >
+                {formatAmount(tx.amount)}
+              </span>
+              <span
+                style={{
+                  color: 'var(--foreground2)',
+                  fontSize: '0.7rem',
+                  minWidth: '60px',
+                  textAlign: 'right',
+                }}
+              >
+                #{tx.version}
+              </span>
+            </row>
+          ))}
+        </column>
+      </column>
     </column>
   );
 }

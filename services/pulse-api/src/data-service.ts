@@ -4,8 +4,7 @@ import { ShelbyAptosClient, type BlobEvent, type StorageProvider } from "./aptos
 import { logger } from "./logger";
 import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/leaderboard";
 import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
-import { getTopEarners, type EarnerEntry } from "./shelbyusd/earners";
-import { getTopSpenders, type SpenderEntry } from "./shelbyusd/spenders";
+import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
 
 export interface NetworkStats {
   totalBlobs: number;
@@ -29,8 +28,9 @@ export interface BlobData {
 export interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
-  topEarners: EarnerEntry[];
+  mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
+  recentTransactions: RecentTransaction[];
   timestamp: number;
 }
 
@@ -205,18 +205,20 @@ export class DataService {
     }
 
     try {
-      const [leaderboard, volume, topEarners, topSpenders] = await Promise.all([
+      const [leaderboard, volume, mostActive, topSpenders, recentTransactions] = await Promise.all([
         getShelbyUSDLeaderboard(this.aptosClient, 20),
         get24hVolume(this.aptosClient),
-        getTopEarners(this.aptosClient, 10),
-        getTopSpenders(this.aptosClient, 10),
+        getMostActiveUsers(this.aptosClient, 10),
+        getBiggestSpenders(this.aptosClient, 10),
+        getRecentTransactions(this.aptosClient, 20),
       ]);
 
       const economyData: EconomyData = {
         leaderboard,
         volume,
-        topEarners,
+        mostActive,
         topSpenders,
+        recentTransactions,
         timestamp: Date.now(),
       };
 
