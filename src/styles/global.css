@@ -1,5 +1,8 @@
 @layer base, utils, components;
 
+/* Import Cascadia Code font */
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/cascadia-code@5.0.0/index.css');
+
 /* WebTUI Base */
 @import '../../css/dist/base.css';
 
@@ -266,7 +269,7 @@
 }
 
 body, html {
-  font-family: 'JetBrains Mono', Monaco, monospace;
+  font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', Monaco, monospace;
   background-color: var(--root);
   color: var(--foreground0);
   margin: 0;
@@ -276,6 +279,8 @@ body, html {
   max-height: 100vh;
   position: fixed;
   width: 100%;
+  font-variant-ligatures: normal;
+  font-feature-settings: "calt" 1, "liga" 1;
 }
 
 /* Terminal Emulator Layout */
