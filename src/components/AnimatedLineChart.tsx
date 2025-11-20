@@ -56,7 +56,16 @@ export function AnimatedLineChart({
   const pathD = `M ${points.split(' ').join(' L ')}`
 
   return (
-    <div className="chart-container">
+    <div
+      className="chart-container"
+      style={{
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'pan-y',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
       <svg
         width="100%"
         height={height}

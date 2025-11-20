@@ -46,7 +46,15 @@ export default function ActivityChart({ stats }: Props) {
         </span>
       </row>
 
-      <div style={{ height: '20lh', width: '100%' }}>
+      <div style={{
+        height: '20lh',
+        width: '100%',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'pan-y',
+        WebkitTapHighlightColor: 'transparent',
+      }}>
         {data.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>

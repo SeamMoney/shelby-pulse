@@ -15,7 +15,17 @@ export function AnimatedBarChart({ data, maxValue }: AnimatedBarChartProps) {
   const max = maxValue || Math.max(...data.map(d => d.value))
 
   return (
-    <column gap-="1" style={{ width: '100%' }}>
+    <column
+      gap-="1"
+      style={{
+        width: '100%',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'pan-y',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
       {data.map((item, index) => (
         <motion.div
           key={item.label}
