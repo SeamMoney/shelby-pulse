@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
 interface DataPoint {
@@ -22,14 +21,14 @@ export function AnimatedLineChart({
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([])
 
   useEffect(() => {
-    // Initial data
-    const initial = Array.from({ length: maxDataPoints }, (_, i) => ({
+    // Initial data - reduced for better performance
+    const initial = Array.from({ length: 10 }, (_, i) => ({
       value: Math.random() * 100,
-      timestamp: Date.now() - (maxDataPoints - i) * 1000
+      timestamp: Date.now() - (10 - i) * 5000
     }))
     setDataPoints(initial)
 
-    // Add new data point every second
+    // Add new data point every 5 seconds (reduced from 1s for better performance)
     const interval = setInterval(() => {
       setDataPoints(prev => {
         const newPoint: DataPoint = {
@@ -38,7 +37,7 @@ export function AnimatedLineChart({
         }
         return [...prev.slice(1), newPoint]
       })
-    }, 1000)
+    }, 5000)
 
     return () => clearInterval(interval)
   }, [maxDataPoints])
@@ -87,47 +86,38 @@ export function AnimatedLineChart({
           />
         ))}
 
-        {/* Animated line */}
-        <motion.path
+        {/* Static line - animations disabled for better performance */}
+        <path
           d={pathD}
           fill="none"
           stroke={color}
           strokeWidth="2"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.5 }}
         />
 
-        {/* Animated fill gradient */}
+        {/* Static fill gradient */}
         <defs>
           <linearGradient id={`gradient-${label}`} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={color} stopOpacity="0.3" />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        <motion.path
+        <path
           d={`${pathD} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`}
           fill={`url(#gradient-${label})`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
         />
 
-        {/* Animated dots */}
+        {/* Static dots - removed animation for performance */}
         {dataPoints.map((point, index) => {
-          const x = (index / (maxDataPoints - 1)) * (width - padding * 2) + padding
+          const x = (index / (dataPoints.length - 1)) * (width - padding * 2) + padding
           const y = height - (point.value / 100) * (height - padding * 2) - padding
 
           return (
-            <motion.circle
+            <circle
               key={point.timestamp}
               cx={x}
               cy={y}
               r="2"
               fill={color}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.3 }}
             />
           )
         })}

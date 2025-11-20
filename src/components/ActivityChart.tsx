@@ -9,7 +9,7 @@ interface Props {
 export default function ActivityChart({ stats }: Props) {
   const [data, setData] = useState<Array<{ time: string; blobs: number }>>([])
 
-  // Simulate real-time chart data
+  // Simulate real-time chart data - reduced frequency for better performance
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
@@ -20,9 +20,9 @@ export default function ActivityChart({ stats }: Props) {
           time: timeStr,
           blobs: Math.floor(Math.random() * 30) + 70, // Random value between 70-100
         }
-        return [...prev.slice(-19), newPoint] // Keep last 20 points
+        return [...prev.slice(-14), newPoint] // Keep last 15 points (reduced from 20)
       })
-    }, 3000)
+    }, 10000) // Update every 10 seconds (reduced from 3s for better performance)
 
     return () => clearInterval(interval)
   }, [])
@@ -93,7 +93,7 @@ export default function ActivityChart({ stats }: Props) {
                 stroke="#FF77C9"
                 strokeWidth={3}
                 fill="url(#colorBlobs)"
-                animationDuration={300}
+                isAnimationActive={false}
               />
             </AreaChart>
           </ResponsiveContainer>
