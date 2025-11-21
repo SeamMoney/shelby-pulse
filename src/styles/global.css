@@ -58,6 +58,19 @@
     box-sizing: border-box;
     padding: 0;
     margin: 0;
+    /* Prevent horizontal scroll lag on iOS */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent horizontal overflow on all elements */
+  * {
+    max-width: 100%;
+  }
+
+  /* Optimize scroll containers */
+  html, body {
+    overflow-x: hidden !important;
+    position: relative;
   }
 }
 

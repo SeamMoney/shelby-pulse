@@ -77,9 +77,11 @@ body::before {
   font-variant-numeric: tabular-nums;
 }
 
-/* Smooth animations */
-* {
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+/* Smooth animations - disabled on mobile for performance */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
 }
 
 /* Custom scrollbar */
