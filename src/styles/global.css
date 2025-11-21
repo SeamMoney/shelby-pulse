@@ -347,10 +347,10 @@ body, html {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Desktop: No scrolling, everything fits */
+/* Desktop: Allow scroll for zoom compatibility */
 @media (min-width: 1024px) {
   .terminal-content {
-    overflow-y: hidden;
+    overflow-y: auto;
     padding: 0.5rem 1rem;
   }
 }

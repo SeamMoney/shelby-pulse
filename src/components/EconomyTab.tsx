@@ -121,7 +121,7 @@ const EconomyTabComponent = () => {
   }
 
   const isDesktop = window.innerWidth >= 1024;
-  const maxEntries = isDesktop ? 5 : 10;
+  const maxEntries = isDesktop ? 8 : 10;
 
   return (
     <column gap-={isDesktop ? "0.5" : "2"} pad-={isDesktop ? "0.5" : "1"} style={{ overflowY: 'auto', height: '100%' }}>
@@ -141,80 +141,37 @@ const EconomyTabComponent = () => {
         )}
       </column>
 
-      {/* All-Time Stats */}
-      <column box-="double round" shear-="top" pad-="1" gap-="1">
-        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="accent" cap-="ribbon slant-bottom">📈 Network-Wide Stats</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">since inception</span>
-        </row>
-        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Total Supply
-            </small>
-            <h2 style={{ color: '#4A90E2', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {formatAmount(data.allTimeStats.totalSupply)}
-            </h2>
-          </column>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Total Holders
-            </small>
-            <h2 style={{ color: '#00C896', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {data.allTimeStats.totalHolders}
-            </h2>
-          </column>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              All-Time Volume
-            </small>
-            <h2 style={{ color: '#FFA500', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {formatAmount(data.allTimeStats.totalVolume)}
-            </h2>
-          </column>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Total Txs
-            </small>
-            <h2 style={{ color: '#FF1493', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {data.allTimeStats.totalTransactions}
-            </h2>
-          </column>
-        </row>
-      </column>
-
-      {/* Volume Stats */}
-      <column box-="round" shear-="top" pad-="1" gap-="1">
-        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="blue" cap-="slant-top slant-bottom">24-Hour Activity</span>
-        </row>
-        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Volume
-            </small>
-            <h2 style={{ color: '#4A90E2', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {formatAmount(data.volume.volume24h)}
-            </h2>
-          </column>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Transfers
-            </small>
-            <h2 style={{ color: '#00C896', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {data.volume.transferCount24h}
-            </h2>
-          </column>
-          <column gap-="0">
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-              Velocity
-            </small>
-            <h2 style={{ color: '#FFA500', fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-              {data.volume.velocity.toFixed(1)}/hr
-            </h2>
-          </column>
-        </row>
-      </column>
+      {/* Compact Combined Stats */}
+      <row style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(7, 1fr)' : 'repeat(auto-fit, minmax(120px, 1fr))', gap: isDesktop ? '0.5rem' : '1rem', fontSize: isDesktop ? '0.7rem' : '0.85rem' }}>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Supply</small>
+          <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(data.allTimeStats.totalSupply)}</span>
+        </column>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Holders</small>
+          <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.allTimeStats.totalHolders}</span>
+        </column>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>All-Time Vol</small>
+          <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(data.allTimeStats.totalVolume)}</span>
+        </column>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Total Txs</small>
+          <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.allTimeStats.totalTransactions}</span>
+        </column>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Vol</small>
+          <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(data.volume.volume24h)}</span>
+        </column>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Txs</small>
+          <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.transferCount24h}</span>
+        </column>
+        <column gap-="0" style={{ textAlign: 'center' }}>
+          <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Velocity</small>
+          <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.velocity.toFixed(1)}/hr</span>
+        </column>
+      </row>
 
       {/* 2-column layout on desktop */}
       <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
@@ -247,11 +204,12 @@ const EconomyTabComponent = () => {
               <span
                 style={{
                   fontFamily: 'monospace',
-                  fontSize: '0.85rem',
+                  fontSize: isDesktop ? '0.7rem' : '0.85rem',
                   flexShrink: 1,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  minWidth: 0,
                 }}
               >
                 {shortenAddress(entry.address)}
@@ -300,11 +258,12 @@ const EconomyTabComponent = () => {
               <span
                 style={{
                   fontFamily: 'monospace',
-                  fontSize: '0.85rem',
+                  fontSize: isDesktop ? '0.7rem' : '0.85rem',
                   flexShrink: 1,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  minWidth: 0,
                 }}
               >
                 {shortenAddress(entry.address)}
@@ -356,11 +315,12 @@ const EconomyTabComponent = () => {
               <span
                 style={{
                   fontFamily: 'monospace',
-                  fontSize: '0.85rem',
+                  fontSize: isDesktop ? '0.7rem' : '0.85rem',
                   flexShrink: 1,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  minWidth: 0,
                 }}
               >
                 {shortenAddress(entry.address)}
