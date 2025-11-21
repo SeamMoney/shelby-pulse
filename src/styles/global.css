@@ -347,6 +347,14 @@ body, html {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Desktop: No scrolling, everything fits */
+@media (min-width: 1024px) {
+  .terminal-content {
+    overflow-y: hidden;
+    padding: 0.5rem 1rem;
+  }
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   :root {

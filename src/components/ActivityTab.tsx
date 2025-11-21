@@ -317,7 +317,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         style={{
           width: '100%',
           flex: '1 1 auto',
-          minHeight: '600px',
+          minHeight: window.innerWidth >= 1024 ? '300px' : '400px',
+          maxHeight: window.innerWidth >= 1024 ? '40vh' : 'none',
           marginBottom: '1rem',
           cursor: isInteracting ? 'grabbing' : 'grab',
           touchAction: 'none',
@@ -334,7 +335,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      <row box-="double round" shear-="top" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', flexShrink: 0, transition: 'gap 0.3s ease' }}>
+      <row box-="double round" shear-="top" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: window.innerWidth >= 1024 ? '1rem' : '2rem', flexShrink: 0, transition: 'gap 0.3s ease' }}>
         <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
           <row gap-="1">
             <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">⚡ Latency Metrics</span>
@@ -348,7 +349,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           </row>
           <h2 style={{
             color: '#FF1493',
-            fontSize: '2.25rem',
+            fontSize: window.innerWidth >= 1024 ? '1.75rem' : '2.25rem',
             fontWeight: 700,
             margin: 0,
             fontVariantNumeric: 'tabular-nums',
@@ -362,23 +363,23 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         </column>
         <column style={{ gap: '0.5rem' }}>
           <span is-="badge" variant-="background2" cap-="round" size-="half">Average</span>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{avgLatency.toFixed(0)}ms</h2>
+          <h2 style={{ fontSize: window.innerWidth >= 1024 ? '1.75rem' : '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{avgLatency.toFixed(0)}ms</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
           <span is-="badge" variant-="green" cap-="round" size-="half">Min</span>
-          <h2 style={{ color: '#00C896', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{minLatency.toFixed(0)}ms</h2>
+          <h2 style={{ color: '#00C896', fontSize: window.innerWidth >= 1024 ? '1.75rem' : '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{minLatency.toFixed(0)}ms</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
           <span is-="badge" variant-="red" cap-="round" size-="half">Max</span>
-          <h2 style={{ color: '#FF6B6B', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{maxLatency.toFixed(0)}ms</h2>
+          <h2 style={{ color: '#FF6B6B', fontSize: window.innerWidth >= 1024 ? '1.75rem' : '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{maxLatency.toFixed(0)}ms</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
           <span is-="badge" variant-="blue" cap-="round" size-="half">Events</span>
-          <h2 style={{ color: '#4A90E2', fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{eventCount}</h2>
+          <h2 style={{ color: '#4A90E2', fontSize: window.innerWidth >= 1024 ? '1.75rem' : '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{eventCount}</h2>
         </column>
         <column style={{ gap: '0.5rem' }}>
           <span is-="badge" variant-="background2" cap-="round" size-="half">History</span>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>
+          <h2 style={{ fontSize: window.innerWidth >= 1024 ? '1.75rem' : '2.25rem', fontWeight: 700, margin: 0, fontVariantNumeric: 'tabular-nums' }}>
             {latencyData.length < 60
               ? `${latencyData.length}s`
               : `${(latencyData.length / 60).toFixed(1)}min`}
