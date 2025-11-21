@@ -27,14 +27,15 @@ function App() {
     // Initial fetch
     fetchNetworkStats()
 
-    // Poll for updates every 5 seconds
+    // Poll for updates every 15 seconds (reduced from 5s for better mobile performance)
     const statsInterval = setInterval(() => {
       fetchNetworkStats()
-    }, 5000)
+    }, 15000)
 
+    // Update time every 30 seconds instead of every second (huge performance gain!)
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 1000)
+    }, 30000)
 
     return () => {
       clearInterval(statsInterval)
@@ -173,8 +174,16 @@ function App() {
           </span>
         </row>
 
-        {/* Content */}
-        <column className="terminal-content" pad-="1">
+        {/* Content - GPU accelerated */}
+        <column
+          className="terminal-content"
+          pad-="1"
+          style={{
+            transform: 'translateZ(0)',
+            willChange: 'transform',
+            backfaceVisibility: 'hidden',
+          }}
+        >
           {activeTab === 'activity' && <ActivityTab currentTime={currentTime} />}
           {activeTab === 'economy' && <EconomyTab />}
           {activeTab === 'metrics' && <MetricsTab />}

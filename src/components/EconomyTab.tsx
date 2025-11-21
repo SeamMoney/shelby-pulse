@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { backendApi } from '../api/backend';
 import { AsciiBar } from './AsciiBar';
 
@@ -53,7 +53,7 @@ interface EconomyData {
   timestamp: number;
 }
 
-export function EconomyTab() {
+const EconomyTabComponent = () => {
   const [data, setData] = useState<EconomyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,7 +70,7 @@ export function EconomyTab() {
     };
 
     fetchEconomy();
-    const interval = setInterval(fetchEconomy, 30000); // Refresh every 30s
+    const interval = setInterval(fetchEconomy, 60000); // Refresh every 60s (reduced from 30s for mobile performance)
 
     return () => clearInterval(interval);
   }, []);
@@ -445,3 +445,5 @@ export function EconomyTab() {
     </column>
   );
 }
+
+export const EconomyTab = memo(EconomyTabComponent);
