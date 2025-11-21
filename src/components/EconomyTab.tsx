@@ -142,7 +142,7 @@ const EconomyTabComponent = () => {
           <span is-="badge" variant-="accent" cap-="ribbon slant-bottom">📈 Network-Wide Stats</span>
           <span is-="badge" variant-="background2" cap-="round" size-="half">since inception</span>
         </row>
-        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
           <column gap-="0">
             <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Total Supply
@@ -183,7 +183,7 @@ const EconomyTabComponent = () => {
         <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
           <span is-="badge" variant-="blue" cap-="slant-top slant-bottom">24-Hour Activity</span>
         </row>
-        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+        <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
           <column gap-="0">
             <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
               Volume

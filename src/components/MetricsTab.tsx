@@ -2,7 +2,7 @@ export function MetricsTab() {
   return (
     <column gap-="1">
       {/* Real Shelby Metrics Grid */}
-      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
         <column box-="round" shear-="top" pad-="1" style={{ gap: '1rem' }}>
           <row gap-="1" style={{ marginTop: '-0.5rem' }}>
             <span is-="badge" variant-="green" cap-="triangle slant-bottom">⚡ Read Latency</span>

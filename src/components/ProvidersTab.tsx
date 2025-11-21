@@ -10,7 +10,7 @@ export function ProvidersTab() {
   return (
     <column gap-="1">
       {/* Real Shelby SPs Grid */}
-      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+      <row style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
         {sps.map((sp, i) => (
           <column box-="round" shear-="top" pad-="1" key={i} style={{ gap: '1rem' }}>
             <row gap-="1" align-="between" style={{ marginTop: '-0.5rem' }}>
@@ -69,7 +69,7 @@ export function ProvidersTab() {
       </column>
 
       {/* Summary Stats */}
-      <row box-="round" shear-="both" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+      <row box-="round" shear-="both" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
         <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem' }}>
           <row gap-="1">
             <span is-="badge" variant-="green" cap-="slant-top ribbon">📈 Network Summary</span>

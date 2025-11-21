@@ -19,6 +19,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   const [eventCount, setEventCount] = useState<number>(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
+  const lastFrameTime = useRef<number>(0)
+  const lastDataLength = useRef<number>(0)
 
   // Interactive state
   const [isInteracting, setIsInteracting] = useState(false)
@@ -26,7 +28,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   const [targetPointerX, setTargetPointerX] = useState<number | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
-  // Measure API latency every 1 second
+  // Measure API latency every 5 seconds (reduced from 1s for mobile performance)
   useEffect(() => {
     const measureLatency = async () => {
       const start = performance.now()
@@ -35,9 +37,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         const latency = performance.now() - start
         setCurrentLatency(latency)
         setLatencyData(prev => {
-          // Mobile-first: 2 minutes (120 points), Desktop: 3 minutes (180 points)
+          // Mobile-first: Fewer points for better performance
           const isMobile = window.innerWidth < 768
-          const maxPoints = isMobile ? 120 : 180
+          const maxPoints = isMobile ? 60 : 120  // Reduced from 120/180
           const newData = [...prev, latency].slice(-maxPoints)
           // Persist to localStorage
           localStorage.setItem('shelby-latency-history', JSON.stringify(newData))
@@ -48,7 +50,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       }
     }
     measureLatency()
-    const interval = setInterval(measureLatency, 1000)
+    const interval = setInterval(measureLatency, 5000) // Changed from 1000ms to 5000ms
     return () => clearInterval(interval)
   }, [])
 
@@ -67,23 +69,12 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     return () => clearInterval(interval)
   }, [])
 
-  // Smooth interpolation for pointer position
+  // Direct pointer positioning - no smoothing for instant response
   useEffect(() => {
-    if (targetPointerX === null || pointerX === null) {
-      if (targetPointerX !== null && pointerX === null) {
-        setPointerX(targetPointerX)
-      }
-      return
-    }
-
-    const smoothing = 0.15
-    const diff = targetPointerX - pointerX
-    if (Math.abs(diff) > 0.5) {
-      setPointerX(pointerX + diff * smoothing)
-    } else {
+    if (targetPointerX !== null) {
       setPointerX(targetPointerX)
     }
-  }, [targetPointerX, pointerX])
+  }, [targetPointerX])
 
   // Chart rendering
   useEffect(() => {
@@ -92,7 +83,27 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const animate = () => {
+    // Mobile-first: Lower frame rates for better battery life
+    const isMobile = window.innerWidth < 768
+    const targetFps = isMobile ? 20 : 30 // 20fps mobile, 30fps desktop
+    const frameInterval = 1000 / targetFps
+
+    const animate = (timestamp: number = performance.now()) => {
+      // Throttle frame rate
+      const elapsed = timestamp - lastFrameTime.current
+      if (elapsed < frameInterval && !isInteracting) {
+        animationRef.current = requestAnimationFrame(animate)
+        return
+      }
+      lastFrameTime.current = timestamp
+
+      // Skip rendering if data hasn't changed and not interacting
+      if (latencyData.length === lastDataLength.current && !isInteracting && pointerX === null) {
+        animationRef.current = requestAnimationFrame(animate)
+        return
+      }
+      lastDataLength.current = latencyData.length
+
       const dpr = window.devicePixelRatio || 1
       const rect = canvas.getBoundingClientRect()
 
@@ -249,7 +260,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       animationRef.current = requestAnimationFrame(animate)
     }
 
-    animate()
+    animationRef.current = requestAnimationFrame(animate)
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current)
     }
@@ -264,6 +275,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
   // Event handlers for interactivity
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault() // Prevent text selection and long-press menu
     setIsInteracting(true)
     const canvas = canvasRef.current
     if (!canvas) return
@@ -273,6 +285,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   }
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault() // Prevent text selection while dragging
     if (!isInteracting) return
     const canvas = canvasRef.current
     if (!canvas) return
@@ -281,14 +294,16 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
     setTargetPointerX(x)
   }
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault() // Prevent any default behavior
     setIsInteracting(false)
     setPointerX(null)
     setTargetPointerX(null)
     setSelectedIndex(null)
   }
 
-  const handlePointerLeave = () => {
+  const handlePointerLeave = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault() // Prevent any default behavior
     setIsInteracting(false)
     setPointerX(null)
     setTargetPointerX(null)
@@ -305,16 +320,21 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           minHeight: '600px',
           marginBottom: '1rem',
           cursor: isInteracting ? 'grabbing' : 'grab',
-          touchAction: 'none'
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+          WebkitTapHighlightColor: 'transparent'
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerUp}
+        onContextMenu={(e) => e.preventDefault()}
       />
 
-      <row box-="double round" shear-="top" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', flexShrink: 0 }}>
+      <row box-="double round" shear-="top" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '2rem', flexShrink: 0, transition: 'gap 0.3s ease' }}>
         <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
           <row gap-="1">
             <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">⚡ Latency Metrics</span>

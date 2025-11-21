@@ -25,7 +25,7 @@ export function OverviewTab({ networkStats }: OverviewTabProps) {
       <div is-="separator"></div>
 
       {/* Network-wide Shelby Metrics */}
-      <row gap-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+      <row gap-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', transition: 'gap 0.3s ease' }}>
         <column box-="square" pad-="1" gap-="0.5">
           <row gap-="1" align-="between">
             <small style={{ color: 'var(--foreground1)' }}>Total Blobs</small>
