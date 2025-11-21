@@ -120,10 +120,13 @@ const EconomyTabComponent = () => {
     );
   }
 
+  const isDesktop = window.innerWidth >= 1024;
+  const maxEntries = isDesktop ? 5 : 10;
+
   return (
-    <column gap-="2" pad-="1" style={{ overflowY: 'auto', height: '100%' }}>
+    <column gap-={isDesktop ? "0.5" : "2"} pad-={isDesktop ? "0.5" : "1"} style={{ overflowY: 'auto', height: '100%' }}>
       {/* Header */}
-      <column box-="double round" shear-="top" pad-="1" gap-="1">
+      <column box-="double round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-="0.5">
         <row gap-="1" align-="between" style={{ marginTop: '-0.5rem' }}>
           <span is-="badge" variant-="pink" cap-="ribbon triangle">SHELBYUSD ECONOMY</span>
           <row gap-="0.5">
@@ -131,9 +134,11 @@ const EconomyTabComponent = () => {
             <span is-="badge" variant-="success" cap-="round" size-="half">◉ LIVE</span>
           </row>
         </row>
-        <small style={{ color: 'var(--foreground2)' }}>
-          All-time ShelbyUSD statistics since network inception • Value accrual preview for future $Shelby token
-        </small>
+        {!isDesktop && (
+          <small style={{ color: 'var(--foreground2)' }}>
+            All-time ShelbyUSD statistics since network inception • Value accrual preview for future $Shelby token
+          </small>
+        )}
       </column>
 
       {/* All-Time Stats */}
@@ -211,21 +216,25 @@ const EconomyTabComponent = () => {
         </row>
       </column>
 
-      {/* Top Holders Leaderboard */}
-      <column box-="double" shear-="top" pad-="1" gap-="1">
-        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="accent" cap-="triangle ribbon">💎 Top Holders</span>
-          <span is-="badge" variant-="green" cap-="round" size-="half">
-            $SHELBY airdrop eligible
-          </span>
-        </row>
-        <column gap-="0" style={{ fontSize: '0.9rem', overflow: 'hidden' }}>
-          {data.leaderboard.slice(0, 10).map((entry, i) => (
+      {/* 2-column layout on desktop */}
+      <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
+        {/* Top Holders Leaderboard */}
+        <column box-="double" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
+          <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+            <span is-="badge" variant-="accent" cap-="triangle ribbon" size-={isDesktop ? "half" : undefined}>💎 Top Holders</span>
+            {!isDesktop && (
+              <span is-="badge" variant-="green" cap-="round" size-="half">
+                $SHELBY airdrop eligible
+              </span>
+            )}
+          </row>
+          <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
+            {data.leaderboard.slice(0, maxEntries).map((entry, i) => (
             <row
               key={entry.address}
               style={{
-                padding: '0.5rem 0',
-                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
+                padding: isDesktop ? '0.3rem 0' : '0.5rem 0',
+                borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                 gap: '0.5rem',
                 alignItems: 'center',
                 maxWidth: '100%',
@@ -266,19 +275,19 @@ const EconomyTabComponent = () => {
         </column>
       </column>
 
-      {/* Most Active Users */}
-      <column box-="round" shear-="top" pad-="1" gap-="1">
-        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="blue" cap-="slant-bottom triangle">⚡ Most Active</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">by tx count</span>
-        </row>
-        <column gap-="0" style={{ fontSize: '0.9rem', overflow: 'hidden' }}>
-          {data.mostActive.slice(0, 10).map((entry, i) => (
+        {/* Most Active Users */}
+        <column box-="round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
+          <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+            <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>⚡ Most Active</span>
+            {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">by tx count</span>}
+          </row>
+          <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
+          {data.mostActive.slice(0, maxEntries).map((entry, i) => (
             <row
               key={entry.address}
               style={{
-                padding: '0.5rem 0',
-                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
+                padding: isDesktop ? '0.3rem 0' : '0.5rem 0',
+                borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                 gap: '0.5rem',
                 alignItems: 'center',
                 maxWidth: '100%',
@@ -318,20 +327,23 @@ const EconomyTabComponent = () => {
           ))}
         </column>
       </column>
+      </row>
 
-      {/* Top Spenders */}
-      <column box-="double round" shear-="top" pad-="1" gap-="1">
-        <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="yellow" cap-="ribbon slant-top">💸 Biggest Spenders</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">total withdrawn</span>
-        </row>
-        <column gap-="0" style={{ fontSize: '0.9rem', overflow: 'hidden' }}>
-          {data.topSpenders.slice(0, 10).map((entry, i) => (
+      {/* Second row: Top Spenders & Recent Transactions */}
+      <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
+        {/* Top Spenders */}
+        <column box-="double round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
+          <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+            <span is-="badge" variant-="yellow" cap-="ribbon slant-top" size-={isDesktop ? "half" : undefined}>💸 Biggest Spenders</span>
+            {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">total withdrawn</span>}
+          </row>
+          <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
+          {data.topSpenders.slice(0, maxEntries).map((entry, i) => (
             <row
               key={entry.address}
               style={{
-                padding: '0.5rem 0',
-                borderBottom: i < 9 ? '1px solid var(--background2)' : 'none',
+                padding: isDesktop ? '0.3rem 0' : '0.5rem 0',
+                borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                 gap: '0.5rem',
                 alignItems: 'center',
                 maxWidth: '100%',
@@ -372,21 +384,21 @@ const EconomyTabComponent = () => {
         </column>
       </column>
 
-      {/* Recent Transactions */}
-      <column box-="round" shear-="both" pad-="1" gap-="1">
-        <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="green" cap-="triangle triangle">📊 Recent Activity</span>
-          <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>
-        </row>
-        <column gap-="0" style={{ fontSize: '0.85rem', fontFamily: 'monospace', overflow: 'hidden' }}>
-          {data.recentTransactions.slice(0, 15).map((tx, i) => {
+        {/* Recent Transactions */}
+        <column box-="round" shear-="both" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
+          <row gap-="1" align-="between" style={{ marginTop: '-0.5rem', marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+            <span is-="badge" variant-="green" cap-="triangle triangle" size-={isDesktop ? "half" : undefined}>📊 Recent Activity</span>
+            {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>}
+          </row>
+          <column gap-="0" style={{ fontSize: isDesktop ? '0.7rem' : '0.85rem', fontFamily: 'monospace', overflow: 'hidden' }}>
+            {data.recentTransactions.slice(0, maxEntries).map((tx, i) => {
             const txInfo = getTransactionLabel(tx.type);
             return (
               <row
                 key={`${tx.version}-${i}`}
                 style={{
-                  padding: '0.4rem 0',
-                  borderBottom: i < 14 ? '1px solid var(--background2)' : 'none',
+                  padding: isDesktop ? '0.25rem 0' : '0.4rem 0',
+                  borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                   gap: '0.5rem',
                   alignItems: 'center',
                   maxWidth: '100%',
@@ -442,6 +454,7 @@ const EconomyTabComponent = () => {
           })}
         </column>
       </column>
+      </row>
     </column>
   );
 }
