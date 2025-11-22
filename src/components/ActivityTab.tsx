@@ -277,13 +277,30 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           ctx.shadowBlur = 0
           ctx.fill()
 
-          // Value label
+          // Value label - adjust position to prevent text cutoff
           ctx.font = 'bold 20px Cascadia Code, monospace'
           ctx.fillStyle = '#1a1a1a'
-          ctx.textAlign = 'center'
           ctx.globalAlpha = 1
           ctx.shadowBlur = 0
-          ctx.fillText(`${Math.round(latency)}ms`, x, y - 20)
+
+          const labelText = `${Math.round(latency)}ms`
+          const labelWidth = ctx.measureText(labelText).width
+          const padding = 10
+
+          // Adjust alignment based on position to prevent cutoff
+          if (x + labelWidth / 2 + padding > renderWidth) {
+            // Near right edge - align right
+            ctx.textAlign = 'right'
+            ctx.fillText(labelText, x - padding, y - 20)
+          } else if (x - labelWidth / 2 - padding < 0) {
+            // Near left edge - align left
+            ctx.textAlign = 'left'
+            ctx.fillText(labelText, x + padding, y - 20)
+          } else {
+            // Centered - default
+            ctx.textAlign = 'center'
+            ctx.fillText(labelText, x, y - 20)
+          }
 
           ctx.shadowBlur = 0
           ctx.globalAlpha = 1
