@@ -3,9 +3,20 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const VM_API_URL = 'http://147.182.237.239:3002/api';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Get the path after /api/proxy
-  const path = req.url?.replace('/api/proxy', '') || '';
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
+  }
+
+  // Get the path from query params (Vercel catch-all routes)
+  const pathArray = req.query.path as string[];
+  const path = pathArray ? `/${pathArray.join('/')}` : '';
   const targetUrl = `${VM_API_URL}${path}`;
+
+  console.log('Proxying request to:', targetUrl);
 
   try {
     const response = await fetch(targetUrl, {
@@ -26,6 +37,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(response.status).json(data);
   } catch (error) {
     console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Failed to fetch from backend' });
+    res.status(500).json({ error: 'Failed to fetch from backend', details: String(error) });
   }
 }

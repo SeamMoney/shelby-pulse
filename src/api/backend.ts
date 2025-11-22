@@ -3,8 +3,8 @@
  * Fetches real data from the pulse-api service
  */
 
-// Use Vercel serverless function proxy (works in both dev and production)
-const API_BASE_URL = '/api/proxy';
+// Use Vercel serverless function catch-all proxy
+const API_BASE_URL = '/api';
 
 export interface NetworkStats {
   totalBlobs: number;
