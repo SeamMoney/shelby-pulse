@@ -21,7 +21,6 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   const animationRef = useRef<number>()
   const lastFrameTime = useRef<number>(0)
   const lastDataLength = useRef<number>(0)
-  const lastMaxLatency = useRef<number>(0)
 
   // Interactive state
   const [isInteracting, setIsInteracting] = useState(false)
@@ -98,11 +97,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       }
       lastFrameTime.current = timestamp
 
-      // Skip rendering if data hasn't changed and not interacting
-      if (latencyData.length === lastDataLength.current && !isInteracting && pointerX === null) {
-        animationRef.current = requestAnimationFrame(animate)
-        return
-      }
+      // Track data changes for potential optimizations
       const dataChanged = latencyData.length !== lastDataLength.current
       lastDataLength.current = latencyData.length
 
@@ -132,7 +127,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         const p95Value = sorted[p95Index] || 100
         // Add 25% headroom for visual breathing room
         const maxLatency = Math.max(p95Value * 1.25, 100)
-        const pointSpacing = renderWidth / latencyData.length
+        // Reserve space for Y-axis labels on the right (60px)
+        const chartWidth = renderWidth - 60
+        const pointSpacing = chartWidth / latencyData.length
         const chartHeight = renderHeight - 80
 
         // Glowing pink aesthetic
@@ -194,50 +191,54 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         ctx.shadowBlur = 0
         ctx.globalAlpha = 1
 
-        // Only draw static labels when scale changes or data updates (not during interaction)
-        const scaleChanged = Math.abs(maxLatency - lastMaxLatency.current) > 0.01
-        if (dataChanged || scaleChanged || !isInteracting) {
-          lastMaxLatency.current = maxLatency
+        // Always draw Y-axis labels
+        ctx.font = '12px Cascadia Code, monospace'
+        ctx.fillStyle = '#666666'
+        ctx.textAlign = 'right'
 
-          // Set font once to avoid repeated font parsing
-          ctx.font = '12px Cascadia Code, monospace'
-          ctx.fillStyle = '#666666'
-          ctx.textAlign = 'right'
-
-          // Draw Y-axis labels for screenshotability
-          const yLabels = [0, 25, 50, 75, 100]
-          for (let i = 0; i < yLabels.length; i++) {
-            const percent = yLabels[i]
-            const value = (maxLatency * percent) / 100
-            const y = 40 + chartHeight - ((percent / 100) * chartHeight)
-            ctx.fillText(`${Math.round(value)}ms`, renderWidth - 5, y + 4)
-          }
-
-          // Mark the latest data point with a circle and label
-          if (latencyData.length > 0) {
-            const lastLatency = latencyData[latencyData.length - 1]
-            const clampedLastLatency = Math.min(lastLatency, maxLatency)
-            const lastX = (latencyData.length - 1) * pointSpacing
-            const lastY = 40 + chartHeight - ((clampedLastLatency / maxLatency) * chartHeight)
-
-            // Draw circle at latest point
-            ctx.beginPath()
-            ctx.arc(lastX, lastY, 4, 0, Math.PI * 2)
-            ctx.fillStyle = '#FF1493'
-            ctx.fill()
-
-            // Draw label for latest value
-            ctx.font = 'bold 14px Cascadia Code, monospace'
-            ctx.fillStyle = '#FF1493'
-            ctx.textAlign = 'center'
-            ctx.fillText(`${Math.round(lastLatency)}ms`, lastX, lastY - 12)
-          }
+        // Draw Y-axis labels for screenshotability
+        const yLabels = [0, 25, 50, 75, 100]
+        for (let i = 0; i < yLabels.length; i++) {
+          const percent = yLabels[i]
+          const value = (maxLatency * percent) / 100
+          const y = 40 + chartHeight - ((percent / 100) * chartHeight)
+          ctx.fillText(`${Math.round(value)}ms`, renderWidth - 5, y + 4)
         }
 
-        // Draw interactive crosshair
+        // Mark the latest data point with pulsing circle and label
+        if (latencyData.length > 0) {
+          const lastLatency = latencyData[latencyData.length - 1]
+          const clampedLastLatency = Math.min(lastLatency, maxLatency)
+          const lastX = (latencyData.length - 1) * pointSpacing
+          const lastY = 40 + chartHeight - ((clampedLastLatency / maxLatency) * chartHeight)
+
+          // Pulsing animation - same as crosshair
+          const pulseTime = Date.now() / 800
+          const pulseScale = 0.8 + Math.sin(pulseTime * Math.PI * 2) * 0.2
+
+          // Outer pulsing glow
+          ctx.beginPath()
+          ctx.arc(lastX, lastY, 8 * pulseScale, 0, Math.PI * 2)
+          ctx.fillStyle = '#FF69B4'
+          ctx.globalAlpha = 0.3 * (1 - (pulseScale - 0.8) / 0.4)
+          ctx.fill()
+
+          // Inner circle
+          ctx.beginPath()
+          ctx.arc(lastX, lastY, 4, 0, Math.PI * 2)
+          ctx.fillStyle = '#FF1493'
+          ctx.globalAlpha = 1
+          ctx.fill()
+
+          // Draw label for latest value
+          ctx.font = 'bold 14px Cascadia Code, monospace'
+          ctx.fillStyle = '#FF1493'
+          ctx.textAlign = 'center'
+          ctx.fillText(`${Math.round(lastLatency)}ms`, lastX, lastY - 12)
+        }
+
+        // Draw interactive crosshair (only when actively interacting)
         if (isInteracting && pointerX !== null && latencyData.length > 1) {
-          const pointSpacing = renderWidth / latencyData.length
-          const chartHeight = renderHeight - 80
           const index = Math.min(
             Math.max(0, Math.floor(pointerX / pointSpacing)),
             latencyData.length - 1
