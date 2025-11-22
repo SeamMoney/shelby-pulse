@@ -121,12 +121,16 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
       // Chart line with smooth curves
       if (latencyData.length > 1) {
-        // Use 95th percentile instead of max to prevent outlier compression
+        // Use dynamic min/max based on actual data for full Y-axis usage
         const sorted = [...latencyData].sort((a, b) => a - b)
+        const p5Index = Math.floor(sorted.length * 0.05)
         const p95Index = Math.floor(sorted.length * 0.95)
-        const p95Value = sorted[p95Index] || 50
-        // Add 10% headroom for visual breathing room - scale naturally to data
-        const maxLatency = p95Value * 1.1
+        const minValue = sorted[p5Index] || 0
+        const maxValue = sorted[p95Index] || 50
+        // Add 10% headroom on both ends
+        const minLatency = Math.max(0, minValue * 0.9)
+        const maxLatency = maxValue * 1.1
+        const latencyRange = maxLatency - minLatency
         // Reserve space for Y-axis labels on the right (60px)
         const chartWidth = renderWidth - 60
         const pointSpacing = chartWidth / latencyData.length
@@ -141,17 +145,17 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           ctx.beginPath()
           latencyData.forEach((latency, i) => {
             const x = i * pointSpacing
-            // Clamp latency to maxLatency so outliers don't go off-screen
-            const clampedLatency = Math.min(latency, maxLatency)
-            const y = 40 + chartHeight - ((clampedLatency / maxLatency) * chartHeight)
+            // Clamp latency to range
+            const clampedLatency = Math.max(minLatency, Math.min(latency, maxLatency))
+            const y = 40 + chartHeight - (((clampedLatency - minLatency) / latencyRange) * chartHeight)
 
             if (i === 0) {
               ctx.moveTo(x, y)
             } else {
               const prevLatency = latencyData[i - 1]
-              const clampedPrevLatency = Math.min(prevLatency, maxLatency)
+              const clampedPrevLatency = Math.max(minLatency, Math.min(prevLatency, maxLatency))
               const prevX = (i - 1) * pointSpacing
-              const prevY = 40 + chartHeight - ((clampedPrevLatency / maxLatency) * chartHeight)
+              const prevY = 40 + chartHeight - (((clampedPrevLatency - minLatency) / latencyRange) * chartHeight)
               const cpX = prevX + (x - prevX) / 2
               const cpY = prevY + (y - prevY) / 2
               ctx.quadraticCurveTo(prevX, prevY, cpX, cpY)
@@ -160,9 +164,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
 
           if (latencyData.length > 0) {
             const lastLatency = latencyData[latencyData.length - 1]
-            const clampedLastLatency = Math.min(lastLatency, maxLatency)
+            const clampedLastLatency = Math.max(minLatency, Math.min(lastLatency, maxLatency))
             const lastX = (latencyData.length - 1) * pointSpacing
-            const lastY = 40 + chartHeight - ((clampedLastLatency / maxLatency) * chartHeight)
+            const lastY = 40 + chartHeight - (((clampedLastLatency - minLatency) / latencyRange) * chartHeight)
             ctx.lineTo(lastX, lastY)
           }
         }
@@ -212,7 +216,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         const yLabels = [0, 25, 50, 75, 100]
         for (let i = 0; i < yLabels.length; i++) {
           const percent = yLabels[i]
-          const value = (maxLatency * percent) / 100
+          const value = minLatency + (latencyRange * percent) / 100
           const y = 40 + chartHeight - ((percent / 100) * chartHeight)
           ctx.fillText(`${Math.round(value)}ms`, renderWidth - 5, y + 4)
         }
@@ -220,9 +224,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         // Mark the latest data point with pulsing circle and label
         if (latencyData.length > 0) {
           const lastLatency = latencyData[latencyData.length - 1]
-          const clampedLastLatency = Math.min(lastLatency, maxLatency)
+          const clampedLastLatency = Math.max(minLatency, Math.min(lastLatency, maxLatency))
           const lastX = (latencyData.length - 1) * pointSpacing
-          const lastY = 40 + chartHeight - ((clampedLastLatency / maxLatency) * chartHeight)
+          const lastY = 40 + chartHeight - (((clampedLastLatency - minLatency) / latencyRange) * chartHeight)
 
           // Pulsing animation - same as crosshair
           const pulseTime = Date.now() / 800
@@ -256,9 +260,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
             latencyData.length - 1
           )
           const latency = latencyData[index]
-          const clampedLatency = Math.min(latency, maxLatency)
+          const clampedLatency = Math.max(minLatency, Math.min(latency, maxLatency))
           const x = index * pointSpacing
-          const y = 40 + chartHeight - ((clampedLatency / maxLatency) * chartHeight)
+          const y = 40 + chartHeight - (((clampedLatency - minLatency) / latencyRange) * chartHeight)
 
           // Crosshair vertical line - light grey
           ctx.beginPath()
