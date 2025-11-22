@@ -192,6 +192,37 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         ctx.shadowBlur = 0
         ctx.globalAlpha = 1
 
+        // Draw Y-axis labels for screenshotability
+        ctx.font = '12px Cascadia Code, monospace'
+        ctx.fillStyle = '#666666'
+        ctx.textAlign = 'right'
+        const yLabels = [0, 25, 50, 75, 100]
+        yLabels.forEach(percent => {
+          const value = (maxLatency * percent) / 100
+          const y = 40 + chartHeight - ((percent / 100) * chartHeight)
+          ctx.fillText(`${Math.round(value)}ms`, renderWidth - 5, y + 4)
+        })
+
+        // Mark the latest data point with a circle and label
+        if (latencyData.length > 0) {
+          const lastLatency = latencyData[latencyData.length - 1]
+          const clampedLastLatency = Math.min(lastLatency, maxLatency)
+          const lastX = (latencyData.length - 1) * pointSpacing
+          const lastY = 40 + chartHeight - ((clampedLastLatency / maxLatency) * chartHeight)
+
+          // Draw circle at latest point
+          ctx.beginPath()
+          ctx.arc(lastX, lastY, 4, 0, Math.PI * 2)
+          ctx.fillStyle = '#FF1493'
+          ctx.fill()
+
+          // Draw label for latest value
+          ctx.font = 'bold 14px Cascadia Code, monospace'
+          ctx.fillStyle = '#FF1493'
+          ctx.textAlign = 'center'
+          ctx.fillText(`${Math.round(lastLatency)}ms`, lastX, lastY - 12)
+        }
+
         // Draw interactive crosshair
         if (isInteracting && pointerX !== null && latencyData.length > 1) {
           const pointSpacing = renderWidth / latencyData.length
