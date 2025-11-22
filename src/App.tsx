@@ -174,7 +174,7 @@ function App() {
               onClick={() => setActiveTab('economy')}
               className={activeTab === 'economy' ? 'active' : ''}
             >
-              Economy
+              ShelbyUSD
             </button>
             <button
               onClick={() => setActiveTab('metrics')}
@@ -204,15 +204,19 @@ function App() {
         >
           <span is-="badge" variant-="success">● LIVE</span>
           <span style={{ color: 'var(--foreground2)' }}>
-            Aptos Devnet
+            Storage: {networkStats.totalStorageFormatted}
           </span>
           <span style={{ color: 'var(--foreground2)' }}>|</span>
           <span style={{ color: 'var(--foreground2)' }}>
-            Updated: {getTimeSinceUpdate()}
+            Upload: {networkStats.uploadRate.toFixed(1)} KB/s
           </span>
           <span style={{ color: 'var(--foreground2)' }}>|</span>
           <span style={{ color: 'var(--foreground2)' }}>
-            {networkStats.totalBlobs} blobs indexed
+            {networkStats.totalBlobs} blobs
+          </span>
+          <span style={{ color: 'var(--foreground2)' }}>|</span>
+          <span style={{ color: 'var(--foreground2)' }}>
+            {getTimeSinceUpdate()}
           </span>
         </row>
 
