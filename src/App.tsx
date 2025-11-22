@@ -22,6 +22,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
   useEffect(() => {
     // Initial fetch
@@ -37,9 +38,14 @@ function App() {
       setCurrentTime(new Date())
     }, 30000)
 
+    // Window resize listener for responsive design
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+
     return () => {
       clearInterval(statsInterval)
       clearInterval(timeInterval)
+      window.removeEventListener('resize', handleResize)
     }
   }, [])
 
@@ -120,7 +126,34 @@ function App() {
             <span className="dot-yellow">●</span>
             <span className="dot-green">●</span>
           </row>
-          <span is-="badge" variant-="root">Shelby Pulse</span>
+          <row style={{ gap: '0.5rem', alignItems: 'center' }}>
+            {/* Shelby Pulse Logo - Desktop only */}
+            <div style={{
+              padding: '0.75rem',
+              backgroundColor: 'var(--background)',
+              border: '3px solid var(--pink)',
+              display: windowWidth <= 768 ? 'none' : 'block'
+            }}>
+              <img
+                src="/shelby-pulse-logo.png"
+                alt="Shelby Pulse Logo"
+                style={{
+                  height: '5em',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+                onError={(e) => {
+                  console.log('Logo failed to load')
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+            <span is-="badge" variant-="root" style={{
+              display: windowWidth > 768 ? 'inline-flex' : 'none'
+            }}>
+              Shelby Pulse
+            </span>
+          </row>
           <row className="tab-nav">
             <button
               onClick={() => setActiveTab('activity')}
@@ -182,8 +215,42 @@ function App() {
             transform: 'translateZ(0)',
             willChange: 'transform',
             backfaceVisibility: 'hidden',
+            position: 'relative'
           }}
         >
+          {/* Mobile Logo and Title at Top - Only on Activity tab */}
+          {activeTab === 'activity' && (
+            <div style={{
+              position: 'absolute',
+              top: '0.5rem',
+              right: '0.5rem',
+              zIndex: 10,
+              display: windowWidth <= 768 ? 'flex' : 'none',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              padding: '0.5rem',
+              borderRadius: '0.5rem'
+            }}>
+              <img
+                src="/shelby-pulse-logo.png"
+                alt="Shelby Pulse Logo"
+                style={{
+                  height: '2em',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+              <span style={{
+                color: 'var(--foreground2)',
+                fontSize: '1em',
+                fontWeight: 'bold'
+              }}>
+                Shelby Pulse
+              </span>
+            </div>
+          )}
+
           {activeTab === 'activity' && <ActivityTab currentTime={currentTime} />}
           {activeTab === 'economy' && <EconomyTab />}
           {activeTab === 'metrics' && <MetricsTab />}
