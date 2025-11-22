@@ -128,15 +128,15 @@ export class ShelbyAptosClient {
    */
   async getTotalBlobCount(): Promise<number> {
     try {
-      // Query a large number of events to get total count
-      // Note: This is a workaround since events_aggregate is not available
+      // Use events_aggregate to get actual count without fetching all events
       const query = `
         query GetTotalBlobs {
-          events(
+          events_aggregate(
             where: {type: {_like: "%BlobRegisteredEvent"}}
-            limit: 100000
           ) {
-            type
+            aggregate {
+              count
+            }
           }
         }
       `;
@@ -150,8 +150,8 @@ export class ShelbyAptosClient {
       });
 
       const result = await response.json();
-      const events = result.data?.events || [];
-      return events.length;
+      const count = result.data?.events_aggregate?.aggregate?.count || 0;
+      return count;
     } catch (error) {
       logger.warn({ error }, "Failed to fetch total blob count");
       return 0;
