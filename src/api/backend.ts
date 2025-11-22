@@ -3,8 +3,8 @@
  * Fetches real data from the pulse-api service
  */
 
-// Use /api (relative) - Vercel will proxy to VM backend
-const API_BASE_URL = '/api';
+// Use environment variable or default to VM backend
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://147.182.237.239:3002/api';
 
 export interface NetworkStats {
   totalBlobs: number;
