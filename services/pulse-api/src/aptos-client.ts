@@ -128,30 +128,51 @@ export class ShelbyAptosClient {
    */
   async getTotalBlobCount(): Promise<number> {
     try {
-      // Use events_aggregate to get actual count without fetching all events
-      const query = `
-        query GetTotalBlobs {
-          events_aggregate(
-            where: {type: {_like: "%BlobRegisteredEvent"}}
-          ) {
-            aggregate {
-              count
+      // Use pagination to count all blob events since events_aggregate is not available
+      let totalCount = 0;
+      let offset = 0;
+      const limit = 1000; // Fetch in batches of 1000
+      let hasMore = true;
+
+      while (hasMore) {
+        const query = `
+          query GetTotalBlobs($offset: Int!, $limit: Int!) {
+            events(
+              where: {type: {_like: "%BlobRegisteredEvent"}}
+              offset: $offset
+              limit: $limit
+            ) {
+              type
             }
           }
+        `;
+
+        const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query,
+            variables: { offset, limit }
+          }),
+        });
+
+        const result = await response.json();
+        const events = result.data?.events || [];
+
+        totalCount += events.length;
+
+        // If we got fewer events than the limit, we've reached the end
+        if (events.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
         }
-      `;
+      }
 
-      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-      });
-
-      const result = await response.json();
-      const count = result.data?.events_aggregate?.aggregate?.count || 0;
-      return count;
+      logger.info({ totalCount }, "Fetched total blob count via pagination");
+      return totalCount;
     } catch (error) {
       logger.warn({ error }, "Failed to fetch total blob count");
       return 0;
