@@ -125,8 +125,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         const sorted = [...latencyData].sort((a, b) => a - b)
         const p95Index = Math.floor(sorted.length * 0.95)
         const p95Value = sorted[p95Index] || 100
-        // Add 25% headroom for visual breathing room
-        const maxLatency = Math.max(p95Value * 1.25, 100)
+        // Add 10% headroom for visual breathing room (reduced from 25% for better chart fill)
+        const maxLatency = Math.max(p95Value * 1.1, 100)
         // Reserve space for Y-axis labels on the right (60px)
         const chartWidth = renderWidth - 60
         const pointSpacing = chartWidth / latencyData.length
@@ -190,6 +190,18 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         // Reset
         ctx.shadowBlur = 0
         ctx.globalAlpha = 1
+
+        // Mobile: Draw "SHELBY PULSE" overlay in top left
+        const isMobile = window.innerWidth < 768
+        if (isMobile) {
+          ctx.font = 'bold 24px Cascadia Code, monospace'
+          ctx.fillStyle = '#FF1493'
+          ctx.globalAlpha = 0.15
+          ctx.textAlign = 'left'
+          ctx.fillText('SHELBY', 15, 40)
+          ctx.fillText('PULSE', 15, 68)
+          ctx.globalAlpha = 1
+        }
 
         // Always draw Y-axis labels
         ctx.font = '12px Cascadia Code, monospace'
