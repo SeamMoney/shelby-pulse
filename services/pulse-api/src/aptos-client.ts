@@ -70,13 +70,15 @@ export class ShelbyAptosClient {
    */
   async fetchBlobEvents(limit = 50): Promise<BlobEvent[]> {
     try {
-      // Query events using GraphQL - this is more reliable than querying specific module events
+      // Query events using GraphQL - must use exact event type, not pattern matching
+      const blobEventType = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5::blob_metadata::BlobRegisteredEvent";
+
       const query = `
-        query GetBlobEvents($limit: Int!) {
+        query GetBlobEvents($limit: Int!, $eventType: String!) {
           events(
             limit: $limit
             order_by: {transaction_version: desc}
-            where: {type: {_like: "%BlobRegisteredEvent"}}
+            where: {type: {_eq: $eventType}}
           ) {
             type
             data
@@ -94,7 +96,7 @@ export class ShelbyAptosClient {
         },
         body: JSON.stringify({
           query,
-          variables: { limit },
+          variables: { limit, eventType: blobEventType },
         }),
       });
 
@@ -129,6 +131,9 @@ export class ShelbyAptosClient {
   async getTotalBlobCount(): Promise<number> {
     try {
       // Use pagination to count all blob events since events_aggregate is not available
+      // Must use exact event type, not pattern matching
+      const blobEventType = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5::blob_metadata::BlobRegisteredEvent";
+
       let totalCount = 0;
       let offset = 0;
       const limit = 1000; // Fetch in batches of 1000
@@ -136,9 +141,9 @@ export class ShelbyAptosClient {
 
       while (hasMore) {
         const query = `
-          query GetTotalBlobs($offset: Int!, $limit: Int!) {
+          query GetTotalBlobs($offset: Int!, $limit: Int!, $eventType: String!) {
             events(
-              where: {type: {_like: "%BlobRegisteredEvent"}}
+              where: {type: {_eq: $eventType}}
               offset: $offset
               limit: $limit
             ) {
@@ -154,7 +159,7 @@ export class ShelbyAptosClient {
           },
           body: JSON.stringify({
             query,
-            variables: { offset, limit }
+            variables: { offset, limit, eventType: blobEventType }
           }),
         });
 
@@ -184,34 +189,52 @@ export class ShelbyAptosClient {
    */
   async getTotalStorage(): Promise<number> {
     try {
-      // Sum storage from all blob events
-      const query = `
-        query GetTotalStorage {
-          events(
-            where: {type: {_like: "%BlobRegisteredEvent"}}
-            limit: 100000
-          ) {
-            data
-          }
-        }
-      `;
-
-      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-      });
-
-      const result = await response.json();
-      const events = result.data?.events || [];
+      // Sum storage from all blob events using pagination
+      const blobEventType = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5::blob_metadata::BlobRegisteredEvent";
 
       let totalBytes = 0;
-      for (const event of events) {
-        // The actual field is blob_size, not size_bytes
-        const sizeBytes = Number.parseInt(event.data?.blob_size || "0", 10);
-        totalBytes += sizeBytes;
+      let offset = 0;
+      const limit = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const query = `
+          query GetTotalStorage($offset: Int!, $limit: Int!, $eventType: String!) {
+            events(
+              where: {type: {_eq: $eventType}}
+              offset: $offset
+              limit: $limit
+            ) {
+              data
+            }
+          }
+        `;
+
+        const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query,
+            variables: { offset, limit, eventType: blobEventType }
+          }),
+        });
+
+        const result = await response.json();
+        const events = result.data?.events || [];
+
+        for (const event of events) {
+          // The actual field is blob_size, not size_bytes
+          const sizeBytes = Number.parseInt(event.data?.blob_size || "0", 10);
+          totalBytes += sizeBytes;
+        }
+
+        if (events.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
       }
 
       return totalBytes;
