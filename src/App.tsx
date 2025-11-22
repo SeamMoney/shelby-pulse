@@ -126,7 +126,43 @@ function App() {
             <span className="dot-yellow">●</span>
             <span className="dot-green">●</span>
           </row>
-          <span is-="badge" variant-="root">Shelby Pulse</span>
+          <row style={{ gap: '0.5rem', alignItems: 'center' }}>
+            {/* Logo - fallback to text if image doesn't exist */}
+            <div style={{
+              padding: '0.5rem',
+              backgroundColor: 'var(--pink-10)',
+              border: '2px solid var(--pink)',
+              borderRadius: '0.5rem',
+              minWidth: '3em',
+              minHeight: '3em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <img
+                src="/shelby-pulse-logo.png"
+                alt="SP"
+                style={{
+                  height: '2.5em',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+                onError={(e) => {
+                  // Fallback to text logo
+                  e.currentTarget.style.display = 'none'
+                  const parent = e.currentTarget.parentElement
+                  if (parent && !parent.querySelector('.text-logo')) {
+                    const textLogo = document.createElement('span')
+                    textLogo.className = 'text-logo'
+                    textLogo.style.cssText = 'font-size: 1.5em; font-weight: bold; color: var(--pink);'
+                    textLogo.textContent = 'SP'
+                    parent.appendChild(textLogo)
+                  }
+                }}
+              />
+            </div>
+            <span is-="badge" variant-="root">Shelby Pulse</span>
+          </row>
           <row className="tab-nav">
             <button
               onClick={() => setActiveTab('activity')}

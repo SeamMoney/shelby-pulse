@@ -7,6 +7,8 @@ interface Props {
 
 export default function Header({ stats }: Props) {
   const [time, setTime] = useState(new Date())
+  const [logo1Loaded, setLogo1Loaded] = useState(false)
+  const [logo2Loaded, setLogo2Loaded] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000)
@@ -27,14 +29,80 @@ export default function Header({ stats }: Props) {
       paddingBottom: '1lh',
       borderBottom: '0.2ch solid var(--box-border-color)',
       flexWrap: 'wrap',
-      gap: '2ch'
+      gap: '2ch',
+      minHeight: '4em' // Ensure minimum height
     }}>
       {/* Logo */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '2ch'
+        gap: '2ch',
+        flexWrap: 'wrap'
       }}>
+        {/* Try Logo 1 */}
+        <div style={{
+          padding: '0.5em',
+          backgroundColor: 'var(--background)',
+          border: '2px solid var(--pink)',
+          borderRadius: '0.5em',
+          minWidth: '4em',
+          minHeight: '4em',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {!logo1Loaded && <div style={{ color: 'var(--foreground1)', fontSize: '0.8em' }}>Logo 1</div>}
+          <img
+            src="/shelby-pulse-logo.png"
+            alt="Shelby Pulse Logo 1"
+            style={{
+              height: '3em',
+              width: 'auto',
+              objectFit: 'contain',
+              display: logo1Loaded ? 'block' : 'none'
+            }}
+            onLoad={() => {
+              console.log('Logo 1 loaded successfully')
+              setLogo1Loaded(true)
+            }}
+            onError={(e) => {
+              console.error('Logo 1 failed to load from:', e.currentTarget.src)
+              setLogo1Loaded(false)
+            }}
+          />
+        </div>
+        {/* Try Logo 2 */}
+        <div style={{
+          padding: '0.5em',
+          backgroundColor: 'var(--background)',
+          border: '2px solid var(--purple)',
+          borderRadius: '0.5em',
+          minWidth: '4em',
+          minHeight: '4em',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {!logo2Loaded && <div style={{ color: 'var(--foreground1)', fontSize: '0.8em' }}>Logo 2</div>}
+          <img
+            src="/shelby-pulse-logo-2.png"
+            alt="Shelby Pulse Logo 2"
+            style={{
+              height: '3em',
+              width: 'auto',
+              objectFit: 'contain',
+              display: logo2Loaded ? 'block' : 'none'
+            }}
+            onLoad={() => {
+              console.log('Logo 2 loaded successfully')
+              setLogo2Loaded(true)
+            }}
+            onError={(e) => {
+              console.error('Logo 2 failed to load from:', e.currentTarget.src)
+              setLogo2Loaded(false)
+            }}
+          />
+        </div>
         <span is-="typography" variant-="h2" style={{
           fontSize: '2em',
           fontWeight: 'bold',
