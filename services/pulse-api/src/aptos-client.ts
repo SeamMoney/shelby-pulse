@@ -136,7 +136,7 @@ export class ShelbyAptosClient {
 
       let totalCount = 0;
       let offset = 0;
-      const limit = 1000; // Fetch in batches of 1000
+      const limit = 100; // GraphQL server max limit is 100
       let hasMore = true;
 
       while (hasMore) {
@@ -194,7 +194,7 @@ export class ShelbyAptosClient {
 
       let totalBytes = 0;
       let offset = 0;
-      const limit = 1000;
+      const limit = 100; // GraphQL server max limit is 100
       let hasMore = true;
 
       while (hasMore) {
