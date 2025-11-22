@@ -227,7 +227,8 @@ export class DataService {
         timestamp: Date.now(),
       };
 
-      this.cache.set(cacheKey, economyData);
+      // Cache economy data for 5 minutes (longer than default 30s) since it's expensive to compute
+      this.cache.set(cacheKey, economyData, 300);
       return economyData;
     } catch (error) {
       logger.error({ error }, "Failed to fetch economy data");

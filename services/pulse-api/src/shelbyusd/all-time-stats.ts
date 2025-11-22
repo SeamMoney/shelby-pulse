@@ -19,10 +19,11 @@ export async function getAllTimeStats(
   aptosClient: ShelbyAptosClient
 ): Promise<AllTimeStats> {
   try {
-    // Fetch ALL balances and activities to calculate comprehensive stats
+    // Fetch balances and recent activities to calculate stats
+    // Limit activities to 10k for performance (takes ~100 API calls instead of 1000)
     const [balances, activities] = await Promise.all([
       aptosClient.getShelbyUSDBalances(10000),
-      aptosClient.getShelbyUSDActivities(100000),
+      aptosClient.getShelbyUSDActivities(10000),
     ]);
 
     // Calculate total supply (sum of all balances)
