@@ -124,9 +124,9 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
         // Use 95th percentile instead of max to prevent outlier compression
         const sorted = [...latencyData].sort((a, b) => a - b)
         const p95Index = Math.floor(sorted.length * 0.95)
-        const p95Value = sorted[p95Index] || 100
-        // Add 10% headroom for visual breathing room (reduced from 25% for better chart fill)
-        const maxLatency = Math.max(p95Value * 1.1, 100)
+        const p95Value = sorted[p95Index] || 50
+        // Add 10% headroom for visual breathing room - scale naturally to data
+        const maxLatency = p95Value * 1.1
         // Reserve space for Y-axis labels on the right (60px)
         const chartWidth = renderWidth - 60
         const pointSpacing = chartWidth / latencyData.length
