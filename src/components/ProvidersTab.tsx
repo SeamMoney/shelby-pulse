@@ -1,11 +1,56 @@
+import { useEffect, useState } from 'react';
+import { backendApi } from '../api/backend';
+
+interface StorageProvider {
+  address: string;
+  datacenter: string;
+  chunks_stored: number;
+  usage?: number;
+}
+
 export function ProvidersTab() {
-  // Real Shelby Storage Providers from Aptos devnet
-  const sps = [
-    { addr: '0x1e17b3abf249e2f5d0a4b89efb5a7ad7bb9727f226668440d8fcafbb3ee8d0d4', domain: 'dc_us_east', usage: 45 },
-    { addr: '0x2f28c4bce360f6f6b5c5c9f0e6b6c8d8e37738e337778551e9fddbfcc4ff9e1e5', domain: 'dc_us_west', usage: 38 },
-    { addr: '0x3a39d5cdf471g7g7c6d6d0a1f7c7d9f9f48848f448888662f0geecgdd5gg0f2f6', domain: 'dc_asia', usage: 32 },
-    { addr: '0x4b40e6deg582h8h8d7e7e1b2g8d8e0g0g59959g559999773g1hffdhee6hh1g3g7', domain: 'dc_europe', usage: 40 },
-  ]
+  const [providers, setProviders] = useState<StorageProvider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const data = await backendApi.getProviders();
+
+        // Calculate usage percentages
+        const maxChunks = Math.max(...data.map(p => p.chunks_stored));
+        const providersWithUsage = data.map(p => ({
+          ...p,
+          usage: maxChunks > 0 ? Math.round((p.chunks_stored / maxChunks) * 100) : 0
+        }));
+
+        setProviders(providersWithUsage);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch providers:', error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchProviders();
+    const interval = setInterval(fetchProviders, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isLoading || providers.length === 0) {
+    return (
+      <column gap-="1" pad-="1">
+        <h2>Loading Storage Providers...</h2>
+        <small style={{ color: 'var(--foreground2)' }}>Fetching provider data from Shelby network</small>
+      </column>
+    );
+  }
+
+  const sps = providers.map(p => ({
+    addr: p.address,
+    domain: p.datacenter,
+    usage: p.usage || 0
+  }))
 
   return (
     <column gap-="1">

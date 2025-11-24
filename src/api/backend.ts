@@ -71,6 +71,13 @@ export interface EconomyData {
   timestamp: number;
 }
 
+export interface StorageProvider {
+  address: string;
+  datacenter: string;
+  chunks_stored: number;
+  usage?: number;
+}
+
 class BackendApiClient {
   private baseUrl: string;
 
@@ -129,6 +136,17 @@ class BackendApiClient {
     const response = await fetch(`${this.baseUrl}/health`);
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Fetch storage providers
+   */
+  async getProviders(): Promise<StorageProvider[]> {
+    const response = await fetch(`${this.baseUrl}/providers`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch providers: ${response.statusText}`);
     }
     return response.json();
   }
