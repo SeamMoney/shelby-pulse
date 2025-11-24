@@ -192,7 +192,7 @@ const EconomyTabComponent = () => {
             <row
               key={entry.address}
               style={{
-                padding: isDesktop ? '0.3rem 0' : '0.5rem 0',
+                padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
                 borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                 gap: '0.5rem',
                 alignItems: 'center',
@@ -246,7 +246,7 @@ const EconomyTabComponent = () => {
             <row
               key={entry.address}
               style={{
-                padding: isDesktop ? '0.3rem 0' : '0.5rem 0',
+                padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
                 borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                 gap: '0.5rem',
                 alignItems: 'center',
@@ -303,7 +303,7 @@ const EconomyTabComponent = () => {
             <row
               key={entry.address}
               style={{
-                padding: isDesktop ? '0.3rem 0' : '0.5rem 0',
+                padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
                 borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                 gap: '0.5rem',
                 alignItems: 'center',
@@ -359,7 +359,7 @@ const EconomyTabComponent = () => {
               <row
                 key={`${tx.version}-${i}`}
                 style={{
-                  padding: isDesktop ? '0.25rem 0' : '0.4rem 0',
+                  padding: isDesktop ? '0.25rem 0.5rem' : '0.4rem 0.75rem',
                   borderBottom: i < maxEntries - 1 ? '1px solid var(--background2)' : 'none',
                   gap: '0.5rem',
                   alignItems: 'center',
