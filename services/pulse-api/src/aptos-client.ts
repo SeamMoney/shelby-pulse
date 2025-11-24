@@ -312,7 +312,7 @@ export class ShelbyAptosClient {
       }
 
       // Step 2: Fetch details for each provider
-      const providers: StorageProvider[] = await Promise.all(
+      const providerResults = await Promise.all(
         providerAddresses.map(async (address) => {
           try {
             const providerUrl = `${this.config.APTOS_NODE_URL}/accounts/${address}/resource/${this.config.SHELBY_MODULE_ADDRESS}::storage_provider::StorageProvider`;
@@ -348,7 +348,7 @@ export class ShelbyAptosClient {
       );
 
       // Filter out failed fetches
-      const validProviders = providers.filter((p): p is StorageProvider => p !== null);
+      const validProviders: StorageProvider[] = providerResults.filter((p): p is StorageProvider => p !== null);
 
       logger.info({ providerCount: validProviders.length }, "Fetched storage providers");
       return validProviders;
