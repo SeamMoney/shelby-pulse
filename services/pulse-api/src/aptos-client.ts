@@ -127,19 +127,56 @@ export class ShelbyAptosClient {
 
   /**
    * Get total blob count from events
+   * OPTIMIZED: Uses aggregate query first, limited pagination fallback
    */
   async getTotalBlobCount(): Promise<number> {
     try {
-      // Use pagination to count all blob events since events_aggregate is not available
-      // Must use exact event type, not pattern matching
       const blobEventType = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5::blob_metadata::BlobRegisteredEvent";
 
+      // Try aggregate query first (fastest method - O(1))
+      try {
+        const aggregateQuery = `
+          query GetBlobCountAggregate($eventType: String!) {
+            events_aggregate(
+              where: {type: {_eq: $eventType}}
+            ) {
+              aggregate {
+                count
+              }
+            }
+          }
+        `;
+
+        const aggResponse = await fetch(this.config.APTOS_INDEXER_URL!, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: aggregateQuery,
+            variables: { eventType: blobEventType }
+          }),
+        });
+
+        const aggResult = await aggResponse.json();
+
+        if (aggResult.data?.events_aggregate?.aggregate?.count !== undefined) {
+          const count = aggResult.data.events_aggregate.aggregate.count;
+          logger.info({ totalCount: count }, "Fetched total blob count via aggregate");
+          return count;
+        }
+      } catch (aggError) {
+        logger.debug({ aggError }, "Aggregate query not available, falling back to pagination");
+      }
+
+      // Fallback: LIMITED pagination to prevent timeout
+      const maxResults = 10000; // Cap at 10k blobs to prevent infinite loops
       let totalCount = 0;
       let offset = 0;
-      const limit = 100; // GraphQL server max limit is 100
+      const limit = 100;
       let hasMore = true;
 
-      while (hasMore) {
+      while (hasMore && totalCount < maxResults) {
         const query = `
           query GetTotalBlobs($offset: Int!, $limit: Int!, $eventType: String!) {
             events(
@@ -168,7 +205,6 @@ export class ShelbyAptosClient {
 
         totalCount += events.length;
 
-        // If we got fewer events than the limit, we've reached the end
         if (events.length < limit) {
           hasMore = false;
         } else {
@@ -176,7 +212,7 @@ export class ShelbyAptosClient {
         }
       }
 
-      logger.info({ totalCount }, "Fetched total blob count via pagination");
+      logger.info({ totalCount, capped: totalCount >= maxResults }, "Fetched total blob count via pagination");
       return totalCount;
     } catch (error) {
       logger.warn({ error }, "Failed to fetch total blob count");
@@ -186,18 +222,22 @@ export class ShelbyAptosClient {
 
   /**
    * Get total storage size from events
+   * OPTIMIZED: Limited pagination to prevent timeout
    */
   async getTotalStorage(): Promise<number> {
     try {
-      // Sum storage from all blob events using pagination
       const blobEventType = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5::blob_metadata::BlobRegisteredEvent";
 
+      // Note: GraphQL aggregate SUM is tricky for nested JSON fields
+      // Using limited pagination instead to prevent timeout
+      const maxResults = 10000; // Cap at 10k blobs
       let totalBytes = 0;
       let offset = 0;
-      const limit = 100; // GraphQL server max limit is 100
+      let count = 0;
+      const limit = 100;
       let hasMore = true;
 
-      while (hasMore) {
+      while (hasMore && count < maxResults) {
         const query = `
           query GetTotalStorage($offset: Int!, $limit: Int!, $eventType: String!) {
             events(
@@ -230,6 +270,8 @@ export class ShelbyAptosClient {
           totalBytes += sizeBytes;
         }
 
+        count += events.length;
+
         if (events.length < limit) {
           hasMore = false;
         } else {
@@ -237,6 +279,7 @@ export class ShelbyAptosClient {
         }
       }
 
+      logger.info({ totalBytes, blobsCounted: count, capped: count >= maxResults }, "Fetched total storage via pagination");
       return totalBytes;
     } catch (error) {
       logger.warn({ error }, "Failed to fetch total storage");

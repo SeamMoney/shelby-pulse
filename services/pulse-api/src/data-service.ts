@@ -86,7 +86,9 @@ export class DataService {
         timestamp: now,
       };
 
-      this.cache.set(cacheKey, stats);
+      // Cache network stats for 30 minutes (1800 seconds) instead of default 30s
+      // These are expensive queries so we cache longer
+      this.cache.set(cacheKey, stats, 1800);
       return stats;
     } catch (error) {
       logger.error({ error }, "Failed to fetch network stats");
