@@ -37,11 +37,20 @@ export function ProvidersTab() {
     return () => clearInterval(interval);
   }, []);
 
-  if (isLoading || providers.length === 0) {
+  if (isLoading) {
     return (
       <column gap-="1" pad-="1">
         <h2>Loading Storage Providers...</h2>
         <small style={{ color: 'var(--foreground2)' }}>Fetching provider data from Shelby network</small>
+      </column>
+    );
+  }
+
+  if (providers.length === 0) {
+    return (
+      <column gap-="1" pad-="1">
+        <h2>No Storage Providers Found</h2>
+        <small style={{ color: 'var(--foreground2)' }}>No storage providers are currently registered on the Shelby network</small>
       </column>
     );
   }
