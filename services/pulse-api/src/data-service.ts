@@ -179,12 +179,12 @@ export class DataService {
   }
 
   /**
-   * Health check
+   * Health check - lightweight, used for latency monitoring
    */
   async healthCheck(): Promise<{ status: string; timestamp: number }> {
     try {
-      // Try to fetch a simple resource to verify connection
-      await this.aptosClient.getTotalBlobCount();
+      // Lightweight check: just fetch 1 recent event to verify indexer connection
+      await this.aptosClient.fetchBlobEvents(1);
       return {
         status: "healthy",
         timestamp: Date.now(),
