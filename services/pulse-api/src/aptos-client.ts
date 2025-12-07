@@ -60,9 +60,23 @@ export class ShelbyAptosClient {
         network: config.APTOS_NETWORK,
         nodeUrl: config.APTOS_NODE_URL,
         indexerUrl: config.APTOS_INDEXER_URL,
+        hasApiKey: !!config.APTOS_API_KEY,
       },
       "Initialized Aptos client for Shelby network",
     );
+  }
+
+  /**
+   * Get headers for GraphQL requests, including API key if available
+   */
+  private getGraphQLHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.config.APTOS_API_KEY) {
+      headers['Authorization'] = `Bearer ${this.config.APTOS_API_KEY}`;
+    }
+    return headers;
   }
 
   /**
@@ -91,9 +105,7 @@ export class ShelbyAptosClient {
 
       const response = await fetch(this.config.APTOS_INDEXER_URL!, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getGraphQLHeaders(),
         body: JSON.stringify({
           query,
           variables: { limit, eventType: blobEventType },
@@ -149,9 +161,7 @@ export class ShelbyAptosClient {
 
         const aggResponse = await fetch(this.config.APTOS_INDEXER_URL!, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getGraphQLHeaders(),
           body: JSON.stringify({
             query: aggregateQuery,
             variables: { eventType: blobEventType }
@@ -191,9 +201,7 @@ export class ShelbyAptosClient {
 
         const response = await fetch(this.config.APTOS_INDEXER_URL!, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getGraphQLHeaders(),
           body: JSON.stringify({
             query,
             variables: { offset, limit, eventType: blobEventType }
@@ -252,9 +260,7 @@ export class ShelbyAptosClient {
 
         const response = await fetch(this.config.APTOS_INDEXER_URL!, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getGraphQLHeaders(),
           body: JSON.stringify({
             query,
             variables: { offset, limit, eventType: blobEventType }
@@ -386,9 +392,7 @@ export class ShelbyAptosClient {
 
         const response = await fetch(this.config.APTOS_INDEXER_URL!, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getGraphQLHeaders(),
           body: JSON.stringify({
             query,
             variables: {
@@ -464,9 +468,7 @@ export class ShelbyAptosClient {
 
       const response = await fetch(this.config.APTOS_INDEXER_URL!, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getGraphQLHeaders(),
         body: JSON.stringify({
           query,
           variables: { limit },
@@ -540,9 +542,7 @@ export class ShelbyAptosClient {
 
         const response = await fetch(this.config.APTOS_INDEXER_URL!, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getGraphQLHeaders(),
           body: JSON.stringify({
             query,
             variables: {

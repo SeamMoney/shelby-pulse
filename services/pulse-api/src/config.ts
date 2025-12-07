@@ -9,6 +9,10 @@ const configSchema = z.object({
     .string()
     .optional()
     .default("https://api.shelbynet.shelby.xyz/v1/graphql"),
+  APTOS_API_KEY: z
+    .string()
+    .optional()
+    .default(""),
   SHELBY_MODULE_ADDRESS: z.string().default("0x1"),
   PORT: z.coerce.number().int().default(3001),
   CACHE_TTL_SECONDS: z.coerce.number().int().default(30),
