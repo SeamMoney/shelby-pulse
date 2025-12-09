@@ -225,6 +225,26 @@ export function createRouter(
   });
 
   /**
+   * POST /api/farming/clear-sessions
+   * Clear old/failed sessions from memory
+   */
+  router.post("/farming/clear-sessions", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const result = farmingService.clearOldSessions();
+      res.json({ message: `Cleared ${result.cleared} old sessions` });
+    } catch (error) {
+      logger.error({ error }, "Failed to clear sessions");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to clear sessions",
+      });
+    }
+  });
+
+  /**
    * POST /api/farming/faucet
    * Direct faucet request from this server
    */

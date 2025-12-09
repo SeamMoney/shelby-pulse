@@ -255,6 +255,20 @@ class BackendApiClient {
   }
 
   /**
+   * Clear old/failed sessions from memory
+   */
+  async clearSessions(): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/farming/clear-sessions`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to clear sessions: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
    * Request faucet directly
    */
   async requestFaucet(walletAddress: string): Promise<{ txn_hashes: string[] }> {

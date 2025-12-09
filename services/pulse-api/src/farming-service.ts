@@ -364,11 +364,28 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
     estimatedTotalFarmed: number;
   } {
     const sessions = Array.from(farmingSessions.values());
+    const activeSessions = sessions.filter((s) => s.status === "running" || s.status === "starting");
     return {
       totalSessions: sessions.length,
-      activeSessions: sessions.filter((s) => s.status === "running").length,
-      totalDroplets: sessions.reduce((sum, s) => sum + s.droplets.length, 0),
+      activeSessions: activeSessions.length,
+      // Only count droplets from active sessions
+      totalDroplets: activeSessions.reduce((sum, s) => sum + s.droplets.length, 0),
       estimatedTotalFarmed: sessions.reduce((sum, s) => sum + s.totalFarmed, 0),
     };
+  }
+
+  // Clear failed and completed sessions from memory
+  clearOldSessions(): { cleared: number } {
+    const toRemove: string[] = [];
+    for (const [id, session] of farmingSessions.entries()) {
+      if (session.status === "failed" || session.status === "completed" || session.status === "stopped") {
+        toRemove.push(id);
+      }
+    }
+    for (const id of toRemove) {
+      farmingSessions.delete(id);
+    }
+    logger.info({ cleared: toRemove.length }, "Cleared old farming sessions");
+    return { cleared: toRemove.length };
   }
 }

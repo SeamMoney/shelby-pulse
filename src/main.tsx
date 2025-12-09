@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react'
+import { ToastProvider } from './components/Toast'
 import App from './App'
 import './styles/global.css'
 
@@ -24,7 +25,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           console.error('Wallet error:', error)
         }}
       >
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </AptosWalletAdapterProvider>
     </QueryClientProvider>
   </React.StrictMode>,
