@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect, memo } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 
-const WalletButtonComponent = () => {
+interface WalletButtonProps {
+  variant?: 'header' | 'tab'; // 'tab' for mobile bottom nav style
+}
+
+const WalletButtonComponent = ({ variant = 'header' }: WalletButtonProps) => {
   const { connected, account, connect, disconnect, wallets } = useWallet();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -19,108 +23,171 @@ const WalletButtonComponent = () => {
 
   const shortenAddress = (address: string) => {
     if (address.length <= 12) return address;
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
   const installedWallets = wallets?.filter(w => w.readyState === 'Installed') || [];
 
-  if (connected && account?.address) {
+  // Tab variant - styled like other tab buttons (for mobile)
+  if (variant === 'tab') {
     return (
-      <div ref={dropdownRef} style={{ position: 'relative' }}>
+      <div ref={dropdownRef} style={{ position: 'relative', display: 'flex' }}>
         <button
           onClick={() => setShowDropdown(!showDropdown)}
+          className={connected ? 'active' : ''}
           style={{
-            padding: '0.4rem 0.75rem',
-            background: 'linear-gradient(135deg, #FF1493, #FF69B4)',
-            color: 'white',
+            background: 'none',
             border: 'none',
-            borderRadius: '6px',
+            borderLeft: '1px solid var(--background2)',
+            color: connected ? 'var(--accent)' : 'var(--foreground2)',
             cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '0.75rem',
+            fontFamily: 'inherit',
+            fontSize: '0.85rem',
+            padding: '0.5rem 0.75rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            fontFamily: 'monospace',
+            justifyContent: 'center',
+            gap: '0.25rem',
+            minHeight: '48px',
+            whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ color: '#00FF88', fontSize: '0.6rem' }}>●</span>
-          {shortenAddress(account.address.toString())}
+          {connected ? (
+            <>
+              <span style={{ color: 'var(--success)', fontSize: '0.5rem' }}>●</span>
+              {shortenAddress(account?.address?.toString() || '')}
+            </>
+          ) : (
+            'Connect'
+          )}
         </button>
 
         {showDropdown && (
           <div style={{
             position: 'absolute',
-            top: '100%',
+            bottom: '100%',
             right: 0,
-            marginTop: '0.5rem',
-            background: 'var(--background)',
+            marginBottom: '0.5rem',
+            background: 'var(--background0)',
             border: '1px solid var(--background2)',
-            borderRadius: '8px',
-            padding: '0.5rem',
-            minWidth: '180px',
+            padding: '0.75rem',
+            minWidth: '220px',
             zIndex: 1000,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}>
-            <div style={{
-              padding: '0.5rem',
-              borderBottom: '1px solid var(--background2)',
-              marginBottom: '0.5rem',
-            }}>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>Connected</small>
-              <div style={{
-                fontFamily: 'monospace',
-                fontSize: '0.7rem',
-                wordBreak: 'break-all',
-                color: 'var(--foreground)',
-              }}>
-                {account.address.toString()}
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                disconnect();
-                setShowDropdown(false);
-              }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                background: 'transparent',
-                color: '#FF4444',
-                border: '1px solid #FF4444',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-              }}
-            >
-              Disconnect
-            </button>
+            {connected && account?.address ? (
+              <>
+                <div style={{
+                  padding: '0.5rem',
+                  marginBottom: '0.5rem',
+                  background: 'var(--background1)',
+                }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>Connected</small>
+                  <div style={{
+                    fontFamily: 'monospace',
+                    fontSize: '0.65rem',
+                    wordBreak: 'break-all',
+                    color: 'var(--foreground0)',
+                    marginTop: '0.25rem',
+                  }}>
+                    {account.address.toString()}
+                  </div>
+                </div>
+                <button
+                  is-="button"
+                  variant-="foreground2"
+                  box-="square"
+                  onClick={() => {
+                    disconnect();
+                    setShowDropdown(false);
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  Disconnect
+                </button>
+              </>
+            ) : (
+              <>
+                <small style={{
+                  color: 'var(--foreground2)',
+                  fontSize: '0.7rem',
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                }}>
+                  Connect Wallet
+                </small>
+                {installedWallets.length > 0 ? (
+                  <column gap-="0.5">
+                    {installedWallets.map((wallet) => (
+                      <button
+                        key={wallet.name}
+                        is-="button"
+                        variant-="background3"
+                        onClick={() => {
+                          connect(wallet.name);
+                          setShowDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          justifyContent: 'flex-start',
+                          padding: '0.5rem 1rem',
+                        }}
+                      >
+                        {wallet.icon && (
+                          <img src={wallet.icon} alt="" style={{ width: 18, height: 18 }} />
+                        )}
+                        {wallet.name}
+                      </button>
+                    ))}
+                  </column>
+                ) : (
+                  <div style={{
+                    padding: '0.75rem',
+                    background: 'var(--background1)',
+                    fontSize: '0.75rem',
+                    color: 'var(--foreground2)',
+                    textAlign: 'center',
+                  }}>
+                    No Aptos wallet found.
+                    <br />
+                    <a href="https://petra.app" target="_blank" rel="noopener noreferrer">
+                      Install Petra
+                    </a>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
     );
   }
 
+  // Header variant - for desktop, uses WebTUI button styles
   return (
-    <div ref={dropdownRef} style={{ position: 'relative' }}>
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
       <button
+        is-="button"
+        variant-="background3"
+        size-="small"
         onClick={() => setShowDropdown(!showDropdown)}
         style={{
-          padding: '0.4rem 0.75rem',
-          background: 'linear-gradient(135deg, #FF1493, #FF69B4)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: 600,
-          fontSize: '0.75rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.4rem',
+          padding: '0 1.5ch',
         }}
       >
-        Connect
+        {connected && account?.address ? (
+          <>
+            <span style={{ color: 'var(--success)', fontSize: '0.6rem' }}>●</span>
+            {shortenAddress(account.address.toString())}
+          </>
+        ) : (
+          'Connect'
+        )}
       </button>
 
       {showDropdown && (
@@ -129,79 +196,96 @@ const WalletButtonComponent = () => {
           top: '100%',
           right: 0,
           marginTop: '0.5rem',
-          background: 'var(--background)',
+          background: 'var(--background0)',
           border: '1px solid var(--background2)',
-          borderRadius: '8px',
           padding: '0.75rem',
-          minWidth: '200px',
+          minWidth: '220px',
           zIndex: 1000,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         }}>
-          <small style={{
-            color: 'var(--foreground2)',
-            fontSize: '0.7rem',
-            display: 'block',
-            marginBottom: '0.5rem',
-          }}>
-            Connect Wallet
-          </small>
-
-          {installedWallets.length > 0 ? (
-            <column gap-="0.5">
-              {installedWallets.map((wallet) => (
-                <button
-                  key={wallet.name}
-                  onClick={() => {
-                    connect(wallet.name);
-                    setShowDropdown(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.75rem',
-                    background: 'var(--background2)',
-                    color: 'var(--foreground)',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    textAlign: 'left',
-                  }}
-                >
-                  {wallet.icon && (
-                    <img
-                      src={wallet.icon}
-                      alt=""
-                      style={{ width: 20, height: 20, borderRadius: '4px' }}
-                    />
-                  )}
-                  {wallet.name}
-                </button>
-              ))}
-            </column>
-          ) : (
-            <div style={{
-              padding: '0.75rem',
-              background: 'var(--background2)',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              color: 'var(--foreground2)',
-              textAlign: 'center',
-            }}>
-              No Aptos wallet found.
-              <br />
-              <a
-                href="https://petra.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'var(--accent)', textDecoration: 'underline' }}
+          {connected && account?.address ? (
+            <>
+              <div style={{
+                padding: '0.5rem',
+                marginBottom: '0.5rem',
+                background: 'var(--background1)',
+              }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>Connected</small>
+                <div style={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.65rem',
+                  wordBreak: 'break-all',
+                  color: 'var(--foreground0)',
+                  marginTop: '0.25rem',
+                }}>
+                  {account.address.toString()}
+                </div>
+              </div>
+              <button
+                is-="button"
+                variant-="foreground2"
+                box-="square"
+                onClick={() => {
+                  disconnect();
+                  setShowDropdown(false);
+                }}
+                style={{ width: '100%' }}
               >
-                Install Petra
-              </a>
-            </div>
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <>
+              <small style={{
+                color: 'var(--foreground2)',
+                fontSize: '0.7rem',
+                display: 'block',
+                marginBottom: '0.5rem',
+              }}>
+                Connect Wallet
+              </small>
+              {installedWallets.length > 0 ? (
+                <column gap-="0.5">
+                  {installedWallets.map((wallet) => (
+                    <button
+                      key={wallet.name}
+                      is-="button"
+                      variant-="background3"
+                      onClick={() => {
+                        connect(wallet.name);
+                        setShowDropdown(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        justifyContent: 'flex-start',
+                        padding: '0.5rem 1rem',
+                      }}
+                    >
+                      {wallet.icon && (
+                        <img src={wallet.icon} alt="" style={{ width: 18, height: 18 }} />
+                      )}
+                      {wallet.name}
+                    </button>
+                  ))}
+                </column>
+              ) : (
+                <div style={{
+                  padding: '0.75rem',
+                  background: 'var(--background1)',
+                  fontSize: '0.75rem',
+                  color: 'var(--foreground2)',
+                  textAlign: 'center',
+                }}>
+                  No Aptos wallet found.
+                  <br />
+                  <a href="https://petra.app" target="_blank" rel="noopener noreferrer">
+                    Install Petra
+                  </a>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

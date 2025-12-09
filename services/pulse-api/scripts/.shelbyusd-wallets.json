@@ -1,0 +1,31 @@
+{
+  "wallets": [
+    {
+      "address": "0xb6681081177699feb1f351b195f8acb2810a94f5d02f64cb77d28d73da972931",
+      "privateKey": "0xcf8b76ed88c7cecb283567d250b3d4ee9a005013d6ad4dc0f9da99bf9f6c8095",
+      "createdAt": "2025-12-09T03:46:30.945Z",
+      "totalFarmed": 0,
+      "lastFarmedAt": null,
+      "todayRequests": 0,
+      "lastResetDate": "2025-12-09"
+    },
+    {
+      "address": "0xe3e7ce4c5e0fc414068c3d04eeec30a57369914b9517d017317d2a4120633c96",
+      "privateKey": "0x38fc9e2d360da5572716cd78e9fd62f12631597ea573e486d2240805adc5a3d1",
+      "createdAt": "2025-12-09T03:46:30.946Z",
+      "totalFarmed": 0,
+      "lastFarmedAt": null,
+      "todayRequests": 0,
+      "lastResetDate": "2025-12-09"
+    },
+    {
+      "address": "0x6b1065975b2683310b964db71045e236a4d502e18ce0fe9c8d2ec77986a5a334",
+      "privateKey": "0xee707a9353e262b54bdf23e06d6f99e4370c9b96e78f9eba0b47adc4aced7bca",
+      "createdAt": "2025-12-09T03:46:30.947Z",
+      "totalFarmed": 0,
+      "lastFarmedAt": null,
+      "todayRequests": 0,
+      "lastResetDate": "2025-12-09"
+    }
+  ]
+}

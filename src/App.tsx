@@ -163,9 +163,9 @@ function App() {
               />
             </div>
             {windowWidth >= 768 && <span is-="badge" variant-="root">Shelby Pulse</span>}
+            {/* Wallet Button - Desktop only (in header) */}
+            {windowWidth >= 768 && <WalletButton variant="header" />}
           </row>
-          {/* Wallet Button */}
-          <WalletButton />
           <row className="tab-nav">
             <button
               onClick={() => setActiveTab('activity')}
@@ -191,6 +191,8 @@ function App() {
             >
               Providers
             </button>
+            {/* Wallet Button - Mobile only (as tab) */}
+            {windowWidth < 768 && <WalletButton variant="tab" />}
           </row>
         </row>
 
