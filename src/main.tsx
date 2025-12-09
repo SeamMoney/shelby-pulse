@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react'
-import { Network } from '@aptos-labs/ts-sdk'
 import App from './App'
 import './styles/global.css'
 
@@ -21,10 +20,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AptosWalletAdapterProvider
         autoConnect={true}
-        dappConfig={{
-          network: Network.CUSTOM,
-          aptosApiKey: undefined,
-        }}
         onError={(error) => {
           console.error('Wallet error:', error)
         }}
