@@ -155,7 +155,10 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
         if (result.status === "fulfilled" && result.value) {
           session.droplets.push(result.value);
         } else if (result.status === "rejected") {
-          logger.error({ error: result.reason }, "Failed to create node");
+          const errorMessage = result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason);
+          logger.error({ error: errorMessage }, "Failed to create node");
         }
       }
 
@@ -265,7 +268,8 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
         0
       );
     } catch (error) {
-      logger.error({ error, sessionId: session.id }, "Failed to update node statuses");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ error: errorMessage, sessionId: session.id }, "Failed to update node statuses");
     }
   }
 
@@ -282,7 +286,8 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
         deleted++;
         logger.info({ nodeId: node.id, name: node.name }, "Deleted farming node");
       } catch (error) {
-        logger.error({ error, nodeId: node.id }, "Failed to delete node");
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error({ error: errorMessage, nodeId: node.id }, "Failed to delete node");
       }
     }
 
@@ -310,7 +315,8 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
           deleted++;
           logger.info({ nodeId: node.id, name: node.name }, "Deleted farming node");
         } catch (error) {
-          logger.error({ error, nodeId: node.id }, "Failed to delete node");
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error({ error: errorMessage, nodeId: node.id }, "Failed to delete node");
         }
       }
 
@@ -319,7 +325,8 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
 
       return { deleted };
     } catch (error) {
-      logger.error({ error }, "Failed to cleanup farming nodes");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ error: errorMessage }, "Failed to cleanup farming nodes");
       throw error;
     }
   }
