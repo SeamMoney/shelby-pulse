@@ -4,6 +4,7 @@ import cors from "cors";
 import { loadConfig } from "./config";
 import { logger } from "./logger";
 import { DataService } from "./data-service";
+import { FarmingService } from "./farming-service";
 import { createRouter } from "./routes";
 
 async function main() {
@@ -12,6 +13,15 @@ async function main() {
 
   const app = express();
   const dataService = new DataService(config);
+
+  // Initialize farming service if configured
+  let farmingService: FarmingService | undefined;
+  if (config.DO_API_TOKEN) {
+    farmingService = new FarmingService(config);
+    logger.info("Farming service initialized");
+  } else {
+    logger.warn("Cloud API token not set - farming endpoints disabled");
+  }
 
   // Middleware
   app.use(cors());
@@ -36,20 +46,30 @@ async function main() {
   });
 
   // Routes
-  app.use("/api", createRouter(dataService));
+  app.use("/api", createRouter(dataService, farmingService));
 
   // Root endpoint
   app.get("/", (req, res) => {
     res.json({
       name: "Shelby Pulse API",
-      version: "0.1.0",
+      version: "0.2.0",
       endpoints: {
         health: "/api/health",
         stats: "/api/network/stats",
         recentBlobs: "/api/blobs/recent?limit=20",
         events: "/api/events/recent?limit=100",
         providers: "/api/providers",
+        economy: "/api/economy",
+        farming: {
+          start: "POST /api/farming/start",
+          status: "GET /api/farming/status",
+          overview: "GET /api/farming/overview",
+          stop: "POST /api/farming/stop",
+          cleanup: "POST /api/farming/cleanup",
+          faucet: "POST /api/farming/faucet",
+        },
       },
+      farmingEnabled: !!farmingService,
     });
   });
 

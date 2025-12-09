@@ -16,6 +16,9 @@ const configSchema = z.object({
   SHELBY_MODULE_ADDRESS: z.string().default("0x1"),
   PORT: z.coerce.number().int().default(3001),
   CACHE_TTL_SECONDS: z.coerce.number().int().default(30),
+  // Cloud infrastructure API for farming nodes
+  DO_API_TOKEN: z.string().optional().default(""),
+  FARMING_WALLET_ADDRESS: z.string().optional().default(""),
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;

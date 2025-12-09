@@ -1,8 +1,12 @@
 import { Router } from "express";
 import type { DataService } from "./data-service";
+import type { FarmingService } from "./farming-service";
 import { logger } from "./logger";
 
-export function createRouter(dataService: DataService): Router {
+export function createRouter(
+  dataService: DataService,
+  farmingService?: FarmingService
+): Router {
   const router = Router();
 
   /**
@@ -102,6 +106,147 @@ export function createRouter(dataService: DataService): Router {
     } catch (error) {
       logger.error({ error }, "Failed to clear cache");
       res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
+  // ============================================
+  // FARMING ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /api/farming/start
+   * Start a farming session with cloud nodes
+   */
+  router.post("/farming/start", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const { walletAddress, numDroplets = 5 } = req.body;
+
+      if (!walletAddress) {
+        return res.status(400).json({ error: "walletAddress is required" });
+      }
+
+      const session = await farmingService.startFarming(walletAddress, numDroplets);
+      res.json(session);
+    } catch (error) {
+      logger.error({ error }, "Failed to start farming");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to start farming",
+      });
+    }
+  });
+
+  /**
+   * GET /api/farming/status
+   * Get status of farming sessions
+   */
+  router.get("/farming/status", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const sessionId = req.query.sessionId as string | undefined;
+      const status = await farmingService.getFarmingStatus(sessionId);
+      res.json(status);
+    } catch (error) {
+      logger.error({ error }, "Failed to get farming status");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to get farming status",
+      });
+    }
+  });
+
+  /**
+   * GET /api/farming/overview
+   * Get overview of farming activity
+   */
+  router.get("/farming/overview", (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const overview = farmingService.getSessionsOverview();
+      res.json(overview);
+    } catch (error) {
+      logger.error({ error }, "Failed to get farming overview");
+      res.status(500).json({ error: "Failed to get farming overview" });
+    }
+  });
+
+  /**
+   * POST /api/farming/stop
+   * Stop a farming session
+   */
+  router.post("/farming/stop", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const { sessionId } = req.body;
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId is required" });
+      }
+
+      const result = await farmingService.stopFarming(sessionId);
+      res.json({ message: `Stopped session and terminated ${result.deleted} nodes` });
+    } catch (error) {
+      logger.error({ error }, "Failed to stop farming");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to stop farming",
+      });
+    }
+  });
+
+  /**
+   * POST /api/farming/cleanup
+   * Stop all farming nodes
+   */
+  router.post("/farming/cleanup", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const result = await farmingService.cleanupAllFarmingNodes();
+      res.json({ message: `Terminated ${result.deleted} farming nodes` });
+    } catch (error) {
+      logger.error({ error }, "Failed to cleanup farming");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to cleanup farming",
+      });
+    }
+  });
+
+  /**
+   * POST /api/farming/faucet
+   * Direct faucet request from this server
+   */
+  router.post("/farming/faucet", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const { walletAddress } = req.body;
+
+      if (!walletAddress) {
+        return res.status(400).json({ error: "walletAddress is required" });
+      }
+
+      const result = await farmingService.requestFaucet(walletAddress);
+      res.json(result);
+    } catch (error) {
+      logger.error({ error }, "Failed to request faucet");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to request faucet",
+      });
     }
   });
 

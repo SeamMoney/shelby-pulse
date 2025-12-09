@@ -78,6 +78,34 @@ export interface StorageProvider {
   usage?: number;
 }
 
+export interface NodeInfo {
+  id: number;
+  name: string;
+  status: string;
+  ip?: string;
+  createdAt: string;
+  farmingStatus: 'pending' | 'running' | 'completed' | 'failed';
+  farmedAmount: number;
+  successfulRequests: number;
+  failedRequests: number;
+}
+
+export interface FarmingSession {
+  id: string;
+  walletAddress: string;
+  startedAt: string;
+  droplets: NodeInfo[];
+  totalFarmed: number;
+  status: 'starting' | 'running' | 'completed' | 'stopped' | 'failed';
+}
+
+export interface FarmingOverview {
+  totalSessions: number;
+  activeSessions: number;
+  totalDroplets: number;
+  estimatedTotalFarmed: number;
+}
+
 class BackendApiClient {
   private baseUrl: string;
 
@@ -147,6 +175,97 @@ class BackendApiClient {
     const response = await fetch(`${this.baseUrl}/providers`);
     if (!response.ok) {
       throw new Error(`Failed to fetch providers: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // ============================================
+  // FARMING API
+  // ============================================
+
+  /**
+   * Start a farming session
+   */
+  async startFarming(walletAddress: string, numDroplets: number = 5): Promise<FarmingSession> {
+    const response = await fetch(`${this.baseUrl}/farming/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress, numDroplets }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to start farming: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get farming status
+   */
+  async getFarmingStatus(sessionId?: string): Promise<FarmingSession | FarmingSession[]> {
+    const url = sessionId
+      ? `${this.baseUrl}/farming/status?sessionId=${sessionId}`
+      : `${this.baseUrl}/farming/status`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to get farming status: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get farming overview
+   */
+  async getFarmingOverview(): Promise<FarmingOverview> {
+    const response = await fetch(`${this.baseUrl}/farming/overview`);
+    if (!response.ok) {
+      throw new Error(`Failed to get farming overview: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Stop a farming session
+   */
+  async stopFarming(sessionId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/farming/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to stop farming: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Cleanup all farming nodes
+   */
+  async cleanupFarming(): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/farming/cleanup`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to cleanup farming: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Request faucet directly
+   */
+  async requestFaucet(walletAddress: string): Promise<{ txn_hashes: string[] }> {
+    const response = await fetch(`${this.baseUrl}/farming/faucet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to request faucet: ${response.statusText}`);
     }
     return response.json();
   }
