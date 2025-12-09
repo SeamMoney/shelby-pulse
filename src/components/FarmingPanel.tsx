@@ -12,7 +12,6 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
   const { showToast } = useToast();
   const [numNodes, setNumNodes] = useState(3);
   const [isStarting, setIsStarting] = useState(false);
-  const [isRequestingFaucet, setIsRequestingFaucet] = useState(false);
   const [sessions, setSessions] = useState<FarmingSession[]>([]);
   const [overview, setOverview] = useState<FarmingOverview | null>(null);
 
@@ -68,40 +67,6 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
       });
     } finally {
       setIsStarting(false);
-    }
-  };
-
-  const handleQuickFaucet = async () => {
-    if (!connected || !account?.address) {
-      showToast({ type: 'error', message: 'Please connect your wallet first' });
-      return;
-    }
-
-    setIsRequestingFaucet(true);
-
-    try {
-      const result = await backendApi.requestFaucet(account.address.toString());
-      if (result.txn_hashes && result.txn_hashes.length > 0) {
-        showToast({
-          type: 'success',
-          message: '+10 ShelbyUSD minted to your wallet!',
-          txHash: result.txn_hashes[0],
-          duration: 8000,
-        });
-      } else {
-        showToast({
-          type: 'info',
-          message: 'Faucet request sent but no transaction returned. Rate limit may be reached.',
-          duration: 6000,
-        });
-      }
-    } catch (err) {
-      showToast({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to request faucet',
-      });
-    } finally {
-      setIsRequestingFaucet(false);
     }
   };
 
@@ -272,69 +237,42 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
                 ))}
               </select>
             </row>
-            {/* Quick Faucet - instant single request */}
+            {/* Start Farming Button */}
             <row gap-="0.5">
               <button
-                is-="button"
-                variant-="background3"
-                onClick={handleQuickFaucet}
-                disabled={isRequestingFaucet}
+                onClick={handleStartFarming}
+                disabled={isStarting}
                 style={{
                   flex: 1,
-                  opacity: isRequestingFaucet ? 0.6 : 1,
-                  cursor: isRequestingFaucet ? 'not-allowed' : 'pointer',
+                  padding: '0.6rem 1rem',
+                  background: isStarting ? 'var(--background2)' : 'linear-gradient(135deg, #FF1493, #FF69B4)',
+                  color: isStarting ? 'var(--foreground2)' : 'white',
+                  border: 'none',
+                  cursor: isStarting ? 'not-allowed' : 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
                 }}
               >
-                {isRequestingFaucet ? 'Requesting...' : 'Quick Faucet (+10 SHELBY)'}
+                {isStarting ? 'Deploying Bots...' : 'Start Farming'}
               </button>
+              {sessions.length > 0 && (
+                <button
+                  onClick={handleCleanupAll}
+                  style={{
+                    padding: '0.6rem 1rem',
+                    background: 'transparent',
+                    color: '#FF4444',
+                    border: '1px solid #FF4444',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  Stop All
+                </button>
+              )}
             </row>
-
-            {/* Auto-farming with cloud VMs (disabled for now due to droplet limits) */}
-            {isDesktop && (
-              <>
-                <div style={{
-                  height: '1px',
-                  background: 'var(--background2)',
-                  margin: '0.5rem 0',
-                }} />
-                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>
-                  Auto-farming (cloud VMs):
-                </small>
-                <row gap-="0.5">
-                  <button
-                    onClick={handleStartFarming}
-                    disabled={isStarting}
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem 0.75rem',
-                      background: isStarting ? 'var(--background2)' : 'var(--background3)',
-                      color: isStarting ? 'var(--foreground2)' : 'var(--foreground0)',
-                      border: 'none',
-                      cursor: isStarting ? 'not-allowed' : 'pointer',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                    }}
-                  >
-                    {isStarting ? 'Deploying...' : `Deploy ${numNodes} Bots`}
-                  </button>
-                  {sessions.length > 0 && (
-                    <button
-                      onClick={handleCleanupAll}
-                      style={{
-                        padding: '0.5rem 0.75rem',
-                        background: 'transparent',
-                        color: '#FF4444',
-                        border: '1px solid #FF4444',
-                        cursor: 'pointer',
-                        fontSize: '0.7rem',
-                      }}
-                    >
-                      Clear All
-                    </button>
-                  )}
-                </row>
-              </>
-            )}
           </column>
 
           {/* Active Sessions for this user */}
