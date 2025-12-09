@@ -106,16 +106,6 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return '#00C896';
-      case 'completed': return '#4A90E2';
-      case 'failed': return '#FF4444';
-      case 'starting': return '#FFA500';
-      default: return 'var(--foreground2)';
-    }
-  };
-
   // Find user's active sessions
   const userSessions = connected && account?.address
     ? sessions.filter(s => s.walletAddress === account.address.toString())
@@ -237,132 +227,73 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
                 ))}
               </select>
             </row>
-            {/* Start Farming Button */}
-            <row gap-="0.5">
-              <button
-                onClick={handleStartFarming}
-                disabled={isStarting}
-                style={{
-                  flex: 1,
-                  padding: '0.6rem 1rem',
-                  background: isStarting ? 'var(--background2)' : 'linear-gradient(135deg, #FF1493, #FF69B4)',
-                  color: isStarting ? 'var(--foreground2)' : 'white',
-                  border: 'none',
-                  cursor: isStarting ? 'not-allowed' : 'pointer',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                {isStarting ? 'Deploying Bots...' : 'Start Farming'}
-              </button>
-              {sessions.length > 0 && (
+            {/* Farming Status / Start Button */}
+            {userSessions.some(s => s.status === 'running' || s.status === 'starting') ? (
+              /* Show status when farming is active */
+              <column gap-="0.5" style={{
+                padding: '0.75rem',
+                background: 'rgba(0, 200, 150, 0.1)',
+                border: '1px solid var(--success)',
+              }}>
+                <row gap-="0.5" align-="center">
+                  <span style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: 'var(--success)',
+                    animation: 'pulse 2s infinite',
+                  }} />
+                  <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem' }}>
+                    FARMING ACTIVE
+                  </span>
+                </row>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
+                  {overview?.totalDroplets || 0} bots are minting ShelbyUSD to your wallet.
+                  Each bot makes ~50 requests/day (rate limit per IP).
+                </small>
+                <row gap-="0.5" style={{ marginTop: '0.25rem' }}>
+                  <button
+                    onClick={handleCleanupAll}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem 1rem',
+                      background: 'transparent',
+                      color: '#FF4444',
+                      border: '1px solid #FF4444',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Stop All Bots
+                  </button>
+                </row>
+              </column>
+            ) : (
+              /* Show start button when not farming */
+              <row gap-="0.5">
                 <button
-                  onClick={handleCleanupAll}
+                  onClick={handleStartFarming}
+                  disabled={isStarting}
                   style={{
+                    flex: 1,
                     padding: '0.6rem 1rem',
-                    background: 'transparent',
-                    color: '#FF4444',
-                    border: '1px solid #FF4444',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
+                    background: isStarting ? 'var(--background2)' : 'linear-gradient(135deg, #FF1493, #FF69B4)',
+                    color: isStarting ? 'var(--foreground2)' : 'white',
+                    border: 'none',
+                    cursor: isStarting ? 'not-allowed' : 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
                   }}
                 >
-                  Stop All
+                  {isStarting ? 'Deploying Bots...' : 'Start Farming'}
                 </button>
-              )}
-            </row>
+              </row>
+            )}
           </column>
 
-          {/* Active Sessions for this user */}
-          {userSessions.length > 0 && (
-            <column gap-="0.5">
-              <small style={{ color: 'var(--foreground2)', textTransform: 'uppercase', fontWeight: 600 }}>
-                Your Active Farming Sessions
-              </small>
-              {userSessions.map((session) => (
-                <column
-                  key={session.id}
-                  gap-="0.5"
-                  style={{
-                    padding: '0.75rem',
-                    background: 'var(--background)',
-                    borderRadius: '6px',
-                    border: `1px solid ${getStatusColor(session.status)}22`,
-                  }}
-                >
-                  <row align-="between">
-                    <row gap-="0.5" align-="center">
-                      <span style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: getStatusColor(session.status),
-                        animation: session.status === 'running' ? 'pulse 2s infinite' : 'none',
-                      }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: getStatusColor(session.status) }}>
-                        {session.status.toUpperCase()}
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--foreground2)' }}>
-                        {session.droplets.length} bots
-                      </span>
-                    </row>
-                    {session.status === 'running' && (
-                      <button
-                        onClick={() => handleStopSession(session.id)}
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          background: 'transparent',
-                          color: '#FF4444',
-                          border: '1px solid #FF4444',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '0.65rem',
-                        }}
-                      >
-                        Stop
-                      </button>
-                    )}
-                  </row>
-
-                  {/* Bot status indicators */}
-                  <row gap-="0.25" style={{ flexWrap: 'wrap' }}>
-                    {session.droplets.map((bot, i) => (
-                      <span
-                        key={bot.id}
-                        title={`Bot ${i + 1}: ${bot.farmingStatus}`}
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: '4px',
-                          background: bot.farmingStatus === 'running' ? '#00C89622' :
-                                     bot.farmingStatus === 'completed' ? '#4A90E222' :
-                                     bot.farmingStatus === 'failed' ? '#FF444422' : 'var(--background2)',
-                          border: `1px solid ${
-                            bot.farmingStatus === 'running' ? '#00C896' :
-                            bot.farmingStatus === 'completed' ? '#4A90E2' :
-                            bot.farmingStatus === 'failed' ? '#FF4444' : 'var(--background2)'
-                          }`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.65rem',
-                          color: bot.farmingStatus === 'running' ? '#00C896' :
-                                 bot.farmingStatus === 'completed' ? '#4A90E2' :
-                                 bot.farmingStatus === 'failed' ? '#FF4444' : 'var(--foreground2)',
-                        }}
-                      >
-                        {bot.farmingStatus === 'running' ? '⚡' :
-                         bot.farmingStatus === 'completed' ? '✓' :
-                         bot.farmingStatus === 'failed' ? '✗' : '...'}
-                      </span>
-                    ))}
-                  </row>
-                </column>
-              ))}
-            </column>
-          )}
         </>
       )}
 
