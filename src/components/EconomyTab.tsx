@@ -312,8 +312,8 @@ const EconomyTabComponent = () => {
       </column>
       </row>
 
-      {/* Farming Panel - Desktop only */}
-      {isDesktop && <FarmingPanel />}
+      {/* Farming Panel */}
+      <FarmingPanel />
 
       {/* Second row: Top Spenders & Recent Transactions */}
       <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>

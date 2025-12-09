@@ -4,6 +4,7 @@ import { MetricsTab } from './components/MetricsTab'
 import { ProvidersTab } from './components/ProvidersTab'
 import { ActivityTab } from './components/ActivityTab'
 import { EconomyTab } from './components/EconomyTab'
+import { WalletButton } from './components/WalletButton'
 
 type Tab = 'activity' | 'metrics' | 'providers' | 'economy'
 
@@ -161,8 +162,10 @@ function App() {
                 }}
               />
             </div>
-            <span is-="badge" variant-="root">Shelby Pulse</span>
+            {windowWidth >= 768 && <span is-="badge" variant-="root">Shelby Pulse</span>}
           </row>
+          {/* Wallet Button */}
+          <WalletButton />
           <row className="tab-nav">
             <button
               onClick={() => setActiveTab('activity')}

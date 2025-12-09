@@ -2,7 +2,11 @@ import { useState, useEffect, memo } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { backendApi, FarmingSession, FarmingOverview } from '../api/backend';
 
-const FarmingPanelComponent = () => {
+interface FarmingPanelProps {
+  compact?: boolean; // For mobile header wallet button
+}
+
+const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
   const { connected, account, connect, disconnect, wallets } = useWallet();
   const [numNodes, setNumNodes] = useState(3);
   const [isStarting, setIsStarting] = useState(false);
@@ -10,6 +14,7 @@ const FarmingPanelComponent = () => {
   const [overview, setOverview] = useState<FarmingOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showWalletDropdown, setShowWalletDropdown] = useState(false);
 
   const isDesktop = window.innerWidth >= 1024;
 
@@ -115,44 +120,46 @@ const FarmingPanelComponent = () => {
       {/* Wallet Connection */}
       {!connected ? (
         <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '8px' }}>
-          <row gap-="0.5" align-="center">
-            <span style={{ fontSize: '1.5rem' }}>&#128274;</span>
-            <column gap-="0">
-              <span style={{ fontWeight: 600 }}>Connect Wallet to Farm</span>
-              <small style={{ color: 'var(--foreground2)' }}>
-                ShelbyUSD will be minted directly to your wallet
+          <row gap-="0.5" align-="center" style={{ flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1.25rem' }}>&#128274;</span>
+            <column gap-="0" style={{ flex: 1, minWidth: '200px' }}>
+              <span style={{ fontWeight: 600, fontSize: isDesktop ? '1rem' : '0.9rem' }}>Connect Wallet to Farm</span>
+              <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.8rem' : '0.7rem' }}>
+                {isDesktop ? 'ShelbyUSD will be minted directly to your wallet' : 'Use the Connect button in the header'}
               </small>
             </column>
           </row>
-          <row gap-="0.5" style={{ flexWrap: 'wrap' }}>
-            {wallets?.filter(w => w.readyState === 'Installed').map((wallet) => (
-              <button
-                key={wallet.name}
-                onClick={() => connect(wallet.name)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: 'var(--accent)',
-                  color: 'var(--background)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                {wallet.icon && <img src={wallet.icon} alt="" style={{ width: 20, height: 20 }} />}
-                {wallet.name}
-              </button>
-            ))}
-            {wallets?.filter(w => w.readyState === 'Installed').length === 0 && (
-              <small style={{ color: 'var(--foreground2)' }}>
-                No Aptos wallet detected. Install Petra or another Aptos wallet.
-              </small>
-            )}
-          </row>
+          {isDesktop && (
+            <row gap-="0.5" style={{ flexWrap: 'wrap' }}>
+              {wallets?.filter(w => w.readyState === 'Installed').map((wallet) => (
+                <button
+                  key={wallet.name}
+                  onClick={() => connect(wallet.name)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'var(--accent)',
+                    color: 'var(--background)',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  {wallet.icon && <img src={wallet.icon} alt="" style={{ width: 20, height: 20 }} />}
+                  {wallet.name}
+                </button>
+              ))}
+              {wallets?.filter(w => w.readyState === 'Installed').length === 0 && (
+                <small style={{ color: 'var(--foreground2)' }}>
+                  No Aptos wallet detected. Install Petra or another Aptos wallet.
+                </small>
+              )}
+            </row>
+          )}
         </column>
       ) : (
         <>
