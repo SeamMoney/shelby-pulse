@@ -76,7 +76,7 @@ const FarmingPanelComponent = () => {
         const deposits = await backendApi.getUserDeposits(
           account.address.toString(),
           isFirstPoll ? undefined : lastSeenVersionRef.current || undefined,
-          isFirstPoll ? 1 : 10  // Just get 1 on first poll to set baseline
+          isFirstPoll ? 1 : 20  // Get 1 on first poll, up to 20 on subsequent
         );
 
         if (deposits.length > 0) {
@@ -90,18 +90,19 @@ const FarmingPanelComponent = () => {
             // First poll - just set the baseline, don't show toasts
             lastSeenVersionRef.current = maxVersion;
           } else {
-            // Subsequent polls - show toasts for new deposits
-            for (const deposit of deposits) {
-              if (deposit.txHash) {
-                const amountFormatted = (deposit.amount / 1e6).toFixed(2);
-                showToast({
-                  type: 'success',
-                  message: `Received ${amountFormatted} SHELBY`,
-                  txHash: deposit.txHash,
-                  duration: 8000,
-                });
-                setTotalMinted(prev => prev + deposit.amount);
-              }
+            // Subsequent polls - show ONE summary toast for all new deposits
+            const totalNewAmount = deposits.reduce((sum, d) => sum + d.amount, 0);
+            const latestTxHash = deposits.find(d => d.txHash)?.txHash;
+
+            if (totalNewAmount > 0) {
+              const amountFormatted = (totalNewAmount / 1e6).toFixed(2);
+              showToast({
+                type: 'success',
+                message: `+${amountFormatted} SHELBY minted (${deposits.length} txs)`,
+                txHash: latestTxHash,
+                duration: 6000,
+              });
+              setTotalMinted(prev => prev + totalNewAmount);
             }
             lastSeenVersionRef.current = maxVersion;
           }
@@ -114,9 +115,9 @@ const FarmingPanelComponent = () => {
       }
     };
 
-    // Poll every 15 seconds (don't want to be too aggressive)
+    // Poll every 20 seconds
     pollDeposits();
-    const interval = setInterval(pollDeposits, 15000);
+    const interval = setInterval(pollDeposits, 20000);
     return () => clearInterval(interval);
   }, [connected, account?.address, farmingState, showToast]);
 
@@ -143,10 +144,11 @@ const FarmingPanelComponent = () => {
     try {
       const session = await backendApi.startFarming(account.address.toString(), numNodes);
       if (session.droplets.length > 0) {
+        const expectedMint = session.droplets.length * 50 * 10; // 50 requests × 10 SHELBY each
         showToast({
           type: 'success',
-          message: `${session.droplets.length} farming bots deployed! They will start minting shortly.`,
-          duration: 6000,
+          message: `Session started: ${session.droplets.length} bots deploying. Expected: ~${expectedMint} SHELBY`,
+          duration: 8000,
         });
         setFarmingState('running');
       } else {
@@ -156,6 +158,7 @@ const FarmingPanelComponent = () => {
           duration: 8000,
         });
         setFarmingState('idle');
+        userStartedFarmingRef.current = false;
       }
       await fetchStatus();
     } catch (err) {
@@ -169,16 +172,29 @@ const FarmingPanelComponent = () => {
 
   const handleStopFarming = async () => {
     setFarmingState('stopping');
+    const sessionMinted = totalMinted; // Capture before reset
 
     try {
-      const result = await backendApi.cleanupFarming();
+      await backendApi.cleanupFarming();
       await backendApi.clearSessions();
-      showToast({
-        type: 'success',
-        message: 'All farming bots stopped.',
-        duration: 4000,
-      });
+
+      // Show session summary
+      if (sessionMinted > 0) {
+        showToast({
+          type: 'success',
+          message: `Session ended. Total minted: ${(sessionMinted / 1e6).toFixed(2)} SHELBY`,
+          duration: 6000,
+        });
+      } else {
+        showToast({
+          type: 'info',
+          message: 'Farming session ended. Bots terminated.',
+          duration: 4000,
+        });
+      }
+
       setFarmingState('idle');
+      userStartedFarmingRef.current = false;
       await fetchStatus();
     } catch (err) {
       showToast({
