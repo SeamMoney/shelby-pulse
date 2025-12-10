@@ -5,8 +5,12 @@ import { useToast } from './Toast';
 
 type FarmingState = 'idle' | 'starting' | 'running' | 'stopping';
 
-// Each bot makes 50 requests with 2s delay = ~100s runtime + 30s startup buffer
-const EXPECTED_BOT_DURATION_MS = 130 * 1000; // ~2.2 minutes per bot
+// Boot time for droplets to come online and start the script
+const BOT_BOOT_TIME_MS = 45 * 1000; // ~45 seconds to boot
+// Each bot makes 50 requests with 2s delay = ~100s minting time
+const BOT_MINTING_TIME_MS = 105 * 1000; // ~105 seconds to mint
+// Total expected duration
+const EXPECTED_BOT_DURATION_MS = BOT_BOOT_TIME_MS + BOT_MINTING_TIME_MS; // ~150 seconds total
 
 const FarmingPanelComponent = () => {
   const { connected, account, connect, wallets } = useWallet();
@@ -21,6 +25,8 @@ const FarmingPanelComponent = () => {
   const lastSeenVersionRef = useRef<string | null>(null);
   // Track if user manually started farming in this browser session
   const userStartedFarmingRef = useRef(false);
+  // Prevent duplicate completion toasts
+  const completedRef = useRef(false);
 
   const isDesktop = window.innerWidth >= 1024;
 
@@ -33,6 +39,7 @@ const FarmingPanelComponent = () => {
       setTotalMinted(0);
       setSessionStartTime(null);
       setProgressPercent(0);
+      completedRef.current = false;
       // Don't reset userStartedFarmingRef here - only reset on page reload
     }
   }, [farmingState]);
@@ -48,9 +55,9 @@ const FarmingPanelComponent = () => {
       const percent = Math.min(100, Math.round((elapsed / EXPECTED_BOT_DURATION_MS) * 100));
       setProgressPercent(percent);
 
-      // If we've exceeded expected time by 30+ seconds, auto-complete
-      // Bots should have self-destructed by now
-      if (elapsed > EXPECTED_BOT_DURATION_MS + 30000) {
+      // If we've exceeded expected time by 20+ seconds, auto-complete (only once!)
+      if (elapsed > EXPECTED_BOT_DURATION_MS + 20000 && !completedRef.current) {
+        completedRef.current = true; // Prevent duplicate toasts
         // Clean up backend sessions and complete
         try {
           await backendApi.clearSessions();
@@ -60,7 +67,7 @@ const FarmingPanelComponent = () => {
         setFarmingState('idle');
         showToast({
           type: 'success',
-          message: `Farming complete! Total minted: ${(totalMinted / 1e8).toFixed(2)} ShelbyUSD`,
+          message: `Farming complete! Minted ${(totalMinted / 1e8).toFixed(0)} ShelbyUSD`,
           duration: 8000,
         });
         userStartedFarmingRef.current = false;
@@ -103,6 +110,24 @@ const FarmingPanelComponent = () => {
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, [connected, account?.address]);
+
+  // On mount, clear stale sessions if user didn't start farming
+  useEffect(() => {
+    // If user didn't start farming in this browser session,
+    // any detected sessions are stale and should be cleared
+    const clearStaleOnLoad = async () => {
+      if (!userStartedFarmingRef.current) {
+        try {
+          await backendApi.clearSessions();
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+    };
+    // Small delay to let initial fetch happen first
+    const timeout = setTimeout(clearStaleOnLoad, 2000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Poll for new deposits when farming is running AND user started it in this session
   useEffect(() => {
@@ -429,40 +454,51 @@ const FarmingPanelComponent = () => {
                 </row>
 
                 {/* Progress bar */}
-                {userStartedFarmingRef.current && sessionStartTime && (
-                  <column gap-="0.25" style={{ marginTop: '0.25rem' }}>
-                    <row gap-="0.5" align-="between">
-                      <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
-                        Progress: {progressPercent}%
-                      </small>
-                      <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
-                        {progressPercent >= 100
-                          ? 'Auto-completing in ~30s...'
-                          : `~${Math.max(0, Math.ceil((EXPECTED_BOT_DURATION_MS - (Date.now() - sessionStartTime)) / 1000))}s remaining`}
-                      </small>
-                    </row>
-                    <div style={{
-                      width: '100%',
-                      height: 6,
-                      background: 'var(--background)',
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        width: `${progressPercent}%`,
-                        height: '100%',
-                        background: progressPercent >= 100 ? 'var(--yellow)' : 'var(--success)',
-                        transition: 'width 0.5s ease-out',
-                      }} />
-                    </div>
-                  </column>
-                )}
+                {userStartedFarmingRef.current && sessionStartTime && (() => {
+                  const elapsed = Date.now() - sessionStartTime;
+                  const isBooting = elapsed < BOT_BOOT_TIME_MS;
+                  const remainingSeconds = Math.max(0, Math.ceil((EXPECTED_BOT_DURATION_MS - elapsed) / 1000));
 
-                <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-                  {userStartedFarmingRef.current
-                    ? 'Bots auto-mint ShelbyUSD and self-destruct when done.'
-                    : 'Bots from a previous session are still registered.'}
-                </small>
+                  return (
+                    <column gap-="0.25" style={{ marginTop: '0.25rem' }}>
+                      <row gap-="0.5" align-="between">
+                        <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
+                          {isBooting ? 'Booting bots...' : `Minting: ${progressPercent}%`}
+                        </small>
+                        <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
+                          {progressPercent >= 100
+                            ? 'Completing...'
+                            : `~${remainingSeconds}s remaining`}
+                        </small>
+                      </row>
+                      <div style={{
+                        width: '100%',
+                        height: 6,
+                        background: 'var(--background)',
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${progressPercent}%`,
+                          height: '100%',
+                          background: isBooting ? 'var(--yellow)' : progressPercent >= 100 ? 'var(--accent)' : 'var(--success)',
+                          transition: 'width 0.5s ease-out',
+                        }} />
+                      </div>
+                      {isBooting && (
+                        <small style={{ color: 'var(--yellow)', fontSize: '0.65rem' }}>
+                          Bots are starting up. Minting will begin shortly...
+                        </small>
+                      )}
+                    </column>
+                  );
+                })()}
+
+                {!userStartedFarmingRef.current && (
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
+                    Bots from a previous session are still registered.
+                  </small>
+                )}
 
                 {/* Session stats */}
                 {userStartedFarmingRef.current && (
