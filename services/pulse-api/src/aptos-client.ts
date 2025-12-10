@@ -616,6 +616,102 @@ export class ShelbyAptosClient {
   }
 
   /**
+   * Get recent ShelbyUSD deposits for a specific user address
+   * Returns deposits with transaction hash for explorer links
+   */
+  async getUserShelbyUSDDeposits(
+    userAddress: string,
+    sinceVersion?: string,
+    limit = 20
+  ): Promise<Array<{
+    txHash: string;
+    amount: number;
+    version: string;
+    timestamp?: string;
+  }>> {
+    try {
+      // Build the where clause
+      const whereConditions: string[] = [
+        `asset_type: {_eq: "${SHELBYUSD_METADATA}"}`,
+        `owner_address: {_eq: "${userAddress}"}`,
+        `type: {_eq: "0x1::fungible_asset::Deposit"}`
+      ];
+
+      if (sinceVersion) {
+        whereConditions.push(`transaction_version: {_gt: "${sinceVersion}"}`);
+      }
+
+      const query = `
+        query GetUserDeposits($limit: Int!) {
+          fungible_asset_activities(
+            where: {${whereConditions.join(', ')}}
+            order_by: {transaction_version: desc}
+            limit: $limit
+          ) {
+            owner_address
+            amount
+            transaction_version
+          }
+        }
+      `;
+
+      const response = await fetch(this.config.APTOS_INDEXER_URL!, {
+        method: 'POST',
+        headers: this.getGraphQLHeaders(),
+        body: JSON.stringify({
+          query,
+          variables: { limit },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.errors) {
+        logger.warn({ errors: result.errors }, "GraphQL query returned errors");
+        return [];
+      }
+
+      const activities = result.data?.fungible_asset_activities || [];
+
+      // Fetch transaction hashes for each version
+      const depositsWithHash = await Promise.all(
+        activities.map(async (activity: any) => {
+          const version = activity.transaction_version;
+          let txHash = '';
+
+          try {
+            const txResponse = await fetch(
+              `${this.config.APTOS_NODE_URL}/transactions/by_version/${version}`
+            );
+            if (txResponse.ok) {
+              const txData = await txResponse.json();
+              txHash = txData.hash || '';
+            }
+          } catch (err) {
+            logger.warn({ version, err }, "Failed to fetch tx hash for version");
+          }
+
+          return {
+            txHash,
+            amount: Number.parseInt(activity.amount || "0", 10),
+            version: version.toString(),
+          };
+        })
+      );
+
+      logger.info(
+        { userAddress, depositsFound: depositsWithHash.length, sinceVersion },
+        "Fetched user ShelbyUSD deposits"
+      );
+
+      return depositsWithHash;
+    } catch (error) {
+      logger.error({ error, userAddress }, "Failed to fetch user ShelbyUSD deposits");
+      return [];
+    }
+  }
+
+  /**
    * Get the Aptos client instance for advanced queries
    */
   getClient(): Aptos {

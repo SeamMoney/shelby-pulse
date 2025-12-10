@@ -239,6 +239,22 @@ export class DataService {
   }
 
   /**
+   * Get user's recent ShelbyUSD deposits with transaction hashes
+   * Used for showing toast notifications with explorer links
+   */
+  async getUserDeposits(
+    userAddress: string,
+    sinceVersion?: string,
+    limit = 10
+  ): Promise<Array<{
+    txHash: string;
+    amount: number;
+    version: string;
+  }>> {
+    return this.aptosClient.getUserShelbyUSDDeposits(userAddress, sinceVersion, limit);
+  }
+
+  /**
    * Clear cache (useful for debugging)
    */
   clearCache(): void {

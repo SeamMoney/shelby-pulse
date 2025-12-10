@@ -106,6 +106,12 @@ export interface FarmingOverview {
   estimatedTotalFarmed: number;
 }
 
+export interface UserDeposit {
+  txHash: string;
+  amount: number;
+  version: string;
+}
+
 class BackendApiClient {
   private baseUrl: string;
 
@@ -164,6 +170,21 @@ class BackendApiClient {
     const response = await fetch(`${this.baseUrl}/health`);
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get user's recent ShelbyUSD deposits with transaction hashes
+   */
+  async getUserDeposits(address: string, sinceVersion?: string, limit = 10): Promise<UserDeposit[]> {
+    const params = new URLSearchParams({ address, limit: limit.toString() });
+    if (sinceVersion) {
+      params.append('since_version', sinceVersion);
+    }
+    const response = await fetch(`${this.baseUrl}/user/deposits?${params}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user deposits: ${response.statusText}`);
     }
     return response.json();
   }

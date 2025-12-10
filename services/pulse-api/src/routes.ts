@@ -96,6 +96,29 @@ export function createRouter(
   });
 
   /**
+   * GET /api/user/deposits?address=0x...&since_version=1234
+   * Returns user's recent ShelbyUSD deposits with transaction hashes
+   * Used for showing toast notifications with explorer links
+   */
+  router.get("/user/deposits", async (req, res) => {
+    try {
+      const address = req.query.address as string;
+      const sinceVersion = req.query.since_version as string | undefined;
+      const limit = Number.parseInt(req.query.limit as string) || 10;
+
+      if (!address) {
+        return res.status(400).json({ error: "address query parameter is required" });
+      }
+
+      const deposits = await dataService.getUserDeposits(address, sinceVersion, Math.min(limit, 50));
+      res.json(deposits);
+    } catch (error) {
+      logger.error({ error }, "Failed to get user deposits");
+      res.status(500).json({ error: "Failed to fetch user deposits" });
+    }
+  });
+
+  /**
    * POST /api/cache/clear
    * Clear the cache (for debugging)
    */

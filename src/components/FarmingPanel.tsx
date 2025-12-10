@@ -1,9 +1,12 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
-import { backendApi, FarmingSession, FarmingOverview } from '../api/backend';
+import { backendApi, FarmingSession, FarmingOverview, UserDeposit } from '../api/backend';
 import { useToast } from './Toast';
 
 type FarmingState = 'idle' | 'starting' | 'running' | 'stopping';
+
+// Key for localStorage to persist last seen version
+const LAST_SEEN_VERSION_KEY = 'shelby_last_seen_deposit_version';
 
 const FarmingPanelComponent = () => {
   const { connected, account, connect, wallets } = useWallet();
@@ -12,8 +15,18 @@ const FarmingPanelComponent = () => {
   const [farmingState, setFarmingState] = useState<FarmingState>('idle');
   const [sessions, setSessions] = useState<FarmingSession[]>([]);
   const [overview, setOverview] = useState<FarmingOverview | null>(null);
+  const [totalMinted, setTotalMinted] = useState(0);
+  const lastSeenVersionRef = useRef<string | null>(null);
 
   const isDesktop = window.innerWidth >= 1024;
+
+  // Load last seen version from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+    if (stored) {
+      lastSeenVersionRef.current = stored;
+    }
+  }, []);
 
   const fetchStatus = async () => {
     try {
@@ -46,6 +59,55 @@ const FarmingPanelComponent = () => {
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, [connected, account?.address]);
+
+  // Poll for new deposits when farming is running
+  useEffect(() => {
+    if (!connected || !account?.address || farmingState !== 'running') {
+      return;
+    }
+
+    const pollDeposits = async () => {
+      try {
+        const deposits = await backendApi.getUserDeposits(
+          account.address.toString(),
+          lastSeenVersionRef.current || undefined,
+          10
+        );
+
+        if (deposits.length > 0) {
+          // Show toast for new deposits
+          for (const deposit of deposits) {
+            // Only show if we have a valid tx hash
+            if (deposit.txHash) {
+              const amountFormatted = (deposit.amount / 1e6).toFixed(2);
+              showToast({
+                type: 'success',
+                message: `Received ${amountFormatted} SHELBY`,
+                txHash: deposit.txHash,
+                duration: 8000,
+              });
+              setTotalMinted(prev => prev + deposit.amount);
+            }
+          }
+
+          // Update last seen version to the highest version we saw
+          const maxVersion = deposits.reduce(
+            (max, d) => (BigInt(d.version) > BigInt(max) ? d.version : max),
+            deposits[0].version
+          );
+          lastSeenVersionRef.current = maxVersion;
+          localStorage.setItem(LAST_SEEN_VERSION_KEY, maxVersion);
+        }
+      } catch (err) {
+        // Silently fail - don't spam errors for deposit polling
+      }
+    };
+
+    // Poll every 15 seconds (don't want to be too aggressive)
+    pollDeposits();
+    const interval = setInterval(pollDeposits, 15000);
+    return () => clearInterval(interval);
+  }, [connected, account?.address, farmingState, showToast]);
 
   // Find user's sessions
   const userSessions = connected && account?.address
@@ -292,6 +354,18 @@ const FarmingPanelComponent = () => {
                   Bots are automatically minting ShelbyUSD to your wallet.
                   Each bot makes ~50 faucet requests per day.
                 </small>
+                {totalMinted > 0 && (
+                  <row gap-="0.5" align-="center" style={{
+                    padding: '0.4rem 0.6rem',
+                    background: 'var(--background)',
+                    marginTop: '0.25rem',
+                  }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--foreground2)' }}>Session minted:</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)' }}>
+                      {(totalMinted / 1e6).toFixed(2)} SHELBY
+                    </span>
+                  </row>
+                )}
                 <button
                   onClick={handleStopFarming}
                   style={{
