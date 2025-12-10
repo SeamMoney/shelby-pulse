@@ -43,14 +43,20 @@ const FarmingPanelComponent = () => {
       return;
     }
 
-    const updateProgress = () => {
+    const updateProgress = async () => {
       const elapsed = Date.now() - sessionStartTime;
       const percent = Math.min(100, Math.round((elapsed / EXPECTED_BOT_DURATION_MS) * 100));
       setProgressPercent(percent);
 
-      // If we've exceeded expected time, check if bots are gone
-      if (percent >= 100 && overview?.totalDroplets === 0) {
-        // Session likely completed
+      // If we've exceeded expected time by 30+ seconds, auto-complete
+      // Bots should have self-destructed by now
+      if (elapsed > EXPECTED_BOT_DURATION_MS + 30000) {
+        // Clean up backend sessions and complete
+        try {
+          await backendApi.clearSessions();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
         setFarmingState('idle');
         showToast({
           type: 'success',
@@ -64,7 +70,7 @@ const FarmingPanelComponent = () => {
     updateProgress();
     const interval = setInterval(updateProgress, 1000);
     return () => clearInterval(interval);
-  }, [farmingState, sessionStartTime, overview?.totalDroplets, totalMinted, showToast]);
+  }, [farmingState, sessionStartTime, totalMinted, showToast]);
 
   const fetchStatus = async () => {
     try {
@@ -430,7 +436,9 @@ const FarmingPanelComponent = () => {
                         Progress: {progressPercent}%
                       </small>
                       <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
-                        {progressPercent >= 100 ? 'Finishing up...' : `~${Math.max(0, Math.ceil((EXPECTED_BOT_DURATION_MS - (Date.now() - sessionStartTime)) / 1000))}s remaining`}
+                        {progressPercent >= 100
+                          ? 'Auto-completing in ~30s...'
+                          : `~${Math.max(0, Math.ceil((EXPECTED_BOT_DURATION_MS - (Date.now() - sessionStartTime)) / 1000))}s remaining`}
                       </small>
                     </row>
                     <div style={{
