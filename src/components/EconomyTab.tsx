@@ -3,6 +3,21 @@ import { backendApi } from '../api/backend';
 import { AsciiBar } from './AsciiBar';
 import { FarmingPanel } from './FarmingPanel';
 
+// Skeleton placeholder component
+const Skeleton = memo(({ width = '100%', height = '1rem' }: { width?: string; height?: string }) => (
+  <div
+    style={{
+      width,
+      height,
+      background: 'linear-gradient(90deg, var(--background) 25%, var(--background2) 50%, var(--background) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.5s infinite',
+      borderRadius: '2px',
+    }}
+  />
+));
+Skeleton.displayName = 'Skeleton';
+
 interface LeaderboardEntry {
   address: string;
   balance: number;
@@ -122,14 +137,16 @@ const EconomyTabComponent = () => {
     }
   };
 
-  if (isLoading || !data) {
-    return (
-      <column gap-="1" pad-="1">
-        <h2 style={{ color: 'var(--accent)' }}>ShelbyUSD Economy</h2>
-        <small style={{ color: 'var(--foreground2)' }}>Loading economy data...</small>
-      </column>
-    );
-  }
+  // Use placeholder data while loading
+  const displayData = data || {
+    leaderboard: Array(10).fill({ address: '0x0000...00000', balance: 0, barWidth: 50 }),
+    volume: { volume24h: 0, transferCount24h: 0, velocity: 0 },
+    allTimeStats: { totalSupply: 0, totalHolders: 0, totalTransactions: 0, totalVolume: 0, averageTransactionSize: 0, firstTransactionVersion: '0', lastTransactionVersion: '0' },
+    mostActive: Array(10).fill({ address: '0x0000...00000', txCount: 0, barWidth: 50 }),
+    topSpenders: Array(10).fill({ address: '0x0000...00000', totalSpent: 0, barWidth: 50 }),
+    recentTransactions: Array(10).fill({ address: '0x0000...00000', type: 'deposit' as const, amount: 0, version: 0 }),
+    timestamp: Date.now(),
+  };
 
   const isDesktop = window.innerWidth >= 1024;
   const maxEntries = isDesktop ? 8 : 10;
@@ -164,31 +181,45 @@ const EconomyTabComponent = () => {
         }}>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Supply</small>
-            <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(data.allTimeStats.totalSupply)}</span>
+            {isLoading ? <Skeleton width="4rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(displayData.allTimeStats.totalSupply)}</span>
+            )}
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Holders</small>
-            <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.allTimeStats.totalHolders}</span>
+            {isLoading ? <Skeleton width="3rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{displayData.allTimeStats.totalHolders}</span>
+            )}
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>All-Time Vol</small>
-            <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(data.allTimeStats.totalVolume)}</span>
+            {isLoading ? <Skeleton width="4rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(displayData.allTimeStats.totalVolume)}</span>
+            )}
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Total Txs</small>
-            <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.allTimeStats.totalTransactions}</span>
+            {isLoading ? <Skeleton width="3rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{displayData.allTimeStats.totalTransactions}</span>
+            )}
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Vol</small>
-            <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(data.volume.volume24h)}</span>
+            {isLoading ? <Skeleton width="3rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatAmount(displayData.volume.volume24h)}</span>
+            )}
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Txs</small>
-            <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.transferCount24h}</span>
+            {isLoading ? <Skeleton width="2rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{displayData.volume.transferCount24h}</span>
+            )}
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Velocity</small>
-            <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.velocity.toFixed(1)}/hr</span>
+            {isLoading ? <Skeleton width="3rem" height={isDesktop ? '1.1rem' : '1.5rem'} /> : (
+              <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{displayData.volume.velocity.toFixed(1)}/hr</span>
+            )}
           </column>
         </row>
       </column>
@@ -466,6 +497,14 @@ const EconomyTabComponent = () => {
         </column>
       </column>
       </row>
+
+      {/* Shimmer animation for skeleton loading */}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </column>
   );
 }
