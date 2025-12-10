@@ -251,6 +251,7 @@ const FarmingPanelComponent = () => {
         message: err instanceof Error ? err.message : 'Failed to start farming',
       });
       setFarmingState('idle');
+      userStartedFarmingRef.current = false;
     }
   };
 
