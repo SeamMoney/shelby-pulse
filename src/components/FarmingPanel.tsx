@@ -5,9 +5,6 @@ import { useToast } from './Toast';
 
 type FarmingState = 'idle' | 'starting' | 'running' | 'stopping';
 
-// Key for localStorage to persist last seen version
-const LAST_SEEN_VERSION_KEY = 'shelby_last_seen_deposit_version';
-
 const FarmingPanelComponent = () => {
   const { connected, account, connect, wallets } = useWallet();
   const { showToast } = useToast();
@@ -20,13 +17,19 @@ const FarmingPanelComponent = () => {
 
   const isDesktop = window.innerWidth >= 1024;
 
-  // Load last seen version from localStorage on mount
+  // Reset last seen version when farming starts (so we only count new deposits)
+  // Don't load from localStorage - we want fresh tracking each session
   useEffect(() => {
-    const stored = localStorage.getItem(LAST_SEEN_VERSION_KEY);
-    if (stored) {
-      lastSeenVersionRef.current = stored;
+    if (farmingState === 'running' && !lastSeenVersionRef.current) {
+      // Set to current time marker - deposits before this won't be counted
+      // We'll set the actual version on first poll
+      lastSeenVersionRef.current = 'pending';
+    } else if (farmingState === 'idle') {
+      // Reset when stopped
+      lastSeenVersionRef.current = null;
+      setTotalMinted(0);
     }
-  }, []);
+  }, [farmingState]);
 
   const fetchStatus = async () => {
     try {
@@ -68,35 +71,44 @@ const FarmingPanelComponent = () => {
 
     const pollDeposits = async () => {
       try {
+        const isFirstPoll = lastSeenVersionRef.current === 'pending';
+
+        // On first poll, get latest deposits to establish baseline (don't show toasts)
         const deposits = await backendApi.getUserDeposits(
           account.address.toString(),
-          lastSeenVersionRef.current || undefined,
-          10
+          isFirstPoll ? undefined : lastSeenVersionRef.current || undefined,
+          isFirstPoll ? 1 : 10  // Just get 1 on first poll to set baseline
         );
 
         if (deposits.length > 0) {
-          // Show toast for new deposits
-          for (const deposit of deposits) {
-            // Only show if we have a valid tx hash
-            if (deposit.txHash) {
-              const amountFormatted = (deposit.amount / 1e6).toFixed(2);
-              showToast({
-                type: 'success',
-                message: `Received ${amountFormatted} SHELBY`,
-                txHash: deposit.txHash,
-                duration: 8000,
-              });
-              setTotalMinted(prev => prev + deposit.amount);
-            }
-          }
-
-          // Update last seen version to the highest version we saw
+          // Get the max version
           const maxVersion = deposits.reduce(
             (max, d) => (BigInt(d.version) > BigInt(max) ? d.version : max),
             deposits[0].version
           );
-          lastSeenVersionRef.current = maxVersion;
-          localStorage.setItem(LAST_SEEN_VERSION_KEY, maxVersion);
+
+          if (isFirstPoll) {
+            // First poll - just set the baseline, don't show toasts
+            lastSeenVersionRef.current = maxVersion;
+          } else {
+            // Subsequent polls - show toasts for new deposits
+            for (const deposit of deposits) {
+              if (deposit.txHash) {
+                const amountFormatted = (deposit.amount / 1e6).toFixed(2);
+                showToast({
+                  type: 'success',
+                  message: `Received ${amountFormatted} SHELBY`,
+                  txHash: deposit.txHash,
+                  duration: 8000,
+                });
+                setTotalMinted(prev => prev + deposit.amount);
+              }
+            }
+            lastSeenVersionRef.current = maxVersion;
+          }
+        } else if (isFirstPoll) {
+          // No deposits yet, but mark as initialized
+          lastSeenVersionRef.current = '0';
         }
       } catch (err) {
         // Silently fail - don't spam errors for deposit polling
