@@ -71,6 +71,9 @@ const FarmingPanelComponent = () => {
           duration: 8000,
         });
         userStartedFarmingRef.current = false;
+
+        // Dispatch event to refresh leaderboard immediately
+        window.dispatchEvent(new CustomEvent('farming-complete'));
       }
     };
 
@@ -130,12 +133,19 @@ const FarmingPanelComponent = () => {
   }, []);
 
   // Poll for new deposits when farming is running AND user started it in this session
+  // Delay polling until after bot boot phase (45s) since no mints happen during boot
   useEffect(() => {
-    if (!connected || !account?.address || farmingState !== 'running' || !userStartedFarmingRef.current) {
+    if (!connected || !account?.address || farmingState !== 'running' || !userStartedFarmingRef.current || !sessionStartTime) {
       return;
     }
 
     const pollDeposits = async () => {
+      // Don't poll during boot phase - no mints yet
+      const elapsed = Date.now() - sessionStartTime;
+      if (elapsed < BOT_BOOT_TIME_MS) {
+        return;
+      }
+
       try {
         const isFirstPoll = lastSeenVersionRef.current === 'pending';
 
@@ -183,11 +193,11 @@ const FarmingPanelComponent = () => {
       }
     };
 
-    // Poll every 10 seconds for faster feedback (each bot mints every ~2s)
+    // Poll every 8 seconds for faster feedback (each bot mints every ~2s)
     pollDeposits();
-    const interval = setInterval(pollDeposits, 10000);
+    const interval = setInterval(pollDeposits, 8000);
     return () => clearInterval(interval);
-  }, [connected, account?.address, farmingState, showToast]);
+  }, [connected, account?.address, farmingState, sessionStartTime, showToast]);
 
   // Find user's sessions
   const userSessions = connected && account?.address

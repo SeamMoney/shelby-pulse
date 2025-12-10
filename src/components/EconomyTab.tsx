@@ -59,9 +59,9 @@ const EconomyTabComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEconomy = async () => {
+    const fetchEconomy = async (forceRefresh = false) => {
       try {
-        const economyData = await backendApi.getEconomy();
+        const economyData = await backendApi.getEconomy(forceRefresh);
         setData(economyData);
         setIsLoading(false);
       } catch (error) {
@@ -71,9 +71,19 @@ const EconomyTabComponent = () => {
     };
 
     fetchEconomy();
-    const interval = setInterval(fetchEconomy, 60000); // Refresh every 60s (reduced from 30s for mobile performance)
+    const interval = setInterval(() => fetchEconomy(false), 60000); // Refresh every 60s
 
-    return () => clearInterval(interval);
+    // Listen for farming completion to force-refresh leaderboard
+    const handleFarmingComplete = () => {
+      console.log('Farming complete - refreshing leaderboard');
+      fetchEconomy(true);
+    };
+    window.addEventListener('farming-complete', handleFarmingComplete);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('farming-complete', handleFarmingComplete);
+    };
   }, []);
 
   const shortenAddress = (address: string) => {

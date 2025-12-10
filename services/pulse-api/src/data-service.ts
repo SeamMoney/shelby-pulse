@@ -202,11 +202,14 @@ export class DataService {
    * Get ShelbyUSD economy data with caching
    * Includes all-time stats since ShelbyNet (devnet) inception
    */
-  async getEconomyData(): Promise<EconomyData> {
+  async getEconomyData(forceRefresh = false): Promise<EconomyData> {
     const cacheKey = "economy_data";
-    const cached = this.cache.get<EconomyData>(cacheKey);
-    if (cached) {
-      return cached;
+
+    if (!forceRefresh) {
+      const cached = this.cache.get<EconomyData>(cacheKey);
+      if (cached) {
+        return cached;
+      }
     }
 
     try {

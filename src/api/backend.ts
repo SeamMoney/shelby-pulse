@@ -154,9 +154,13 @@ class BackendApiClient {
 
   /**
    * Fetch economy data
+   * @param forceRefresh - bypass cache to get fresh data
    */
-  async getEconomy(): Promise<EconomyData> {
-    const response = await fetch(`${this.baseUrl}/economy`);
+  async getEconomy(forceRefresh = false): Promise<EconomyData> {
+    const url = forceRefresh
+      ? `${this.baseUrl}/economy?refresh=true`
+      : `${this.baseUrl}/economy`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch economy data: ${response.statusText}`);
     }

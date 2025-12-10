@@ -82,12 +82,14 @@ export function createRouter(
   });
 
   /**
-   * GET /api/economy
+   * GET /api/economy?refresh=true
    * Returns ShelbyUSD economy data (leaderboards, volume, earners, spenders)
+   * Use refresh=true to bypass cache (for after farming completes)
    */
   router.get("/economy", async (req, res) => {
     try {
-      const economy = await dataService.getEconomyData();
+      const forceRefresh = req.query.refresh === 'true';
+      const economy = await dataService.getEconomyData(forceRefresh);
       res.json(economy);
     } catch (error) {
       logger.error({ error }, "Failed to get economy data");
