@@ -95,7 +95,7 @@ const FarmingPanelComponent = () => {
             const latestTxHash = deposits.find(d => d.txHash)?.txHash;
 
             if (totalNewAmount > 0) {
-              const amountFormatted = (totalNewAmount / 1e6).toFixed(2);
+              const amountFormatted = (totalNewAmount / 1e8).toFixed(2); // ShelbyUSD has 8 decimals
               showToast({
                 type: 'success',
                 message: `+${amountFormatted} SHELBY minted (${deposits.length} txs)`,
@@ -182,7 +182,7 @@ const FarmingPanelComponent = () => {
       if (sessionMinted > 0) {
         showToast({
           type: 'success',
-          message: `Session ended. Total minted: ${(sessionMinted / 1e6).toFixed(2)} SHELBY`,
+          message: `Session ended. Total minted: ${(sessionMinted / 1e8).toFixed(2)} SHELBY`,
           duration: 6000,
         });
       } else {
@@ -392,7 +392,7 @@ const FarmingPanelComponent = () => {
                   }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--foreground2)' }}>Session minted:</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)' }}>
-                      {(totalMinted / 1e6).toFixed(2)} SHELBY
+                      {(totalMinted / 1e8).toFixed(2)} SHELBY
                     </span>
                   </row>
                 )}
