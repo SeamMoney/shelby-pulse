@@ -237,7 +237,7 @@ const EconomyTabComponent = () => {
             )}
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
-            {data.leaderboard.slice(0, maxEntries).map((entry, i) => (
+            {displayData.leaderboard.slice(0, maxEntries).map((entry, i) => (
             <column key={entry.address} gap-="0">
               <row
                 style={{
@@ -298,7 +298,7 @@ const EconomyTabComponent = () => {
             {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">by tx count</span>}
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
-          {data.mostActive.slice(0, maxEntries).map((entry, i) => (
+          {displayData.mostActive.slice(0, maxEntries).map((entry, i) => (
             <column key={entry.address} gap-="0">
               <row
                 style={{
@@ -365,7 +365,7 @@ const EconomyTabComponent = () => {
             {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">total withdrawn</span>}
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
-          {data.topSpenders.slice(0, maxEntries).map((entry, i) => (
+          {displayData.topSpenders.slice(0, maxEntries).map((entry, i) => (
             <column key={entry.address} gap-="0">
               <row
                 style={{
@@ -426,7 +426,7 @@ const EconomyTabComponent = () => {
             {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>}
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.7rem' : '0.85rem', fontFamily: 'monospace', overflow: 'hidden' }}>
-            {data.recentTransactions.slice(0, maxEntries).map((tx, i) => {
+            {displayData.recentTransactions.slice(0, maxEntries).map((tx, i) => {
             const txInfo = getTransactionLabel(tx.type);
             return (
               <column key={`${tx.version}-${i}`} gap-="0">
