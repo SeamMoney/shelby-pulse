@@ -43,6 +43,9 @@ export class DataService {
   private lastBlobCount = 0;
   private lastTimestamp = Date.now();
 
+  // Request coalescing: prevent duplicate in-flight requests
+  private inFlightRequests: Map<string, Promise<unknown>> = new Map();
+
   constructor(config: ApiConfig) {
     this.config = config;
     this.cache = new NodeCache({
@@ -50,6 +53,26 @@ export class DataService {
       checkperiod: config.CACHE_TTL_SECONDS * 2,
     });
     this.aptosClient = new ShelbyAptosClient(config);
+  }
+
+  /**
+   * Coalesce identical requests to prevent thundering herd
+   * Multiple users requesting same data will share one in-flight request
+   */
+  private async coalesce<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    // Return in-flight request if one exists
+    const existing = this.inFlightRequests.get(key);
+    if (existing) {
+      return existing as Promise<T>;
+    }
+
+    // Create new request and track it
+    const promise = fetcher().finally(() => {
+      this.inFlightRequests.delete(key);
+    });
+
+    this.inFlightRequests.set(key, promise);
+    return promise;
   }
 
   /**
@@ -139,7 +162,8 @@ export class DataService {
   }
 
   /**
-   * Get storage providers
+   * Get storage providers with extended caching
+   * Providers don't change often, so cache longer
    */
   async getStorageProviders(): Promise<StorageProvider[]> {
     const cacheKey = "storage_providers";
@@ -148,18 +172,22 @@ export class DataService {
       return cached;
     }
 
-    try {
-      const providers = await this.aptosClient.fetchStorageProviders();
-      this.cache.set(cacheKey, providers);
-      return providers;
-    } catch (error) {
-      logger.error({ error }, "Failed to fetch storage providers");
-      throw error;
-    }
+    return this.coalesce(cacheKey, async () => {
+      try {
+        const providers = await this.aptosClient.fetchStorageProviders();
+        // Cache for 5 minutes (300s) - providers rarely change
+        this.cache.set(cacheKey, providers, 300);
+        return providers;
+      } catch (error) {
+        logger.error({ error }, "Failed to fetch storage providers");
+        throw error;
+      }
+    });
   }
 
   /**
    * Get all blob events (for activity feed)
+   * Cached for 15 seconds to reduce load while keeping feed fresh
    */
   async getAllBlobEvents(limit = 100): Promise<BlobEvent[]> {
     const cacheKey = `all_events_${limit}`;
@@ -168,14 +196,17 @@ export class DataService {
       return cached;
     }
 
-    try {
-      const events = await this.aptosClient.fetchBlobEvents(limit);
-      this.cache.set(cacheKey, events);
-      return events;
-    } catch (error) {
-      logger.error({ error }, "Failed to fetch blob events");
-      throw error;
-    }
+    return this.coalesce(cacheKey, async () => {
+      try {
+        const events = await this.aptosClient.fetchBlobEvents(limit);
+        // Cache for 15 seconds - balances freshness vs cost
+        this.cache.set(cacheKey, events, 15);
+        return events;
+      } catch (error) {
+        logger.error({ error }, "Failed to fetch blob events");
+        throw error;
+      }
+    });
   }
 
   /**
@@ -199,7 +230,7 @@ export class DataService {
   }
 
   /**
-   * Get ShelbyUSD economy data with caching
+   * Get ShelbyUSD economy data with caching and request coalescing
    * Includes all-time stats since ShelbyNet (devnet) inception
    */
   async getEconomyData(forceRefresh = false): Promise<EconomyData> {
@@ -212,33 +243,36 @@ export class DataService {
       }
     }
 
-    try {
-      const [leaderboard, volume, allTimeStats, mostActive, topSpenders, recentTransactions] = await Promise.all([
-        getShelbyUSDLeaderboard(this.aptosClient, 20),
-        get24hVolume(this.aptosClient),
-        getAllTimeStats(this.aptosClient),
-        getMostActiveUsers(this.aptosClient, 10),
-        getBiggestSpenders(this.aptosClient, 10),
-        getRecentTransactions(this.aptosClient, 20),
-      ]);
+    // Use coalescing to prevent duplicate requests when 100+ users hit simultaneously
+    return this.coalesce(cacheKey, async () => {
+      try {
+        const [leaderboard, volume, allTimeStats, mostActive, topSpenders, recentTransactions] = await Promise.all([
+          getShelbyUSDLeaderboard(this.aptosClient, 20),
+          get24hVolume(this.aptosClient),
+          getAllTimeStats(this.aptosClient),
+          getMostActiveUsers(this.aptosClient, 10),
+          getBiggestSpenders(this.aptosClient, 10),
+          getRecentTransactions(this.aptosClient, 20),
+        ]);
 
-      const economyData: EconomyData = {
-        leaderboard,
-        volume,
-        allTimeStats,
-        mostActive,
-        topSpenders,
-        recentTransactions,
-        timestamp: Date.now(),
-      };
+        const economyData: EconomyData = {
+          leaderboard,
+          volume,
+          allTimeStats,
+          mostActive,
+          topSpenders,
+          recentTransactions,
+          timestamp: Date.now(),
+        };
 
-      // Cache economy data for 30 seconds for faster leaderboard updates
-      this.cache.set(cacheKey, economyData, 30);
-      return economyData;
-    } catch (error) {
-      logger.error({ error }, "Failed to fetch economy data");
-      throw error;
-    }
+        // Cache economy data for 60 seconds (was 30s) - reduces API costs by 50%
+        this.cache.set(cacheKey, economyData, 60);
+        return economyData;
+      } catch (error) {
+        logger.error({ error }, "Failed to fetch economy data");
+        throw error;
+      }
+    });
   }
 
   /**

@@ -110,7 +110,8 @@ const FarmingPanelComponent = () => {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
+    // Poll every 10s (was 5s) - farming sessions are long-running, don't need rapid updates
+    const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
   }, [connected, account?.address]);
 

@@ -28,7 +28,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
   const [targetPointerX, setTargetPointerX] = useState<number | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
-  // Measure API latency every 5 seconds (reduced from 1s for mobile performance)
+  // Measure API latency every 15 seconds (optimized for scale - 100+ users)
   useEffect(() => {
     const measureLatency = async () => {
       const start = performance.now()
@@ -50,11 +50,11 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       }
     }
     measureLatency()
-    const interval = setInterval(measureLatency, 5000) // Changed from 1000ms to 5000ms
+    const interval = setInterval(measureLatency, 15000) // 15s for scale (was 5s)
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch event count
+  // Fetch event count every 15s (optimized for scale - 100+ users)
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -65,7 +65,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       }
     }
     fetchEvents()
-    const interval = setInterval(fetchEvents, 5000)
+    const interval = setInterval(fetchEvents, 15000) // 15s for scale (was 5s)
     return () => clearInterval(interval)
   }, [])
 

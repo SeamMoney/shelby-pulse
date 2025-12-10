@@ -29,15 +29,15 @@ export interface MinterEntry {
 
 /**
  * Get most active ShelbyUSD users by transaction count
- * Fetches ALL historical data from ShelbyNet inception
+ * Limited to recent activities for efficiency at scale
  */
 export async function getMostActiveUsers(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<ActivityEntry[]> {
   try {
-    // Fetch ALL activities since ShelbyNet inception (no limit)
-    const activities = await aptosClient.getShelbyUSDActivities(100000);
+    // Limit to 10,000 activities for efficiency (90% cost reduction)
+    const activities = await aptosClient.getShelbyUSDActivities(10000);
 
     // Count transactions per address
     const txCounts = new Map<string, number>();
@@ -68,15 +68,15 @@ export async function getMostActiveUsers(
 
 /**
  * Get biggest ShelbyUSD spenders by total withdraw amount
- * Fetches ALL historical data from ShelbyNet inception
+ * Limited to recent activities for efficiency at scale
  */
 export async function getBiggestSpenders(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<SpenderEntry[]> {
   try {
-    // Fetch ALL activities since ShelbyNet inception (no limit)
-    const activities = await aptosClient.getShelbyUSDActivities(100000);
+    // Limit to 10,000 activities for efficiency (90% cost reduction)
+    const activities = await aptosClient.getShelbyUSDActivities(10000);
 
     // Sum withdrawals per address
     const withdrawals = new Map<string, number>();
@@ -116,8 +116,8 @@ export async function getTopMinters(
   limit = 10
 ): Promise<MinterEntry[]> {
   try {
-    // Fetch ALL activities since ShelbyNet inception
-    const activities = await aptosClient.getShelbyUSDActivities(100000);
+    // Limit to 10,000 activities for efficiency (90% cost reduction)
+    const activities = await aptosClient.getShelbyUSDActivities(10000);
 
     // Sum mints per address
     const mints = new Map<string, { totalMinted: number; mintCount: number }>();
