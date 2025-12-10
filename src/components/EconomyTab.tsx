@@ -137,16 +137,20 @@ const EconomyTabComponent = () => {
     }
   };
 
-  // Use placeholder data while loading
-  const displayData = data || {
-    leaderboard: Array(10).fill({ address: '0x0000...00000', balance: 0, barWidth: 50 }),
+  // Helper to check if an entry is a placeholder
+  const isPlaceholder = (address: string) => address.startsWith('placeholder-');
+
+  // Use placeholder data while loading - each item needs unique key
+  const placeholderData: EconomyData = {
+    leaderboard: Array.from({ length: 10 }, (_, i) => ({ address: `placeholder-${i}`, balance: 0, barWidth: 50 })),
     volume: { volume24h: 0, transferCount24h: 0, velocity: 0 },
     allTimeStats: { totalSupply: 0, totalHolders: 0, totalTransactions: 0, totalVolume: 0, averageTransactionSize: 0, firstTransactionVersion: '0', lastTransactionVersion: '0' },
-    mostActive: Array(10).fill({ address: '0x0000...00000', txCount: 0, barWidth: 50 }),
-    topSpenders: Array(10).fill({ address: '0x0000...00000', totalSpent: 0, barWidth: 50 }),
-    recentTransactions: Array(10).fill({ address: '0x0000...00000', type: 'deposit' as const, amount: 0, version: 0 }),
+    mostActive: Array.from({ length: 10 }, (_, i) => ({ address: `placeholder-${i}`, txCount: 0, barWidth: 50 })),
+    topSpenders: Array.from({ length: 10 }, (_, i) => ({ address: `placeholder-${i}`, totalSpent: 0, barWidth: 50 })),
+    recentTransactions: Array.from({ length: 10 }, (_, i) => ({ address: `placeholder-${i}`, type: 'deposit' as const, amount: 0, version: i })),
     timestamp: Date.now(),
   };
+  const displayData = data || placeholderData;
 
   const isDesktop = window.innerWidth >= 1024;
   const maxEntries = isDesktop ? 8 : 10;
@@ -238,7 +242,7 @@ const EconomyTabComponent = () => {
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
             {displayData.leaderboard.slice(0, maxEntries).map((entry, i) => (
-            <column key={entry.address} gap-="0">
+            <column key={`leaderboard-${i}-${entry.address}`} gap-="0">
               <row
                 style={{
                   padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
@@ -251,33 +255,43 @@ const EconomyTabComponent = () => {
                 <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', flexShrink: 0 }}>
                   {i + 1}.
                 </span>
-                <span
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: isDesktop ? '0.7rem' : '0.85rem',
-                    flexShrink: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    minWidth: 0,
-                  }}
-                >
-                  {shortenAddress(entry.address)}
-                </span>
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                  <AsciiBar width={entry.barWidth} />
-                </span>
-                <span
-                  style={{
-                    color: 'var(--accent)',
-                    fontWeight: 600,
-                    textAlign: 'right',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {formatAmount(entry.balance)}
-                </span>
+                {isPlaceholder(entry.address) ? (
+                  <>
+                    <Skeleton width="6rem" height="0.85rem" />
+                    <span style={{ flex: 1 }}><Skeleton width="100%" height="0.5rem" /></span>
+                    <Skeleton width="3rem" height="0.85rem" />
+                  </>
+                ) : (
+                  <>
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: isDesktop ? '0.7rem' : '0.85rem',
+                        flexShrink: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        minWidth: 0,
+                      }}
+                    >
+                      {shortenAddress(entry.address)}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <AsciiBar width={entry.barWidth} />
+                    </span>
+                    <span
+                      style={{
+                        color: 'var(--accent)',
+                        fontWeight: 600,
+                        textAlign: 'right',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatAmount(entry.balance)}
+                    </span>
+                  </>
+                )}
               </row>
               {i < maxEntries - 1 && (
                 <div style={{
@@ -299,7 +313,7 @@ const EconomyTabComponent = () => {
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
           {displayData.mostActive.slice(0, maxEntries).map((entry, i) => (
-            <column key={entry.address} gap-="0">
+            <column key={`active-${i}-${entry.address}`} gap-="0">
               <row
                 style={{
                   padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
@@ -312,33 +326,43 @@ const EconomyTabComponent = () => {
                 <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', flexShrink: 0 }}>
                   {i + 1}.
                 </span>
-                <span
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: isDesktop ? '0.7rem' : '0.85rem',
-                    flexShrink: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    minWidth: 0,
-                  }}
-                >
-                  {shortenAddress(entry.address)}
-                </span>
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                  <AsciiBar width={entry.barWidth} />
-                </span>
-                <span
-                  style={{
-                    color: '#4A90E2',
-                    fontWeight: 600,
-                    textAlign: 'right',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {entry.txCount} txs
-                </span>
+                {isPlaceholder(entry.address) ? (
+                  <>
+                    <Skeleton width="6rem" height="0.85rem" />
+                    <span style={{ flex: 1 }}><Skeleton width="100%" height="0.5rem" /></span>
+                    <Skeleton width="3rem" height="0.85rem" />
+                  </>
+                ) : (
+                  <>
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: isDesktop ? '0.7rem' : '0.85rem',
+                        flexShrink: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        minWidth: 0,
+                      }}
+                    >
+                      {shortenAddress(entry.address)}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <AsciiBar width={entry.barWidth} />
+                    </span>
+                    <span
+                      style={{
+                        color: '#4A90E2',
+                        fontWeight: 600,
+                        textAlign: 'right',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {entry.txCount} txs
+                    </span>
+                  </>
+                )}
               </row>
               {i < maxEntries - 1 && (
                 <div style={{
@@ -366,7 +390,7 @@ const EconomyTabComponent = () => {
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
           {displayData.topSpenders.slice(0, maxEntries).map((entry, i) => (
-            <column key={entry.address} gap-="0">
+            <column key={`spender-${i}-${entry.address}`} gap-="0">
               <row
                 style={{
                   padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
@@ -379,33 +403,43 @@ const EconomyTabComponent = () => {
                 <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', flexShrink: 0 }}>
                   {i + 1}.
                 </span>
-                <span
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: isDesktop ? '0.7rem' : '0.85rem',
-                    flexShrink: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    minWidth: 0,
-                  }}
-                >
-                  {shortenAddress(entry.address)}
-                </span>
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                  <AsciiBar width={entry.barWidth} />
-                </span>
-                <span
-                  style={{
-                    color: '#FFA500',
-                    fontWeight: 600,
-                    textAlign: 'right',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {formatAmount(entry.totalSpent)}
-                </span>
+                {isPlaceholder(entry.address) ? (
+                  <>
+                    <Skeleton width="6rem" height="0.85rem" />
+                    <span style={{ flex: 1 }}><Skeleton width="100%" height="0.5rem" /></span>
+                    <Skeleton width="3rem" height="0.85rem" />
+                  </>
+                ) : (
+                  <>
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: isDesktop ? '0.7rem' : '0.85rem',
+                        flexShrink: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        minWidth: 0,
+                      }}
+                    >
+                      {shortenAddress(entry.address)}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <AsciiBar width={entry.barWidth} />
+                    </span>
+                    <span
+                      style={{
+                        color: '#FFA500',
+                        fontWeight: 600,
+                        textAlign: 'right',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatAmount(entry.totalSpent)}
+                    </span>
+                  </>
+                )}
               </row>
               {i < maxEntries - 1 && (
                 <div style={{
@@ -429,7 +463,7 @@ const EconomyTabComponent = () => {
             {displayData.recentTransactions.slice(0, maxEntries).map((tx, i) => {
             const txInfo = getTransactionLabel(tx.type);
             return (
-              <column key={`${tx.version}-${i}`} gap-="0">
+              <column key={`tx-${i}-${tx.version}`} gap-="0">
                 <row
                   style={{
                     padding: isDesktop ? '0.25rem 0.5rem' : '0.4rem 0.75rem',
@@ -439,50 +473,62 @@ const EconomyTabComponent = () => {
                     overflow: 'hidden',
                   }}
                 >
-                  <span
-                    style={{
-                      color: txInfo.color,
-                      fontSize: '0.75rem',
-                      flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {txInfo.icon} {txInfo.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      flexShrink: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {shortenAddress(tx.address)}
-                  </span>
-                  <span
-                    style={{
-                      color: 'var(--foreground)',
-                      fontWeight: 500,
-                      textAlign: 'right',
-                      fontSize: '0.75rem',
-                      flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {formatAmount(tx.amount)}
-                  </span>
-                  <span
-                    style={{
-                      color: 'var(--foreground2)',
-                      fontSize: '0.7rem',
-                      textAlign: 'right',
-                      flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    #{tx.version}
-                  </span>
+                  {isPlaceholder(tx.address) ? (
+                    <>
+                      <Skeleton width="4rem" height="0.75rem" />
+                      <Skeleton width="6rem" height="0.75rem" />
+                      <span style={{ flex: 1 }} />
+                      <Skeleton width="3rem" height="0.75rem" />
+                      <Skeleton width="3rem" height="0.7rem" />
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        style={{
+                          color: txInfo.color,
+                          fontSize: '0.75rem',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {txInfo.icon} {txInfo.label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          flexShrink: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {shortenAddress(tx.address)}
+                      </span>
+                      <span
+                        style={{
+                          color: 'var(--foreground)',
+                          fontWeight: 500,
+                          textAlign: 'right',
+                          fontSize: '0.75rem',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {formatAmount(tx.amount)}
+                      </span>
+                      <span
+                        style={{
+                          color: 'var(--foreground2)',
+                          fontSize: '0.7rem',
+                          textAlign: 'right',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        #{tx.version}
+                      </span>
+                    </>
+                  )}
                 </row>
                 {i < maxEntries - 1 && (
                   <div style={{
