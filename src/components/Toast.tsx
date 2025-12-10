@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, memo, createContext, useContext, Reac
 
 interface Toast {
   id: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   message: string;
   txHash?: string;
   duration?: number;
@@ -36,7 +36,10 @@ const ToastItem = memo(({ toast, onClose }: { toast: Toast; onClose: () => void 
         return { borderColor: 'var(--success)', icon: '✓' };
       case 'error':
         return { borderColor: 'var(--red)', icon: '✗' };
+      case 'warning':
+        return { borderColor: 'var(--yellow)', icon: '!' };
       case 'info':
+      default:
         return { borderColor: 'var(--blue)', icon: 'i' };
     }
   };
