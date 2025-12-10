@@ -39,8 +39,11 @@ export function ProvidersTab() {
 
   if (isLoading) {
     return (
-      <column gap-="1" pad-="1">
-        <h2>Loading Storage Providers...</h2>
+      <column gap-="1" pad-="2" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '40vh' }}>
+        <row gap-="1" style={{ alignItems: 'center' }}>
+          <span is-="spinner" style={{ color: 'var(--accent)', fontSize: '1.25rem' }}></span>
+          <h2 style={{ margin: 0 }}>Loading Storage Providers...</h2>
+        </row>
         <small style={{ color: 'var(--foreground2)' }}>Fetching provider data from Shelby network</small>
       </column>
     );

@@ -425,7 +425,7 @@ const FarmingPanelComponent = () => {
                 border: '1px solid var(--yellow)',
               }}>
                 <row gap-="0.5" align-="center">
-                  <span style={{ animation: 'spin 1s linear infinite', fontSize: '1rem' }}>⟳</span>
+                  <span is-="spinner" style={{ color: 'var(--yellow)' }}></span>
                   <span style={{ color: 'var(--yellow)', fontWeight: 700 }}>DEPLOYING BOTS...</span>
                 </row>
                 <small style={{ color: 'var(--foreground2)' }}>
@@ -552,7 +552,7 @@ const FarmingPanelComponent = () => {
                 border: '1px solid var(--red)',
               }}>
                 <row gap-="0.5" align-="center">
-                  <span style={{ animation: 'spin 1s linear infinite', fontSize: '1rem' }}>⟳</span>
+                  <span is-="spinner" style={{ color: 'var(--red)' }}></span>
                   <span style={{ color: 'var(--red)', fontWeight: 700 }}>STOPPING BOTS...</span>
                 </row>
                 <small style={{ color: 'var(--foreground2)' }}>

@@ -163,7 +163,13 @@ const EconomyTabComponent = () => {
           <span is-="badge" variant-="pink" cap-="ribbon triangle">SHELBYUSD ECONOMY</span>
           <row gap-="0.5">
             <span is-="badge" variant-="background2" cap-="round" size-="half">ShelbyNet (Devnet)</span>
-            <span is-="badge" variant-="success" cap-="round" size-="half">◉ LIVE</span>
+            {isLoading ? (
+              <span is-="badge" variant-="yellow" cap-="round" size-="half" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span is-="spinner" style={{ fontSize: '0.7rem' }}></span> Loading
+              </span>
+            ) : (
+              <span is-="badge" variant-="success" cap-="round" size-="half">◉ LIVE</span>
+            )}
           </row>
         </row>
         {!isDesktop && (

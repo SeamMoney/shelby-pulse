@@ -76,9 +76,12 @@ function App() {
   if (isLoading) {
     return (
       <column className="terminal-emulator">
-        <column className="terminal" box-="square" pad-="2">
-          <h2>Loading Network Data...</h2>
-          <small style={{ color: 'var(--foreground2)' }}>
+        <column className="terminal" box-="square" pad-="2" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+          <row gap-="1" style={{ alignItems: 'center' }}>
+            <span is-="spinner" style={{ color: 'var(--accent)' }}></span>
+            <h2 style={{ margin: 0 }}>Loading Network Data...</h2>
+          </row>
+          <small style={{ color: 'var(--foreground2)', marginTop: '0.5rem' }}>
             Fetching real data from Shelby Protocol via Aptos blockchain
           </small>
         </column>
