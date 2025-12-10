@@ -5,6 +5,9 @@ import { useToast } from './Toast';
 
 type FarmingState = 'idle' | 'starting' | 'running' | 'stopping';
 
+// Each bot makes 50 requests with 2s delay = ~100s runtime + 30s startup buffer
+const EXPECTED_BOT_DURATION_MS = 130 * 1000; // ~2.2 minutes per bot
+
 const FarmingPanelComponent = () => {
   const { connected, account, connect, wallets } = useWallet();
   const { showToast } = useToast();
@@ -13,6 +16,8 @@ const FarmingPanelComponent = () => {
   const [sessions, setSessions] = useState<FarmingSession[]>([]);
   const [overview, setOverview] = useState<FarmingOverview | null>(null);
   const [totalMinted, setTotalMinted] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [progressPercent, setProgressPercent] = useState(0);
   const lastSeenVersionRef = useRef<string | null>(null);
   // Track if user manually started farming in this browser session
   const userStartedFarmingRef = useRef(false);
@@ -26,9 +31,40 @@ const FarmingPanelComponent = () => {
     } else if (farmingState === 'idle') {
       lastSeenVersionRef.current = null;
       setTotalMinted(0);
+      setSessionStartTime(null);
+      setProgressPercent(0);
       // Don't reset userStartedFarmingRef here - only reset on page reload
     }
   }, [farmingState]);
+
+  // Progress timer - updates every second when farming is running
+  useEffect(() => {
+    if (farmingState !== 'running' || !sessionStartTime || !userStartedFarmingRef.current) {
+      return;
+    }
+
+    const updateProgress = () => {
+      const elapsed = Date.now() - sessionStartTime;
+      const percent = Math.min(100, Math.round((elapsed / EXPECTED_BOT_DURATION_MS) * 100));
+      setProgressPercent(percent);
+
+      // If we've exceeded expected time, check if bots are gone
+      if (percent >= 100 && overview?.totalDroplets === 0) {
+        // Session likely completed
+        setFarmingState('idle');
+        showToast({
+          type: 'success',
+          message: `Farming complete! Total minted: ${(totalMinted / 1e8).toFixed(2)} ShelbyUSD`,
+          duration: 8000,
+        });
+        userStartedFarmingRef.current = false;
+      }
+    };
+
+    updateProgress();
+    const interval = setInterval(updateProgress, 1000);
+    return () => clearInterval(interval);
+  }, [farmingState, sessionStartTime, overview?.totalDroplets, totalMinted, showToast]);
 
   const fetchStatus = async () => {
     try {
@@ -72,11 +108,12 @@ const FarmingPanelComponent = () => {
       try {
         const isFirstPoll = lastSeenVersionRef.current === 'pending';
 
-        // On first poll, get latest deposits to establish baseline (don't show toasts)
+        // On first poll, get latest deposit to establish baseline (don't show toasts)
+        // On subsequent polls, get up to 50 to catch all mints from multiple bots
         const deposits = await backendApi.getUserDeposits(
           account.address.toString(),
           isFirstPoll ? undefined : lastSeenVersionRef.current || undefined,
-          isFirstPoll ? 1 : 20  // Get 1 on first poll, up to 20 on subsequent
+          isFirstPoll ? 1 : 50  // Get 1 on first poll, up to 50 on subsequent
         );
 
         if (deposits.length > 0) {
@@ -98,7 +135,7 @@ const FarmingPanelComponent = () => {
               const amountFormatted = (totalNewAmount / 1e8).toFixed(2); // ShelbyUSD has 8 decimals
               showToast({
                 type: 'success',
-                message: `+${amountFormatted} SHELBY minted (${deposits.length} txs)`,
+                message: `+${amountFormatted} ShelbyUSD minted (${deposits.length} txs)`,
                 txHash: latestTxHash,
                 duration: 6000,
               });
@@ -115,9 +152,9 @@ const FarmingPanelComponent = () => {
       }
     };
 
-    // Poll every 20 seconds
+    // Poll every 10 seconds for faster feedback (each bot mints every ~2s)
     pollDeposits();
-    const interval = setInterval(pollDeposits, 20000);
+    const interval = setInterval(pollDeposits, 10000);
     return () => clearInterval(interval);
   }, [connected, account?.address, farmingState, showToast]);
 
@@ -144,12 +181,18 @@ const FarmingPanelComponent = () => {
     try {
       const session = await backendApi.startFarming(account.address.toString(), numNodes);
       if (session.droplets.length > 0) {
-        const expectedMint = session.droplets.length * 50 * 10; // 50 requests × 10 SHELBY each
+        const expectedMint = session.droplets.length * 50 * 10; // 50 requests × 10 ShelbyUSD each
+        const failedCount = numNodes - session.droplets.length;
+        let message = `${session.droplets.length} bots deployed. Expected: ~${expectedMint} ShelbyUSD (~2 min)`;
+        if (failedCount > 0) {
+          message += ` (${failedCount} failed to start)`;
+        }
         showToast({
-          type: 'success',
-          message: `Session started: ${session.droplets.length} bots deploying. Expected: ~${expectedMint} SHELBY`,
+          type: failedCount > 0 ? 'warning' : 'success',
+          message,
           duration: 8000,
         });
+        setSessionStartTime(Date.now());
         setFarmingState('running');
       } else {
         showToast({
@@ -182,7 +225,7 @@ const FarmingPanelComponent = () => {
       if (sessionMinted > 0) {
         showToast({
           type: 'success',
-          message: `Session ended. Total minted: ${(sessionMinted / 1e8).toFixed(2)} SHELBY`,
+          message: `Session ended. Total minted: ${(sessionMinted / 1e8).toFixed(2)} ShelbyUSD`,
           duration: 6000,
         });
       } else {
@@ -326,7 +369,7 @@ const FarmingPanelComponent = () => {
                   Start Farming
                 </button>
                 <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textAlign: 'center' }}>
-                  Each bot mints ~500 SHELBY/day (50 requests × 10 SHELBY)
+                  Each bot mints ~500 ShelbyUSD (50 requests × 10 ShelbyUSD)
                 </small>
               </column>
             )}
@@ -378,13 +421,43 @@ const FarmingPanelComponent = () => {
                     {overview?.totalDroplets || totalActiveBots} BOTS
                   </span>
                 </row>
+
+                {/* Progress bar */}
+                {userStartedFarmingRef.current && sessionStartTime && (
+                  <column gap-="0.25" style={{ marginTop: '0.25rem' }}>
+                    <row gap-="0.5" align-="between">
+                      <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
+                        Progress: {progressPercent}%
+                      </small>
+                      <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
+                        {progressPercent >= 100 ? 'Finishing up...' : `~${Math.max(0, Math.ceil((EXPECTED_BOT_DURATION_MS - (Date.now() - sessionStartTime)) / 1000))}s remaining`}
+                      </small>
+                    </row>
+                    <div style={{
+                      width: '100%',
+                      height: 6,
+                      background: 'var(--background)',
+                      borderRadius: 3,
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${progressPercent}%`,
+                        height: '100%',
+                        background: progressPercent >= 100 ? 'var(--yellow)' : 'var(--success)',
+                        transition: 'width 0.5s ease-out',
+                      }} />
+                    </div>
+                  </column>
+                )}
+
                 <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
                   {userStartedFarmingRef.current
-                    ? 'Bots are automatically minting ShelbyUSD to your wallet.'
+                    ? 'Bots auto-mint ShelbyUSD and self-destruct when done.'
                     : 'Bots from a previous session are still registered.'}
-                  {' '}Each bot makes ~50 faucet requests, then stops.
                 </small>
-                {totalMinted > 0 && userStartedFarmingRef.current && (
+
+                {/* Session stats */}
+                {userStartedFarmingRef.current && (
                   <row gap-="0.5" align-="center" style={{
                     padding: '0.4rem 0.6rem',
                     background: 'var(--background)',
@@ -392,10 +465,11 @@ const FarmingPanelComponent = () => {
                   }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--foreground2)' }}>Session minted:</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)' }}>
-                      {(totalMinted / 1e8).toFixed(2)} SHELBY
+                      {(totalMinted / 1e8).toFixed(2)} ShelbyUSD
                     </span>
                   </row>
                 )}
+
                 <button
                   onClick={handleStopFarming}
                   style={{
