@@ -3,15 +3,13 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { backendApi, FarmingSession, FarmingOverview } from '../api/backend';
 import { useToast } from './Toast';
 
-interface FarmingPanelProps {
-  compact?: boolean; // For mobile header wallet button
-}
+type FarmingState = 'idle' | 'starting' | 'running' | 'stopping';
 
-const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
-  const { connected, account, connect, disconnect, wallets } = useWallet();
+const FarmingPanelComponent = () => {
+  const { connected, account, connect, wallets } = useWallet();
   const { showToast } = useToast();
   const [numNodes, setNumNodes] = useState(3);
-  const [isStarting, setIsStarting] = useState(false);
+  const [farmingState, setFarmingState] = useState<FarmingState>('idle');
   const [sessions, setSessions] = useState<FarmingSession[]>([]);
   const [overview, setOverview] = useState<FarmingOverview | null>(null);
 
@@ -25,6 +23,19 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
       ]);
       setSessions(sessionsData);
       setOverview(overviewData);
+
+      // Update farming state based on sessions
+      if (connected && account?.address) {
+        const userActiveSessions = sessionsData.filter(
+          s => s.walletAddress === account.address.toString() &&
+               (s.status === 'running' || s.status === 'starting')
+        );
+        if (userActiveSessions.length > 0 && farmingState !== 'stopping') {
+          setFarmingState('running');
+        } else if (farmingState === 'running' && userActiveSessions.length === 0) {
+          setFarmingState('idle');
+        }
+      }
     } catch (err) {
       // Silently fail - farming might not be enabled
     }
@@ -34,7 +45,18 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [connected, account?.address]);
+
+  // Find user's sessions
+  const userSessions = connected && account?.address
+    ? sessions.filter(s => s.walletAddress === account.address.toString())
+    : [];
+
+  const activeUserSessions = userSessions.filter(
+    s => s.status === 'running' || s.status === 'starting'
+  );
+
+  const totalActiveBots = activeUserSessions.reduce((sum, s) => sum + s.droplets.length, 0);
 
   const handleStartFarming = async () => {
     if (!connected || !account?.address) {
@@ -42,22 +64,24 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
       return;
     }
 
-    setIsStarting(true);
+    setFarmingState('starting');
 
     try {
       const session = await backendApi.startFarming(account.address.toString(), numNodes);
       if (session.droplets.length > 0) {
         showToast({
           type: 'success',
-          message: `Farming started! ${session.droplets.length} bots deploying...`,
+          message: `${session.droplets.length} farming bots deployed! They will start minting shortly.`,
           duration: 6000,
         });
+        setFarmingState('running');
       } else {
         showToast({
           type: 'error',
-          message: 'Failed to deploy bots. Check if droplet limit is reached.',
+          message: 'Failed to deploy bots. Server may have reached capacity.',
           duration: 8000,
         });
+        setFarmingState('idle');
       }
       await fetchStatus();
     } catch (err) {
@@ -65,39 +89,29 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
         type: 'error',
         message: err instanceof Error ? err.message : 'Failed to start farming',
       });
-    } finally {
-      setIsStarting(false);
+      setFarmingState('idle');
     }
   };
 
-  const handleStopSession = async (sessionId: string) => {
-    try {
-      await backendApi.stopFarming(sessionId);
-      showToast({ type: 'success', message: 'Farming session stopped' });
-      await fetchStatus();
-    } catch (err) {
-      showToast({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to stop session',
-      });
-    }
-  };
-
-  const handleCleanupAll = async () => {
-    if (!confirm('Stop all farming bots and clear old sessions?')) return;
+  const handleStopFarming = async () => {
+    setFarmingState('stopping');
 
     try {
-      // First cleanup droplets
       const result = await backendApi.cleanupFarming();
-      // Then clear sessions from memory
       await backendApi.clearSessions();
-      showToast({ type: 'success', message: result.message });
+      showToast({
+        type: 'success',
+        message: 'All farming bots stopped.',
+        duration: 4000,
+      });
+      setFarmingState('idle');
       await fetchStatus();
     } catch (err) {
       showToast({
         type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to cleanup',
+        message: err instanceof Error ? err.message : 'Failed to stop farming',
       });
+      setFarmingState('running'); // Revert if failed
     }
   };
 
@@ -106,10 +120,9 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  // Find user's active sessions
-  const userSessions = connected && account?.address
-    ? sessions.filter(s => s.walletAddress === account.address.toString())
-    : [];
+  // Determine actual farming state from data
+  const isActuallyRunning = totalActiveBots > 0 || (overview?.totalDroplets || 0) > 0;
+  const effectiveState = isActuallyRunning && farmingState === 'idle' ? 'running' : farmingState;
 
   return (
     <column box-="double round" shear-="top" pad-={isDesktop ? "0.75" : "1"} gap-="0.75">
@@ -121,22 +134,19 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
             Automated ShelbyUSD minting on ShelbyNet
           </small>
         </column>
-        {overview && overview.activeSessions > 0 && (
-          <span is-="badge" variant-="success" cap-="round" size-="half">
-            {overview.totalDroplets} BOTS ACTIVE
-          </span>
-        )}
       </row>
 
-      {/* Wallet Connection */}
+      {/* Not Connected State */}
       {!connected ? (
-        <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '8px' }}>
+        <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)' }}>
           <row gap-="0.5" align-="center" style={{ flexWrap: 'wrap' }}>
             <span style={{ fontSize: '1.25rem' }}>&#128274;</span>
             <column gap-="0" style={{ flex: 1, minWidth: '200px' }}>
-              <span style={{ fontWeight: 600, fontSize: isDesktop ? '1rem' : '0.9rem' }}>Connect Wallet to Farm</span>
+              <span style={{ fontWeight: 600, fontSize: isDesktop ? '1rem' : '0.9rem' }}>
+                Connect Wallet to Farm
+              </span>
               <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.8rem' : '0.7rem' }}>
-                {isDesktop ? 'ShelbyUSD will be minted directly to your wallet' : 'Use the Connect button in the header'}
+                {isDesktop ? 'ShelbyUSD will be minted directly to your wallet' : 'Use the Connect button above'}
               </small>
             </column>
           </row>
@@ -151,7 +161,6 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
                     background: 'var(--accent)',
                     color: 'var(--background)',
                     border: 'none',
-                    borderRadius: '4px',
                     cursor: 'pointer',
                     fontWeight: 600,
                     fontSize: '0.85rem',
@@ -174,139 +183,161 @@ const FarmingPanelComponent = ({ compact = false }: FarmingPanelProps) => {
         </column>
       ) : (
         <>
-          {/* Connected Wallet Info */}
-          <row style={{
-            padding: '0.5rem 0.75rem',
-            background: 'var(--background)',
-            borderRadius: '6px',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <row gap-="0.5" align-="center">
-              <span style={{ color: '#00C896', fontSize: '0.9rem' }}>&#9679;</span>
-              <span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+          {/* Connected - Show farming controls */}
+          <column gap-="0.75">
+            {/* Wallet address */}
+            <row gap-="0.5" align-="center" style={{
+              padding: '0.4rem 0.6rem',
+              background: 'var(--background)',
+              fontSize: '0.75rem',
+            }}>
+              <span style={{ color: 'var(--success)' }}>●</span>
+              <span style={{ fontFamily: 'monospace' }}>
                 {shortenAddress(account?.address?.toString() || '')}
               </span>
             </row>
-            <button
-              onClick={disconnect}
-              style={{
-                padding: '0.25rem 0.5rem',
-                background: 'transparent',
-                color: 'var(--foreground2)',
-                border: '1px solid var(--background2)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-              }}
-            >
-              Disconnect
-            </button>
-          </row>
 
-          {/* Farming Controls */}
-          <column gap-="0.5">
-            <row gap-="0.5" align-="center">
-              <small style={{ color: 'var(--foreground2)' }}>Farming Bots:</small>
-              <select
-                value={numNodes}
-                onChange={(e) => setNumNodes(Number(e.target.value))}
-                style={{
-                  background: 'var(--background)',
-                  border: '1px solid var(--background2)',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '4px',
-                  color: 'var(--foreground)',
-                  fontSize: '0.8rem',
-                }}
-              >
-                {[1, 2, 3, 5, 10].map((n) => (
-                  <option key={n} value={n}>
-                    {n} {n === 1 ? 'bot' : 'bots'} (up to {n * 500} SHELBY_USD/day)
-                  </option>
-                ))}
-              </select>
-            </row>
-            {/* Farming Status / Start Button */}
-            {userSessions.some(s => s.status === 'running' || s.status === 'starting') ? (
-              /* Show status when farming is active */
-              <column gap-="0.5" style={{
-                padding: '0.75rem',
-                background: 'rgba(0, 200, 150, 0.1)',
-                border: '1px solid var(--success)',
-              }}>
+            {/* IDLE STATE - Show start controls */}
+            {effectiveState === 'idle' && (
+              <column gap-="0.5">
                 <row gap-="0.5" align-="center">
-                  <span style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: 'var(--success)',
-                    animation: 'pulse 2s infinite',
-                  }} />
-                  <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.9rem' }}>
-                    FARMING ACTIVE
-                  </span>
-                </row>
-                <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-                  {overview?.totalDroplets || 0} bots are minting ShelbyUSD to your wallet.
-                  Each bot makes ~50 requests/day (rate limit per IP).
-                </small>
-                <row gap-="0.5" style={{ marginTop: '0.25rem' }}>
-                  <button
-                    onClick={handleCleanupAll}
+                  <small style={{ color: 'var(--foreground2)' }}>Bots to deploy:</small>
+                  <select
+                    value={numNodes}
+                    onChange={(e) => setNumNodes(Number(e.target.value))}
                     style={{
-                      flex: 1,
-                      padding: '0.5rem 1rem',
-                      background: 'transparent',
-                      color: '#FF4444',
-                      border: '1px solid #FF4444',
-                      cursor: 'pointer',
+                      background: 'var(--background)',
+                      border: '1px solid var(--background2)',
+                      padding: '0.25rem 0.5rem',
+                      color: 'var(--foreground)',
                       fontSize: '0.8rem',
-                      fontWeight: 600,
                     }}
                   >
-                    Stop All Bots
-                  </button>
+                    {[1, 2, 3, 5, 10].map((n) => (
+                      <option key={n} value={n}>
+                        {n} {n === 1 ? 'bot' : 'bots'}
+                      </option>
+                    ))}
+                  </select>
                 </row>
-              </column>
-            ) : (
-              /* Show start button when not farming */
-              <row gap-="0.5">
                 <button
                   onClick={handleStartFarming}
-                  disabled={isStarting}
                   style={{
-                    flex: 1,
-                    padding: '0.6rem 1rem',
-                    background: isStarting ? 'var(--background2)' : 'linear-gradient(135deg, #FF1493, #FF69B4)',
-                    color: isStarting ? 'var(--foreground2)' : 'white',
+                    padding: '0.75rem 1rem',
+                    background: 'linear-gradient(135deg, #FF1493, #FF69B4)',
+                    color: 'white',
                     border: 'none',
-                    cursor: isStarting ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     fontWeight: 700,
                     fontSize: '0.9rem',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
                   }}
                 >
-                  {isStarting ? 'Deploying Bots...' : 'Start Farming'}
+                  Start Farming
                 </button>
-              </row>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textAlign: 'center' }}>
+                  Each bot mints ~500 SHELBY/day (50 requests × 10 SHELBY)
+                </small>
+              </column>
+            )}
+
+            {/* STARTING STATE */}
+            {effectiveState === 'starting' && (
+              <column gap-="0.5" style={{
+                padding: '1rem',
+                background: 'rgba(255, 165, 0, 0.1)',
+                border: '1px solid var(--yellow)',
+              }}>
+                <row gap-="0.5" align-="center">
+                  <span style={{ animation: 'spin 1s linear infinite', fontSize: '1rem' }}>⟳</span>
+                  <span style={{ color: 'var(--yellow)', fontWeight: 700 }}>DEPLOYING BOTS...</span>
+                </row>
+                <small style={{ color: 'var(--foreground2)' }}>
+                  Creating {numNodes} cloud instances. This may take 30-60 seconds.
+                </small>
+              </column>
+            )}
+
+            {/* RUNNING STATE */}
+            {effectiveState === 'running' && (
+              <column gap-="0.5" style={{
+                padding: '1rem',
+                background: 'rgba(0, 200, 150, 0.1)',
+                border: '1px solid var(--success)',
+              }}>
+                <row gap-="0.5" align-="between">
+                  <row gap-="0.5" align-="center">
+                    <span style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: 'var(--success)',
+                      animation: 'pulse 2s infinite',
+                    }} />
+                    <span style={{ color: 'var(--success)', fontWeight: 700 }}>
+                      FARMING ACTIVE
+                    </span>
+                  </row>
+                  <span style={{
+                    background: 'var(--success)',
+                    color: 'white',
+                    padding: '0.2rem 0.5rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                  }}>
+                    {overview?.totalDroplets || totalActiveBots} BOTS
+                  </span>
+                </row>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
+                  Bots are automatically minting ShelbyUSD to your wallet.
+                  Each bot makes ~50 faucet requests per day.
+                </small>
+                <button
+                  onClick={handleStopFarming}
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    background: 'transparent',
+                    color: '#FF4444',
+                    border: '1px solid #FF4444',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  Stop All Bots
+                </button>
+              </column>
+            )}
+
+            {/* STOPPING STATE */}
+            {effectiveState === 'stopping' && (
+              <column gap-="0.5" style={{
+                padding: '1rem',
+                background: 'rgba(255, 68, 68, 0.1)',
+                border: '1px solid var(--red)',
+              }}>
+                <row gap-="0.5" align-="center">
+                  <span style={{ animation: 'spin 1s linear infinite', fontSize: '1rem' }}>⟳</span>
+                  <span style={{ color: 'var(--red)', fontWeight: 700 }}>STOPPING BOTS...</span>
+                </row>
+                <small style={{ color: 'var(--foreground2)' }}>
+                  Terminating all farming instances...
+                </small>
+              </column>
             )}
           </column>
-
         </>
       )}
-
-      {/* Info footer */}
-      <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', opacity: 0.7, lineHeight: 1.4 }}>
-        Each bot mints up to 500 SHELBY_USD/day via the ShelbyNet faucet.
-        Tokens are minted directly to your connected wallet address.
-      </small>
 
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </column>
