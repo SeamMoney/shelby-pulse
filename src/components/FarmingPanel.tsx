@@ -88,15 +88,15 @@ const FarmingPanelComponent = () => {
       setSessions(sessionsData);
       setOverview(overviewData);
 
-      // Update farming state based on sessions
-      if (connected && account?.address) {
+      // Only update farming state if user started farming in THIS browser session
+      // This prevents stale backend sessions from hijacking the UI
+      if (connected && account?.address && userStartedFarmingRef.current) {
         const userActiveSessions = sessionsData.filter(
           s => s.walletAddress === account.address.toString() &&
                (s.status === 'running' || s.status === 'starting')
         );
-        if (userActiveSessions.length > 0 && farmingState !== 'stopping') {
-          setFarmingState('running');
-        } else if (farmingState === 'running' && userActiveSessions.length === 0) {
+        // Only transition to idle if sessions are gone (don't auto-set to running)
+        if (farmingState === 'running' && userActiveSessions.length === 0) {
           setFarmingState('idle');
         }
       }
@@ -284,9 +284,9 @@ const FarmingPanelComponent = () => {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  // Determine actual farming state from data
-  const isActuallyRunning = totalActiveBots > 0 || (overview?.totalDroplets || 0) > 0;
-  const effectiveState = isActuallyRunning && farmingState === 'idle' ? 'running' : farmingState;
+  // Use the actual farmingState - don't override based on backend data
+  // Backend sessions are cleared on page load if user didn't start farming
+  const effectiveState = farmingState;
 
   return (
     <column box-="double round" shear-="top" pad-={isDesktop ? "0.75" : "1"} gap-="0.75">
