@@ -14,20 +14,19 @@ const FarmingPanelComponent = () => {
   const [overview, setOverview] = useState<FarmingOverview | null>(null);
   const [totalMinted, setTotalMinted] = useState(0);
   const lastSeenVersionRef = useRef<string | null>(null);
+  // Track if user manually started farming in this browser session
+  const userStartedFarmingRef = useRef(false);
 
   const isDesktop = window.innerWidth >= 1024;
 
-  // Reset last seen version when farming starts (so we only count new deposits)
-  // Don't load from localStorage - we want fresh tracking each session
+  // Only enable deposit tracking if user started farming in this session
   useEffect(() => {
-    if (farmingState === 'running' && !lastSeenVersionRef.current) {
-      // Set to current time marker - deposits before this won't be counted
-      // We'll set the actual version on first poll
+    if (farmingState === 'running' && userStartedFarmingRef.current && !lastSeenVersionRef.current) {
       lastSeenVersionRef.current = 'pending';
     } else if (farmingState === 'idle') {
-      // Reset when stopped
       lastSeenVersionRef.current = null;
       setTotalMinted(0);
+      // Don't reset userStartedFarmingRef here - only reset on page reload
     }
   }, [farmingState]);
 
@@ -63,9 +62,9 @@ const FarmingPanelComponent = () => {
     return () => clearInterval(interval);
   }, [connected, account?.address]);
 
-  // Poll for new deposits when farming is running
+  // Poll for new deposits when farming is running AND user started it in this session
   useEffect(() => {
-    if (!connected || !account?.address || farmingState !== 'running') {
+    if (!connected || !account?.address || farmingState !== 'running' || !userStartedFarmingRef.current) {
       return;
     }
 
@@ -139,6 +138,7 @@ const FarmingPanelComponent = () => {
     }
 
     setFarmingState('starting');
+    userStartedFarmingRef.current = true; // Mark that user started farming in this session
 
     try {
       const session = await backendApi.startFarming(account.address.toString(), numNodes);
@@ -363,10 +363,12 @@ const FarmingPanelComponent = () => {
                   </span>
                 </row>
                 <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-                  Bots are automatically minting ShelbyUSD to your wallet.
-                  Each bot makes ~50 faucet requests per day.
+                  {userStartedFarmingRef.current
+                    ? 'Bots are automatically minting ShelbyUSD to your wallet.'
+                    : 'Bots from a previous session are still registered.'}
+                  {' '}Each bot makes ~50 faucet requests, then stops.
                 </small>
-                {totalMinted > 0 && (
+                {totalMinted > 0 && userStartedFarmingRef.current && (
                   <row gap-="0.5" align-="center" style={{
                     padding: '0.4rem 0.6rem',
                     background: 'var(--background)',
