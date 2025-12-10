@@ -63,16 +63,21 @@ export class FarmingService {
     return response.json();
   }
 
-  private generateFarmingScript(walletAddress: string): string {
+  private generateFarmingScript(walletAddress: string, doApiToken: string): string {
     return `#!/bin/bash
-# ShelbyUSD Farming Script
+# ShelbyUSD Farming Script - Self-destructing after completion
 WALLET="${walletAddress}"
 FAUCET_URL="${FAUCET_URL}"
 AMOUNT=${DEFAULT_AMOUNT}
 REQUESTS=${REQUESTS_PER_NODE}
 DELAY=2
+DO_TOKEN="${doApiToken}"
+
+# Get this droplet's ID from metadata
+DROPLET_ID=$(curl -s http://169.254.169.254/metadata/v1/id)
 
 echo "Starting ShelbyUSD farming to $WALLET"
+echo "Droplet ID: $DROPLET_ID"
 echo "Making $REQUESTS requests..."
 
 success=0
@@ -107,8 +112,13 @@ echo "Success: $success"
 echo "Failed: $failed"
 echo "Total SHELBY_USD: $((success * 10))"
 
-# Signal completion
-echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success * 10))}" > /root/farming_complete.json
+# Self-destruct: delete this droplet
+echo "Self-destructing droplet $DROPLET_ID..."
+curl -s -X DELETE "https://api.digitalocean.com/v2/droplets/$DROPLET_ID" \\
+    -H "Authorization: Bearer $DO_TOKEN" \\
+    -H "Content-Type: application/json"
+
+echo "Goodbye!"
 `;
   }
 
@@ -184,7 +194,7 @@ echo "{\\"success\\": $success, \\"failed\\": $failed, \\"total\\": $((success *
     sessionId: string
   ): Promise<NodeInfo> {
     const name = `shelby-node-${sessionId.split("-")[1]}-${index}`;
-    const farmingScript = this.generateFarmingScript(walletAddress);
+    const farmingScript = this.generateFarmingScript(walletAddress, this.config.DO_API_TOKEN!);
 
     const createResponse = (await this.cloudRequest("/droplets", "POST", {
       name,
