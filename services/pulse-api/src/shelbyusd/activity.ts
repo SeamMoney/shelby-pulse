@@ -27,17 +27,57 @@ export interface MinterEntry {
   barWidth: number;
 }
 
+// Cache for all-time activity stats (expensive to compute, stable data)
+let cachedActivities: Array<{
+  owner: string;
+  type: 'deposit' | 'withdraw' | 'mint' | 'burn';
+  amount: number;
+  version: string;
+}> | null = null;
+let cacheTimestamp = 0;
+const ACTIVITY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes - all-time stats don't change fast
+
+/**
+ * Get cached activities or fetch fresh data
+ * This ensures consistent all-time stats across requests
+ */
+async function getCachedActivities(aptosClient: ShelbyAptosClient, forceRefresh = false): Promise<typeof cachedActivities> {
+  const now = Date.now();
+
+  // Return cached data if still valid (and not forcing refresh)
+  if (!forceRefresh && cachedActivities && (now - cacheTimestamp) < ACTIVITY_CACHE_TTL_MS) {
+    return cachedActivities;
+  }
+
+  // Fetch ALL activities for accurate all-time stats
+  // This is expensive but cached for 5 minutes
+  logger.info('Fetching all ShelbyUSD activities (cache expired or empty)');
+  cachedActivities = await aptosClient.getShelbyUSDActivities(100000);
+  cacheTimestamp = now;
+
+  return cachedActivities;
+}
+
+/**
+ * Clear the activity cache (call after farming completes to refresh leaderboards)
+ */
+export function clearActivityCache(): void {
+  cachedActivities = null;
+  cacheTimestamp = 0;
+  logger.info('Activity cache cleared');
+}
+
 /**
  * Get most active ShelbyUSD users by transaction count
- * Limited to recent activities for efficiency at scale
+ * Uses cached all-time activity data for consistent results
  */
 export async function getMostActiveUsers(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<ActivityEntry[]> {
   try {
-    // Limit to 10,000 activities for efficiency (90% cost reduction)
-    const activities = await aptosClient.getShelbyUSDActivities(10000);
+    const activities = await getCachedActivities(aptosClient);
+    if (!activities) return [];
 
     // Count transactions per address
     const txCounts = new Map<string, number>();
@@ -68,15 +108,15 @@ export async function getMostActiveUsers(
 
 /**
  * Get biggest ShelbyUSD spenders by total withdraw amount
- * Limited to recent activities for efficiency at scale
+ * Uses cached all-time activity data for consistent results
  */
 export async function getBiggestSpenders(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<SpenderEntry[]> {
   try {
-    // Limit to 10,000 activities for efficiency (90% cost reduction)
-    const activities = await aptosClient.getShelbyUSDActivities(10000);
+    const activities = await getCachedActivities(aptosClient);
+    if (!activities) return [];
 
     // Sum withdrawals per address
     const withdrawals = new Map<string, number>();
@@ -109,15 +149,15 @@ export async function getBiggestSpenders(
 
 /**
  * Get top ShelbyUSD minters (airdrop eligible addresses)
- * Tracks who has minted the most ShelbyUSD on ShelbyNet
+ * Uses cached all-time activity data for consistent results
  */
 export async function getTopMinters(
   aptosClient: ShelbyAptosClient,
   limit = 10
 ): Promise<MinterEntry[]> {
   try {
-    // Limit to 10,000 activities for efficiency (90% cost reduction)
-    const activities = await aptosClient.getShelbyUSDActivities(10000);
+    const activities = await getCachedActivities(aptosClient);
+    if (!activities) return [];
 
     // Sum mints per address
     const mints = new Map<string, { totalMinted: number; mintCount: number }>();

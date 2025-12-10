@@ -4,7 +4,7 @@ import { ShelbyAptosClient, type BlobEvent, type StorageProvider } from "./aptos
 import { logger } from "./logger";
 import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/leaderboard";
 import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
-import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
+import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, clearActivityCache, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
 import { getAllTimeStats, type AllTimeStats } from "./shelbyusd/all-time-stats";
 
 export interface NetworkStats {
@@ -236,7 +236,11 @@ export class DataService {
   async getEconomyData(forceRefresh = false): Promise<EconomyData> {
     const cacheKey = "economy_data";
 
-    if (!forceRefresh) {
+    // If forcing refresh, clear the activity cache too
+    if (forceRefresh) {
+      clearActivityCache();
+      this.cache.del(cacheKey);
+    } else {
       const cached = this.cache.get<EconomyData>(cacheKey);
       if (cached) {
         return cached;
