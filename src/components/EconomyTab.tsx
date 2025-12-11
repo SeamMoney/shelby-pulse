@@ -388,6 +388,9 @@ const EconomyTabComponent = () => {
         </row>
       </column>
 
+      {/* Farming Panel - Featured at top */}
+      <FarmingPanel />
+
       {/* 2-column layout on desktop */}
       <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
         {/* Top Holders Leaderboard */}
@@ -516,9 +519,6 @@ const EconomyTabComponent = () => {
         </column>
       </column>
       </row>
-
-      {/* Farming Panel */}
-      <FarmingPanel />
 
       {/* Second row: Top Spenders & Recent Transactions */}
       <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
