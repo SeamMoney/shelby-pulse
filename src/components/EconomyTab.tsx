@@ -3,182 +3,197 @@ import { backendApi } from '../api/backend';
 import { AsciiBar } from './AsciiBar';
 import { FarmingPanel } from './FarmingPanel';
 
-// Skeleton placeholder component with shimmer
-const Skeleton = memo(({ width = '100%', height = '1rem', style = {} }: { width?: string; height?: string; style?: React.CSSProperties }) => (
-  <div
-    style={{
-      width,
-      height,
-      background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.05) 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.5s infinite linear',
-      borderRadius: '4px',
-      border: '1px solid rgba(255,255,255,0.1)',
-      ...style,
-    }}
-  />
+// Terminal-style blinking cursor
+const BlinkingCursor = memo(() => (
+  <span className="terminal-cursor">█</span>
 ));
-Skeleton.displayName = 'Skeleton';
+BlinkingCursor.displayName = 'BlinkingCursor';
 
-// Loading skeleton for leaderboard rows - shows visible placeholder text
-const LeaderboardSkeleton = memo(({ count = 8, isDesktop = false }: { count?: number; isDesktop?: boolean }) => (
-  <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem' }}>
+// ASCII progress bar that animates
+const AsciiLoadingBar = memo(({ width = 20 }: { width?: number }) => {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setFrame(f => (f + 1) % width), 80);
+    return () => clearInterval(interval);
+  }, [width]);
+
+  const bar = Array.from({ length: width }).map((_, i) => {
+    if (i === frame) return '█';
+    if (i === (frame + 1) % width) return '▓';
+    if (i === (frame + 2) % width) return '▒';
+    return '░';
+  }).join('');
+
+  return <span style={{ color: 'var(--green)', fontFamily: 'monospace' }}>[{bar}]</span>;
+});
+AsciiLoadingBar.displayName = 'AsciiLoadingBar';
+
+// Terminal loading message with typewriter effect
+const TerminalLine = memo(({ text, delay = 0, color = 'var(--green)' }: { text: string; delay?: number; color?: string }) => {
+  const [visible, setVisible] = useState(delay === 0);
+  useEffect(() => {
+    if (delay > 0) {
+      const timer = setTimeout(() => setVisible(true), delay);
+      return () => clearTimeout(timer);
+    }
+  }, [delay]);
+
+  if (!visible) return null;
+  return (
+    <row style={{ fontFamily: 'monospace', fontSize: '0.85rem', gap: '0.5rem' }}>
+      <span style={{ color: 'var(--accent)' }}>$</span>
+      <span style={{ color }}>{text}</span>
+      <BlinkingCursor />
+    </row>
+  );
+});
+TerminalLine.displayName = 'TerminalLine';
+
+// Terminal-style loading skeleton for leaderboard
+const TerminalLeaderboardSkeleton = memo(({ title, count = 8, isDesktop = false }: { title: string; count?: number; isDesktop?: boolean }) => (
+  <column gap-="0" style={{ fontFamily: 'monospace', fontSize: isDesktop ? '0.7rem' : '0.8rem' }}>
+    <row style={{ color: 'var(--foreground2)', padding: '0.25rem 0.5rem', borderBottom: '1px dashed var(--background2)' }}>
+      <span style={{ opacity: 0.6 }}>{'>'} fetching {title.toLowerCase()}...</span>
+    </row>
     {Array.from({ length: count }).map((_, i) => (
-      <column key={`skeleton-${i}`} gap-="0">
-        <row
-          style={{
-            padding: isDesktop ? '0.3rem 0.5rem' : '0.5rem 0.75rem',
-            gap: '0.5rem',
-            alignItems: 'center',
-          }}
-        >
-          <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', opacity: 0.4 }}>
-            {i + 1}.
-          </span>
-          <span style={{
-            fontFamily: 'monospace',
-            fontSize: isDesktop ? '0.7rem' : '0.85rem',
-            color: 'var(--foreground2)',
-            opacity: 0.3,
-            animation: 'pulse 1.5s ease-in-out infinite',
-            animationDelay: `${i * 0.1}s`,
-          }}>
-            0x····...····
-          </span>
-          <span style={{
-            flex: 1,
-            height: '4px',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-            borderRadius: '2px',
-          }} />
-          <span style={{
-            color: 'var(--foreground2)',
-            opacity: 0.3,
-            fontWeight: 600,
-            animation: 'pulse 1.5s ease-in-out infinite',
-            animationDelay: `${i * 0.1}s`,
-          }}>
-            --
-          </span>
-        </row>
-        {i < count - 1 && (
-          <div style={{
-            height: '1px',
-            background: 'var(--background2)',
-            margin: '0 0.75rem',
-            opacity: 0.3,
-          }} />
-        )}
-      </column>
+      <row
+        key={`skel-${i}`}
+        style={{
+          padding: isDesktop ? '0.25rem 0.5rem' : '0.4rem 0.5rem',
+          gap: '0.75rem',
+          alignItems: 'center',
+          opacity: 0.4,
+          animation: 'terminalFade 1s ease-in-out infinite',
+          animationDelay: `${i * 0.08}s`,
+        }}
+      >
+        <span style={{ color: 'var(--yellow)', minWidth: '1.5rem' }}>{String(i + 1).padStart(2, '0')}.</span>
+        <span style={{ color: 'var(--foreground2)' }}>{'░'.repeat(6)}...{'░'.repeat(4)}</span>
+        <span style={{ flex: 1, color: 'var(--background2)' }}>{'─'.repeat(isDesktop ? 8 : 12)}</span>
+        <span style={{ color: 'var(--foreground2)' }}>{'░'.repeat(4)}</span>
+      </row>
     ))}
   </column>
 ));
-LeaderboardSkeleton.displayName = 'LeaderboardSkeleton';
+TerminalLeaderboardSkeleton.displayName = 'TerminalLeaderboardSkeleton';
 
-// Full page loading state with spinner and skeleton preview
+// Full terminal-style loading state
 const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
-  <column gap-={isDesktop ? "0.5" : "2"} pad-={isDesktop ? "0.5" : "1"} style={{ overflowY: 'auto', height: '100%' }}>
-    {/* Header */}
-    <column box-="double round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-="0.5">
+  <column gap-={isDesktop ? "0.5" : "1"} pad-={isDesktop ? "0.5" : "1"} style={{ overflowY: 'auto', height: '100%' }}>
+    {/* Terminal Header */}
+    <column box-="double" shear-="top" pad-="1" gap-="0.75">
       <row gap-="1" align-="between">
         <span is-="badge" variant-="pink" cap-="ribbon triangle">SHELBYUSD ECONOMY</span>
         <row gap-="0.5">
           <span is-="badge" variant-="background2" cap-="round" size-="half">ShelbyNet (Devnet)</span>
-          <span is-="badge" variant-="yellow" cap-="round" size-="half" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span is-="spinner" style={{ fontSize: '0.7rem' }}></span> Loading
+          <span is-="badge" variant-="yellow" cap-="round" size-="half">
+            <span is-="spinner" style={{ fontSize: '0.6rem' }}></span> SYNC
           </span>
         </row>
       </row>
+
+      {/* Terminal boot messages */}
+      <column gap-="0.25" style={{ marginTop: '0.5rem' }}>
+        <TerminalLine text="connecting to aptos indexer..." delay={0} />
+        <TerminalLine text="querying shelbyusd_coin events..." delay={400} color="var(--foreground)" />
+        <TerminalLine text="aggregating holder balances..." delay={800} color="var(--foreground)" />
+      </column>
     </column>
 
-    {/* Stats Row - with pulsing placeholders */}
-    <column box-="round" shear-="top" pad-={isDesktop ? "1" : "1"}>
+    {/* Stats with ASCII loading */}
+    <column box-="round" shear-="top" pad-="1">
+      <row style={{ marginBottom: '0.75rem', gap: '0.5rem', alignItems: 'center' }}>
+        <span style={{ color: 'var(--accent)', fontFamily: 'monospace' }}>■</span>
+        <span style={{ color: 'var(--foreground)', fontFamily: 'monospace', fontSize: '0.8rem' }}>NETWORK STATS</span>
+        <AsciiLoadingBar width={isDesktop ? 15 : 10} />
+      </row>
       <row style={{
         display: 'grid',
-        gridTemplateColumns: isDesktop ? 'repeat(7, 1fr)' : 'repeat(auto-fit, minmax(100px, 1fr))',
-        gap: isDesktop ? '0.5rem' : '0.75rem',
+        gridTemplateColumns: isDesktop ? 'repeat(7, 1fr)' : 'repeat(auto-fit, minmax(80px, 1fr))',
+        gap: isDesktop ? '0.5rem' : '0.5rem',
       }}>
         {[
-          { label: 'Supply', color: '#4A90E2' },
-          { label: 'Holders', color: '#00C896' },
-          { label: 'All-Time Vol', color: '#FFA500' },
-          { label: 'Total Txs', color: '#FF1493' },
-          { label: '24h Vol', color: '#4A90E2' },
-          { label: '24h Txs', color: '#00C896' },
-          { label: 'Velocity', color: '#FFA500' },
-        ].map(({ label, color }) => (
-          <column key={label} gap-="0" style={{ textAlign: 'center' }}>
-            <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>{label}</small>
+          { label: 'SUPPLY', color: '#4A90E2' },
+          { label: 'HOLDERS', color: '#00C896' },
+          { label: 'ALL VOL', color: '#FFA500' },
+          { label: 'TOTAL TX', color: '#FF1493' },
+          { label: '24H VOL', color: '#4A90E2' },
+          { label: '24H TX', color: '#00C896' },
+          { label: 'VEL/HR', color: '#FFA500' },
+        ].map(({ label, color }, i) => (
+          <column key={label} gap-="0" style={{ textAlign: 'center', fontFamily: 'monospace' }}>
+            <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', letterSpacing: '0.05em' }}>{label}</small>
             <span style={{
               color,
-              fontSize: isDesktop ? '1.1rem' : '1.5rem',
+              fontSize: isDesktop ? '1rem' : '1.2rem',
               fontWeight: 700,
-              opacity: 0.5,
-              animation: 'pulse 1.5s ease-in-out infinite'
-            }}>---</span>
+              animation: 'terminalBlink 0.8s step-end infinite',
+              animationDelay: `${i * 0.1}s`,
+            }}>_</span>
           </column>
         ))}
       </row>
     </column>
 
-    {/* Two column layout - Leaderboards */}
-    <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
-      {/* Top Holders Skeleton */}
-      <column box-="double" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
-        <row gap-="1" align-="between" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+    {/* Leaderboards with terminal aesthetic */}
+    <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '1rem', flexDirection: 'column' }}>
+      <column box-="double" shear-="top" pad-={isDesktop ? "0.5" : "0.75"}>
+        <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
           <span is-="badge" variant-="accent" cap-="triangle ribbon" size-={isDesktop ? "half" : undefined}>💎 Top Holders</span>
         </row>
-        <LeaderboardSkeleton count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
+        <TerminalLeaderboardSkeleton title="holders" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
 
-      {/* Most Active Skeleton */}
-      <column box-="round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
-        <row gap-="1" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+      <column box-="round" shear-="top" pad-={isDesktop ? "0.5" : "0.75"}>
+        <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
           <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>⚡ Most Active</span>
         </row>
-        <LeaderboardSkeleton count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
+        <TerminalLeaderboardSkeleton title="activity" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
     </row>
 
-    {/* Farming Panel placeholder */}
-    <column box-="double round" shear-="top" pad-={isDesktop ? "0.75" : "1"} gap-="0.75" style={{ opacity: 0.7 }}>
+    {/* Farming placeholder */}
+    <column box-="double round" shear-="top" pad-="0.75" gap-="0.5">
       <row gap-="1" align-="between">
-        <column gap-="0.25">
-          <span is-="badge" variant-="pink" cap-="ribbon triangle">FAUCET FARMING</span>
-          <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>
-            Automated ShelbyUSD minting on ShelbyNet
-          </small>
-        </column>
+        <span is-="badge" variant-="pink" cap-="ribbon triangle">FAUCET FARMING</span>
+        <span style={{ color: 'var(--foreground2)', fontFamily: 'monospace', fontSize: '0.7rem' }}>
+          [STANDBY]
+        </span>
       </row>
-      <Skeleton width="100%" height="3rem" />
+      <row style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--foreground2)', gap: '0.5rem' }}>
+        <span style={{ color: 'var(--yellow)' }}>⚠</span>
+        <span>waiting for wallet connection...</span>
+      </row>
     </column>
 
-    {/* Bottom row skeleton */}
-    <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>
-      {/* Top Spenders Skeleton */}
-      <column box-="double round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
-        <row gap-="1" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+    {/* Bottom leaderboards */}
+    <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '1rem', flexDirection: 'column' }}>
+      <column box-="double round" shear-="top" pad-={isDesktop ? "0.5" : "0.75"}>
+        <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
           <span is-="badge" variant-="yellow" cap-="ribbon slant-top" size-={isDesktop ? "half" : undefined}>💸 Biggest Spenders</span>
         </row>
-        <LeaderboardSkeleton count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
+        <TerminalLeaderboardSkeleton title="spenders" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
 
-      {/* Recent Transactions Skeleton */}
-      <column box-="round" shear-="both" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
-        <row gap-="1" align-="between" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
+      <column box-="round" shear-="both" pad-={isDesktop ? "0.5" : "0.75"}>
+        <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
           <span is-="badge" variant-="green" cap-="triangle triangle" size-={isDesktop ? "half" : undefined}>📊 Recent Activity</span>
         </row>
-        <LeaderboardSkeleton count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
+        <TerminalLeaderboardSkeleton title="transactions" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
     </row>
 
-    {/* Animations for loading state */}
+    {/* Terminal-style animations */}
     <style>{`
-      @keyframes shimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
+      .terminal-cursor {
+        animation: terminalBlink 1s step-end infinite;
+        color: var(--green);
       }
-      @keyframes pulse {
+      @keyframes terminalBlink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+      }
+      @keyframes terminalFade {
         0%, 100% { opacity: 0.3; }
         50% { opacity: 0.6; }
       }
