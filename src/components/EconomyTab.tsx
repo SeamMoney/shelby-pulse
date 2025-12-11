@@ -9,17 +9,18 @@ const Skeleton = memo(({ width = '100%', height = '1rem', style = {} }: { width?
     style={{
       width,
       height,
-      background: 'linear-gradient(90deg, var(--background) 25%, var(--background2) 50%, var(--background) 75%)',
+      background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.05) 75%)',
       backgroundSize: '200% 100%',
-      animation: 'shimmer 1.5s infinite',
-      borderRadius: '2px',
+      animation: 'shimmer 1.5s infinite linear',
+      borderRadius: '4px',
+      border: '1px solid rgba(255,255,255,0.1)',
       ...style,
     }}
   />
 ));
 Skeleton.displayName = 'Skeleton';
 
-// Loading skeleton for leaderboard rows
+// Loading skeleton for leaderboard rows - shows visible placeholder text
 const LeaderboardSkeleton = memo(({ count = 8, isDesktop = false }: { count?: number; isDesktop?: boolean }) => (
   <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem' }}>
     {Array.from({ length: count }).map((_, i) => (
@@ -31,21 +32,41 @@ const LeaderboardSkeleton = memo(({ count = 8, isDesktop = false }: { count?: nu
             alignItems: 'center',
           }}
         >
-          <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', opacity: 0.5 }}>
+          <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem', opacity: 0.4 }}>
             {i + 1}.
           </span>
-          <Skeleton width={`${60 + Math.random() * 30}px`} height="0.9rem" />
-          <span style={{ flex: 1 }}>
-            <Skeleton width={`${30 + Math.random() * 50}%`} height="0.5rem" />
+          <span style={{
+            fontFamily: 'monospace',
+            fontSize: isDesktop ? '0.7rem' : '0.85rem',
+            color: 'var(--foreground2)',
+            opacity: 0.3,
+            animation: 'pulse 1.5s ease-in-out infinite',
+            animationDelay: `${i * 0.1}s`,
+          }}>
+            0x····...····
           </span>
-          <Skeleton width={`${40 + Math.random() * 20}px`} height="0.9rem" />
+          <span style={{
+            flex: 1,
+            height: '4px',
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            borderRadius: '2px',
+          }} />
+          <span style={{
+            color: 'var(--foreground2)',
+            opacity: 0.3,
+            fontWeight: 600,
+            animation: 'pulse 1.5s ease-in-out infinite',
+            animationDelay: `${i * 0.1}s`,
+          }}>
+            --
+          </span>
         </row>
         {i < count - 1 && (
           <div style={{
             height: '1px',
             background: 'var(--background2)',
             margin: '0 0.75rem',
-            opacity: 0.5,
+            opacity: 0.3,
           }} />
         )}
       </column>
@@ -70,17 +91,31 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
       </row>
     </column>
 
-    {/* Stats Row - Skeleton */}
+    {/* Stats Row - with pulsing placeholders */}
     <column box-="round" shear-="top" pad-={isDesktop ? "1" : "1"}>
       <row style={{
         display: 'grid',
         gridTemplateColumns: isDesktop ? 'repeat(7, 1fr)' : 'repeat(auto-fit, minmax(100px, 1fr))',
         gap: isDesktop ? '0.5rem' : '0.75rem',
       }}>
-        {['Supply', 'Holders', 'All-Time Vol', 'Total Txs', '24h Vol', '24h Txs', 'Velocity'].map((label, i) => (
+        {[
+          { label: 'Supply', color: '#4A90E2' },
+          { label: 'Holders', color: '#00C896' },
+          { label: 'All-Time Vol', color: '#FFA500' },
+          { label: 'Total Txs', color: '#FF1493' },
+          { label: '24h Vol', color: '#4A90E2' },
+          { label: '24h Txs', color: '#00C896' },
+          { label: 'Velocity', color: '#FFA500' },
+        ].map(({ label, color }) => (
           <column key={label} gap-="0" style={{ textAlign: 'center' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>{label}</small>
-            <Skeleton width="4rem" height={isDesktop ? '1.1rem' : '1.5rem'} style={{ margin: '0 auto' }} />
+            <span style={{
+              color,
+              fontSize: isDesktop ? '1.1rem' : '1.5rem',
+              fontWeight: 700,
+              opacity: 0.5,
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }}>---</span>
           </column>
         ))}
       </row>
@@ -137,11 +172,15 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
       </column>
     </row>
 
-    {/* Shimmer animation */}
+    {/* Animations for loading state */}
     <style>{`
       @keyframes shimmer {
         0% { background-position: 200% 0; }
         100% { background-position: -200% 0; }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
       }
     `}</style>
   </column>
