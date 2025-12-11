@@ -415,11 +415,18 @@ const FarmingPanelComponent = () => {
   };
 
   return (
-    <column box-="double" shear-="top" pad-="1" gap-="0.75" style={{ overflow: 'hidden' }}>
+    <column style={{
+      border: '2px solid var(--pink)',
+      borderRadius: '8px',
+      padding: '1rem',
+      gap: '0.75rem',
+      background: 'var(--background1)',
+      marginBottom: '1rem',
+    }}>
       {/* Header row */}
       <row gap-="0.75" align-="between" style={{ flexWrap: 'wrap' }}>
         <row gap-="0.5" align-="center">
-          <span is-="badge" variant-="pink" cap-="ribbon triangle">FAUCET</span>
+          <span is-="badge" variant-="pink" cap-="round">FAUCET</span>
           {effectiveState === 'running' && <span is-="badge" variant-="success" cap-="round" size-="half">● LIVE</span>}
           {effectiveState === 'starting' && <span is-="badge" variant-="yellow" cap-="round" size-="half"><Spinner color="var(--background)" size="0.7rem" /> DEPLOYING</span>}
           {effectiveState === 'stopping' && <span is-="badge" variant-="red" cap-="round" size-="half"><Spinner color="var(--background)" size="0.7rem" /> STOPPING</span>}
