@@ -415,104 +415,148 @@ const FarmingPanelComponent = () => {
   };
 
   return (
-    <column style={{
-      border: '2px solid var(--pink)',
-      borderRadius: '8px',
-      padding: '1rem',
-      gap: '0.75rem',
-      background: 'var(--background1)',
-      marginBottom: '1rem',
-    }}>
-      {/* Header row */}
-      <row gap-="0.75" align-="between" style={{ flexWrap: 'wrap' }}>
-        <row gap-="0.5" align-="center">
-          <span is-="badge" variant-="pink" cap-="round">FAUCET</span>
-          {effectiveState === 'running' && <span is-="badge" variant-="success" cap-="round" size-="half">● LIVE</span>}
-          {effectiveState === 'starting' && <span is-="badge" variant-="yellow" cap-="round" size-="half"><Spinner color="var(--background)" size="0.7rem" /> DEPLOYING</span>}
-          {effectiveState === 'stopping' && <span is-="badge" variant-="red" cap-="round" size-="half"><Spinner color="var(--background)" size="0.7rem" /> STOPPING</span>}
-          {effectiveState === 'complete' && <span is-="badge" variant-="success" cap-="round" size-="half">✓ COMPLETE</span>}
-        </row>
-        {/* Balance with label */}
-        {connected && userBalance !== null && (
-          <row gap-="0.5" align-="center" style={{
-            padding: '0.35rem 0.75rem',
-            background: 'var(--background)',
-            border: '1px solid var(--pink)',
-            borderRadius: '4px',
-          }}>
-            <img
-              src="/shelby-token.png"
-              alt=""
-              style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0 }}
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
-            <column gap-="0" style={{ lineHeight: 1.2 }}>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Balance</small>
-              <span style={{ color: 'var(--pink)', fontWeight: 700, fontSize: '0.9rem', fontFamily: 'monospace' }}>
-                {formatBalance(userBalance)} <span style={{ fontSize: '0.7rem', color: 'var(--foreground2)' }}>ShelbyUSD</span>
-              </span>
-            </column>
+    <column box-="round" pad-="1" gap-="1" style={{ marginBottom: '1rem' }}>
+      {/* Header with title and balance */}
+      <row align-="between" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+        <column gap-="0.25">
+          <row gap-="0.5" align-="center">
+            <span is-="badge" variant-="pink" cap-="round">🚰 FAUCET</span>
+            {effectiveState === 'running' && <span is-="badge" variant-="success" cap-="round" size-="half">● LIVE</span>}
+            {effectiveState === 'starting' && <span is-="badge" variant-="yellow" cap-="round" size-="half">DEPLOYING</span>}
+            {effectiveState === 'stopping' && <span is-="badge" variant-="red" cap-="round" size-="half">STOPPING</span>}
+            {effectiveState === 'complete' && <span is-="badge" variant-="success" cap-="round" size-="half">✓ DONE</span>}
           </row>
+          <small style={{ color: 'var(--foreground2)' }}>
+            Farm ShelbyUSD tokens using cloud bots
+          </small>
+        </column>
+
+        {/* Balance display */}
+        {connected && userBalance !== null && (
+          <column gap-="0.15" style={{ textAlign: 'right' }}>
+            <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Your Balance</small>
+            <row gap-="0.35" align-="center" style={{ justifyContent: 'flex-end' }}>
+              <img
+                src="/shelby-token.png"
+                alt=""
+                style={{ width: 18, height: 18, borderRadius: '50%' }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <span style={{ color: 'var(--pink)', fontWeight: 700, fontSize: '1.1rem', fontFamily: 'monospace' }}>
+                {formatBalance(userBalance)}
+              </span>
+            </row>
+          </column>
         )}
       </row>
 
+      {/* Divider */}
+      <hr style={{ border: 'none', borderTop: '1px solid var(--background2)', margin: 0 }} />
+
       {/* Not Connected */}
       {!connected ? (
-        <row gap-="0.75" align-="center" style={{ padding: '1rem', background: 'var(--background)' }}>
-          <span style={{ color: 'var(--yellow)', fontSize: '1.25rem' }}>⚠</span>
-          <column gap-="0.25">
+        <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '4px' }}>
+          <row gap-="0.5" align-="center">
+            <span style={{ color: 'var(--yellow)', fontSize: '1.25rem' }}>⚠</span>
             <span style={{ fontWeight: 600 }}>Wallet Not Connected</span>
-            <small style={{ color: 'var(--foreground2)' }}>Connect your wallet to start farming ShelbyUSD</small>
-          </column>
-        </row>
+          </row>
+          <small style={{ color: 'var(--foreground2)' }}>
+            Connect your wallet using the button above to start farming ShelbyUSD tokens.
+          </small>
+        </column>
       ) : (
         <>
           {/* IDLE - Ready to farm */}
           {effectiveState === 'idle' && (
-            <row gap-="1" align-="center" style={{ padding: '0.75rem', background: 'var(--background)', flexWrap: 'wrap' }}>
-              {/* Info grid */}
-              <row style={{ flex: 1, gap: '1.5rem', flexWrap: 'wrap' }}>
-                <column gap-="0.15">
-                  <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Est. Yield</small>
-                  <span style={{ fontWeight: 600, color: 'var(--green)', fontFamily: 'monospace' }}>~{(DEFAULT_NUM_NODES * 500).toLocaleString()}</span>
+            <column gap-="1">
+              {/* How it works */}
+              <column gap-="0.5">
+                <small style={{ color: 'var(--foreground2)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem' }}>
+                  How It Works
+                </small>
+                <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
+                  <row gap-="0.5">
+                    <span style={{ color: 'var(--blue)' }}>1.</span>
+                    <span>We deploy <strong style={{ color: 'var(--foreground)' }}>{DEFAULT_NUM_NODES} cloud bots</strong> on DigitalOcean</span>
+                  </row>
+                  <row gap-="0.5">
+                    <span style={{ color: 'var(--blue)' }}>2.</span>
+                    <span>Each bot calls the faucet <strong style={{ color: 'var(--foreground)' }}>50 times</strong> (10 ShelbyUSD per call)</span>
+                  </row>
+                  <row gap-="0.5">
+                    <span style={{ color: 'var(--blue)' }}>3.</span>
+                    <span>Tokens are minted directly to <strong style={{ color: 'var(--foreground)' }}>your wallet</strong></span>
+                  </row>
                 </column>
-                <column gap-="0.15">
-                  <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Duration</small>
-                  <span style={{ fontWeight: 600, color: 'var(--yellow)', fontFamily: 'monospace' }}>~{Math.ceil(EXPECTED_BOT_DURATION_MS / 1000 / 60)} min</span>
+              </column>
+
+              {/* Stats grid */}
+              <row style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Est. Yield</small>
+                  <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
+                    ~{(DEFAULT_NUM_NODES * 500).toLocaleString()}
+                  </span>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>ShelbyUSD</small>
                 </column>
-                <column gap-="0.15">
-                  <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Bots</small>
-                  <span style={{ fontWeight: 600, color: 'var(--blue)', fontFamily: 'monospace' }}>{DEFAULT_NUM_NODES}</span>
+                <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Duration</small>
+                  <span style={{ fontWeight: 700, color: 'var(--yellow)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
+                    ~{Math.ceil(EXPECTED_BOT_DURATION_MS / 1000 / 60)}
+                  </span>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>minutes</small>
+                </column>
+                <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Bots</small>
+                  <span style={{ fontWeight: 700, color: 'var(--blue)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
+                    {DEFAULT_NUM_NODES}
+                  </span>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>servers</small>
                 </column>
               </row>
+
+              {/* Start button */}
               <button
                 onClick={handleStartFarming}
                 style={{
-                  padding: '0.65rem 1.5rem',
+                  width: '100%',
+                  padding: '0.85rem 1.5rem',
                   background: 'linear-gradient(135deg, #FF1493, #FF69B4)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  fontSize: '0.9rem',
+                  fontSize: '1rem',
                   fontWeight: 700,
-                  whiteSpace: 'nowrap',
                 }}
               >
                 ▶ START FARMING
               </button>
-            </row>
+            </column>
           )}
 
           {/* STARTING - Deploying bots */}
           {effectiveState === 'starting' && (
-            <column gap-="0.5" style={{ padding: '0.75rem', background: 'var(--background)' }}>
+            <column gap-="0.75" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '4px' }}>
               <row gap-="0.5" align-="center">
-                <Spinner color="var(--yellow)" />
-                <span style={{ fontWeight: 600 }}>Deploying {DEFAULT_NUM_NODES} farming bots...</span>
+                <Spinner color="var(--yellow)" size="1.25rem" />
+                <span style={{ fontWeight: 600, fontSize: '1rem' }}>Deploying {DEFAULT_NUM_NODES} Farming Bots...</span>
               </row>
-              <small style={{ color: 'var(--foreground2)' }}>Creating cloud servers. This takes ~45 seconds.</small>
+              <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
+                <row gap-="0.5">
+                  <span style={{ color: 'var(--green)' }}>✓</span>
+                  <span>Requesting DigitalOcean droplets</span>
+                </row>
+                <row gap-="0.5">
+                  <Spinner color="var(--yellow)" size="0.85rem" />
+                  <span>Waiting for servers to boot (~45s)</span>
+                </row>
+                <row gap-="0.5">
+                  <span style={{ color: 'var(--foreground2)' }}>○</span>
+                  <span style={{ color: 'var(--foreground2)' }}>Starting faucet scripts</span>
+                </row>
+              </column>
             </column>
           )}
 
@@ -522,48 +566,61 @@ const FarmingPanelComponent = () => {
             const isBooting = elapsed < BOT_BOOT_TIME_MS;
             const remainingSeconds = Math.max(0, Math.ceil((EXPECTED_BOT_DURATION_MS - elapsed) / 1000));
             const mintedDisplay = (totalMinted / 1e8).toFixed(2);
+            const elapsedFormatted = formatDuration(Math.round(elapsed / 1000));
 
             return (
-              <column gap-="0.75" style={{ padding: '0.75rem', background: 'var(--background)' }}>
-                {/* Progress bar */}
-                <column gap-="0.35">
-                  <row align-="between" style={{ fontSize: '0.85rem' }}>
-                    <span style={{ color: isBooting ? 'var(--yellow)' : 'var(--green)', fontWeight: 600 }}>
-                      {isBooting ? 'Booting bots...' : 'Minting ShelbyUSD...'}
-                    </span>
+              <column gap-="0.75">
+                {/* Progress section */}
+                <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '4px' }}>
+                  <row align-="between" style={{ fontSize: '0.9rem' }}>
+                    <row gap-="0.5" align-="center">
+                      <Spinner color={isBooting ? 'var(--yellow)' : 'var(--green)'} size="1rem" />
+                      <span style={{ fontWeight: 600, color: isBooting ? 'var(--yellow)' : 'var(--green)' }}>
+                        {isBooting ? 'Booting Servers...' : 'Minting ShelbyUSD...'}
+                      </span>
+                    </row>
                     <span style={{ color: 'var(--foreground2)', fontFamily: 'monospace' }}>
-                      {remainingSeconds > 0 ? `${remainingSeconds}s remaining` : 'Finishing...'}
+                      {remainingSeconds > 0 ? `~${remainingSeconds}s left` : 'Finishing...'}
                     </span>
                   </row>
                   <ProgressBar percent={progressPercent} color={isBooting ? 'var(--yellow)' : 'var(--green)'} />
+                  <small style={{ color: 'var(--foreground2)' }}>
+                    {isBooting
+                      ? 'Waiting for cloud servers to come online and start the faucet scripts...'
+                      : 'Bots are calling the faucet and minting tokens to your wallet...'}
+                  </small>
                 </column>
 
-                {/* Stats row */}
-                <row gap-="1.5rem" align-="center" style={{ flexWrap: 'wrap' }}>
-                  <column gap-="0.15">
-                    <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Minted</small>
-                    <span style={{ fontWeight: 600, color: 'var(--pink)', fontFamily: 'monospace' }}>+{mintedDisplay}</span>
+                {/* Live stats */}
+                <row style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+                  <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px' }}>
+                    <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Minted This Session</small>
+                    <span style={{ fontWeight: 700, color: 'var(--pink)', fontFamily: 'monospace', fontSize: '1.25rem' }}>
+                      +{mintedDisplay}
+                    </span>
                   </column>
-                  <column gap-="0.15">
-                    <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Bots Active</small>
-                    <span style={{ fontWeight: 600, color: 'var(--green)', fontFamily: 'monospace' }}>{activeBots || DEFAULT_NUM_NODES}</span>
+                  <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px' }}>
+                    <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Elapsed Time</small>
+                    <span style={{ fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace', fontSize: '1.25rem' }}>
+                      {elapsedFormatted}
+                    </span>
                   </column>
-                  <column gap-="0.15">
-                    <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Progress</small>
-                    <span style={{ fontWeight: 600, color: 'var(--foreground)', fontFamily: 'monospace' }}>{progressPercent}%</span>
-                  </column>
+                </row>
+
+                {/* Active bots info */}
+                <row align-="between" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
+                  <span><strong style={{ color: 'var(--green)' }}>{activeBots || DEFAULT_NUM_NODES}</strong> bots active • <strong>{progressPercent}%</strong> complete</span>
                   <button
                     onClick={handleStopFarming}
                     style={{
-                      marginLeft: 'auto',
-                      padding: '0.5rem 1rem',
+                      padding: '0.4rem 0.75rem',
                       background: 'transparent',
                       color: 'var(--red)',
-                      border: '2px solid var(--red)',
+                      border: '1px solid var(--red)',
                       borderRadius: '4px',
                       cursor: 'pointer',
                       fontFamily: 'inherit',
-                      fontSize: '0.8rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
                     }}
                   >
@@ -576,41 +633,57 @@ const FarmingPanelComponent = () => {
 
           {/* STOPPING */}
           {effectiveState === 'stopping' && (
-            <column gap-="0.5" style={{ padding: '0.75rem', background: 'var(--background)' }}>
+            <column gap-="0.75" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '4px' }}>
               <row gap-="0.5" align-="center">
-                <Spinner color="var(--red)" />
-                <span style={{ fontWeight: 600, color: 'var(--red)' }}>Stopping farming bots...</span>
+                <Spinner color="var(--red)" size="1.25rem" />
+                <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--red)' }}>Stopping Farming Bots...</span>
               </row>
-              <small style={{ color: 'var(--foreground2)' }}>Terminating servers and cleaning up.</small>
+              <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
+                <row gap-="0.5">
+                  <Spinner color="var(--red)" size="0.85rem" />
+                  <span>Terminating DigitalOcean droplets</span>
+                </row>
+                <row gap-="0.5">
+                  <span style={{ color: 'var(--foreground2)' }}>○</span>
+                  <span style={{ color: 'var(--foreground2)' }}>Cleaning up session data</span>
+                </row>
+              </column>
             </column>
           )}
 
           {/* COMPLETE - Session summary */}
           {effectiveState === 'complete' && sessionSummary && (
-            <column gap-="0.75" style={{ padding: '0.75rem', background: 'var(--background)' }}>
-              <row gap-="0.75" align-="center">
-                <span style={{ color: 'var(--green)', fontSize: '1.5rem' }}>✓</span>
-                <column gap-="0.15">
-                  <span style={{ fontWeight: 600, color: 'var(--green)' }}>Farming Session Complete</span>
-                  <small style={{ color: 'var(--foreground2)' }}>Your ShelbyUSD has been minted to your wallet</small>
-                </column>
-              </row>
+            <column gap-="0.75">
+              {/* Success message */}
+              <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '4px' }}>
+                <row gap-="0.5" align-="center">
+                  <span style={{ color: 'var(--green)', fontSize: '1.5rem' }}>✓</span>
+                  <column gap-="0.15">
+                    <span style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--green)' }}>Farming Complete!</span>
+                    <small style={{ color: 'var(--foreground2)' }}>All tokens have been minted to your wallet</small>
+                  </column>
+                </row>
+              </column>
 
               {/* Session stats */}
-              <row gap-="1.5rem" style={{ flexWrap: 'wrap', paddingTop: '0.5rem', borderTop: '1px solid var(--background2)' }}>
-                <column gap-="0.15">
-                  <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Total Minted</small>
+              <row style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Total Minted</small>
                   <span style={{ fontWeight: 700, color: 'var(--pink)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                    +{(sessionSummary.minted / 1e8).toFixed(2)} ShelbyUSD
+                    +{(sessionSummary.minted / 1e8).toFixed(2)}
                   </span>
                 </column>
-                <column gap-="0.15">
-                  <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Duration</small>
-                  <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{formatDuration(sessionSummary.duration)}</span>
+                <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Duration</small>
+                  <span style={{ fontWeight: 700, color: 'var(--foreground)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
+                    {formatDuration(sessionSummary.duration)}
+                  </span>
                 </column>
-                <column gap-="0.15">
-                  <small style={{ color: 'var(--foreground2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Bots Used</small>
-                  <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{sessionSummary.bots}</span>
+                <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+                  <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Bots Used</small>
+                  <span style={{ fontWeight: 700, color: 'var(--blue)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
+                    {sessionSummary.bots}
+                  </span>
                 </column>
               </row>
 
@@ -621,17 +694,16 @@ const FarmingPanelComponent = () => {
                   setFarmingState('idle');
                 }}
                 style={{
-                  marginTop: '0.5rem',
-                  padding: '0.65rem 1.5rem',
+                  width: '100%',
+                  padding: '0.85rem 1.5rem',
                   background: 'linear-gradient(135deg, #FF1493, #FF69B4)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  fontSize: '0.9rem',
+                  fontSize: '1rem',
                   fontWeight: 700,
-                  alignSelf: 'flex-start',
                 }}
               >
                 ▶ START NEW SESSION
