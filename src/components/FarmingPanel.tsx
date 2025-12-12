@@ -8,6 +8,10 @@ type FarmingState = 'idle' | 'starting' | 'running' | 'stopping' | 'complete';
 // Number of bots to always deploy (max)
 const DEFAULT_NUM_NODES = 10;
 
+// Yield estimates - actual yield varies due to rate limiting and network conditions
+const MIN_YIELD_PER_BOT = 100; // Conservative estimate (10 successful calls)
+const MAX_YIELD_PER_BOT = 500; // Optimistic estimate (50 successful calls × 10 ShelbyUSD)
+
 // Simple progress bar component
 const ProgressBar = memo(({ percent, color = 'var(--green)' }: { percent: number; color?: string }) => {
   return (
@@ -481,7 +485,7 @@ const FarmingPanelComponent = () => {
                   </row>
                   <row gap-="0.5">
                     <span style={{ color: 'var(--blue)' }}>2.</span>
-                    <span>Each bot calls the faucet <strong style={{ color: 'var(--foreground)' }}>50 times</strong> (10 ShelbyUSD per call)</span>
+                    <span>Each bot calls the faucet repeatedly (10 ShelbyUSD per call)</span>
                   </row>
                   <row gap-="0.5">
                     <span style={{ color: 'var(--blue)' }}>3.</span>
@@ -494,8 +498,8 @@ const FarmingPanelComponent = () => {
               <row style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                 <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
                   <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Est. Yield</small>
-                  <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                    ~{(DEFAULT_NUM_NODES * 500).toLocaleString()}
+                  <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '1rem' }}>
+                    {(DEFAULT_NUM_NODES * MIN_YIELD_PER_BOT).toLocaleString()}-{(DEFAULT_NUM_NODES * MAX_YIELD_PER_BOT).toLocaleString()}
                   </span>
                   <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>ShelbyUSD</small>
                 </column>
@@ -514,6 +518,11 @@ const FarmingPanelComponent = () => {
                   <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>servers</small>
                 </column>
               </row>
+
+              {/* Note about variance */}
+              <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                * Actual yield varies based on faucet rate limiting and network conditions
+              </small>
 
               {/* Start button */}
               <button

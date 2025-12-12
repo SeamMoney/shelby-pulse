@@ -109,7 +109,7 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
       </row>
       <row style={{
         display: 'grid',
-        gridTemplateColumns: isDesktop ? 'repeat(7, 1fr)' : 'repeat(auto-fit, minmax(80px, 1fr))',
+        gridTemplateColumns: isDesktop ? 'repeat(6, 1fr)' : 'repeat(auto-fit, minmax(80px, 1fr))',
         gap: isDesktop ? '0.5rem' : '0.5rem',
       }}>
         {[
@@ -119,7 +119,6 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
           { label: 'TOTAL TX', color: '#FF1493' },
           { label: '24H VOL', color: '#4A90E2' },
           { label: '24H TX', color: '#00C896' },
-          { label: 'VEL/HR', color: '#FFA500' },
         ].map(({ label, color }, i) => (
           <column key={label} gap-="0" style={{ textAlign: 'center', fontFamily: 'monospace' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', letterSpacing: '0.05em' }}>{label}</small>
@@ -351,7 +350,7 @@ const EconomyTabComponent = () => {
       <column box-="round" shear-="top" pad-={isDesktop ? "1" : "1"}>
         <row style={{
           display: 'grid',
-          gridTemplateColumns: isDesktop ? 'repeat(7, 1fr)' : 'repeat(auto-fit, minmax(100px, 1fr))',
+          gridTemplateColumns: isDesktop ? 'repeat(6, 1fr)' : 'repeat(auto-fit, minmax(100px, 1fr))',
           gap: isDesktop ? '0.5rem' : '0.75rem',
           fontSize: isDesktop ? '0.7rem' : '0.85rem',
           width: '100%',
@@ -371,7 +370,9 @@ const EconomyTabComponent = () => {
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Total Txs</small>
-            <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.allTimeStats.totalTransactions}</span>
+            <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>
+              {data.allTimeStats.totalTransactions >= 10000 ? '10k+' : data.allTimeStats.totalTransactions.toLocaleString()}
+            </span>
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Vol</small>
@@ -379,11 +380,7 @@ const EconomyTabComponent = () => {
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Txs</small>
-            <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.transferCount24h}</span>
-          </column>
-          <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
-            <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Velocity</small>
-            <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.velocity.toFixed(1)}/hr</span>
+            <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.transferCount24h.toLocaleString()}</span>
           </column>
         </row>
       </column>
