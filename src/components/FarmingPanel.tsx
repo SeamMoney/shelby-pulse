@@ -413,14 +413,13 @@ const FarmingPanelComponent = () => {
   return (
     <column box-="round" pad-="1" gap-="1" style={{ marginBottom: '1rem' }}>
       {/* Header with title and balance */}
-      <row align-="between" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+      <row align-="between" style={{ flexWrap: 'wrap', gap: '0.75rem', marginLeft: '-0.25rem' }}>
         <column gap-="0.25">
           <row gap-="0.5" align-="center">
-            <span is-="badge" variant-="pink" cap-="round">FAUCET</span>
-            {effectiveState === 'running' && <span is-="badge" variant-="success" cap-="round" size-="half">● LIVE</span>}
+            <span is-="badge" variant-="pink" cap-="round">FAUCET FARMING</span>
             {effectiveState === 'starting' && <span is-="badge" variant-="yellow" cap-="round" size-="half">DEPLOYING</span>}
             {effectiveState === 'stopping' && <span is-="badge" variant-="red" cap-="round" size-="half">STOPPING</span>}
-            {effectiveState === 'complete' && <span is-="badge" variant-="success" cap-="round" size-="half">✓ DONE</span>}
+            {effectiveState === 'complete' && <span is-="badge" variant-="success" cap-="round" size-="half">DONE</span>}
           </row>
           <small style={{ color: 'var(--foreground2)' }}>
             Farm ShelbyUSD tokens using cloud bots
@@ -584,7 +583,7 @@ const FarmingPanelComponent = () => {
                       {remainingSeconds > 0 ? `~${remainingSeconds}s left` : 'Finishing...'}
                     </span>
                   </row>
-                  <ProgressBar percent={progressPercent} color={isBooting ? 'var(--yellow)' : 'var(--green)'} />
+                  <ProgressBar percent={progressPercent} color={isBooting ? 'var(--yellow)' : 'var(--green)'} width={30} />
                   <small style={{ color: 'var(--foreground2)' }}>
                     {isBooting
                       ? 'Waiting for cloud servers to come online and start the faucet scripts...'

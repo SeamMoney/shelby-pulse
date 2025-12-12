@@ -109,22 +109,24 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
       </row>
       <row style={{
         display: 'grid',
-        gridTemplateColumns: isDesktop ? 'repeat(6, 1fr)' : 'repeat(auto-fit, minmax(80px, 1fr))',
-        gap: isDesktop ? '0.5rem' : '0.5rem',
+        gridTemplateColumns: isDesktop ? 'repeat(6, 1fr)' : 'repeat(auto-fit, minmax(100px, 1fr))',
+        gap: isDesktop ? '0.5rem' : '0.75rem',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         {[
-          { label: 'SUPPLY', color: '#4A90E2' },
-          { label: 'HOLDERS', color: '#00C896' },
-          { label: 'ALL VOL', color: '#FFA500' },
-          { label: 'TOTAL TX', color: '#FF1493' },
-          { label: '24H VOL', color: '#4A90E2' },
-          { label: '24H TX', color: '#00C896' },
+          { label: 'Supply', color: '#4A90E2' },
+          { label: 'Holders', color: '#00C896' },
+          { label: 'All-Time Vol', color: '#FFA500' },
+          { label: 'Total Txs', color: '#FF1493' },
+          { label: '24h Vol', color: '#4A90E2' },
+          { label: '24h Txs', color: '#00C896' },
         ].map(({ label, color }, i) => (
-          <column key={label} gap-="0" style={{ textAlign: 'center', fontFamily: 'monospace' }}>
-            <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', letterSpacing: '0.05em' }}>{label}</small>
+          <column key={label} gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
+            <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>{label}</small>
             <span style={{
               color,
-              fontSize: isDesktop ? '1rem' : '1.2rem',
+              fontSize: isDesktop ? '1.1rem' : '1.5rem',
               fontWeight: 700,
               animation: 'terminalBlink 0.8s step-end infinite',
               animationDelay: `${i * 0.1}s`,
