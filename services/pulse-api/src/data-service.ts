@@ -6,6 +6,8 @@ import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/lead
 import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
 import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, clearActivityCache, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
 import { getAllTimeStats, type AllTimeStats } from "./shelbyusd/all-time-stats";
+import { initDatabase, closeDatabase, getDatabaseStats, resetDatabase } from "./db";
+import { incrementalSync, fullSync, getSyncStatus, isInitialSyncComplete } from "./sync-service";
 
 export interface NetworkStats {
   totalBlobs: number;
@@ -42,6 +44,7 @@ export class DataService {
   private config: ApiConfig;
   private lastBlobCount = 0;
   private lastTimestamp = Date.now();
+  private syncInterval: NodeJS.Timeout | null = null;
 
   // Request coalescing: prevent duplicate in-flight requests
   private inFlightRequests: Map<string, Promise<unknown>> = new Map();
@@ -53,6 +56,76 @@ export class DataService {
       checkperiod: config.CACHE_TTL_SECONDS * 2,
     });
     this.aptosClient = new ShelbyAptosClient(config);
+
+    // Initialize database
+    initDatabase();
+    logger.info('Database initialized');
+
+    // Start background sync
+    this.startBackgroundSync();
+  }
+
+  /**
+   * Start background incremental sync (runs every 30 seconds)
+   */
+  private startBackgroundSync(): void {
+    // Run initial sync immediately
+    this.runSync().catch(err => {
+      logger.error({ err }, 'Initial sync failed');
+    });
+
+    // Then run every 30 seconds
+    this.syncInterval = setInterval(() => {
+      this.runSync().catch(err => {
+        logger.error({ err }, 'Background sync failed');
+      });
+    }, 30000);
+
+    logger.info('Background sync started (30s interval)');
+  }
+
+  /**
+   * Run incremental sync
+   */
+  private async runSync(): Promise<void> {
+    const dbStats = getDatabaseStats();
+
+    // If database is empty, do a full sync first
+    if (dbStats.activityCount === 0) {
+      logger.info('Database empty, performing full sync...');
+      await fullSync(this.aptosClient);
+    } else {
+      await incrementalSync(this.aptosClient);
+    }
+  }
+
+  /**
+   * Get sync status for monitoring
+   */
+  getSyncStatus() {
+    return getSyncStatus();
+  }
+
+  /**
+   * Force a full resync (admin operation)
+   */
+  async forceResync(): Promise<number> {
+    logger.info('Force resync requested');
+    this.cache.del('economy_data');
+    clearActivityCache();
+    return fullSync(this.aptosClient);
+  }
+
+  /**
+   * Shutdown - cleanup resources
+   */
+  shutdown(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+    closeDatabase();
+    logger.info('DataService shutdown complete');
   }
 
   /**

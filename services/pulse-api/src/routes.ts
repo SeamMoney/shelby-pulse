@@ -135,6 +135,43 @@ export function createRouter(
   });
 
   // ============================================
+  // SYNC & DATABASE ENDPOINTS
+  // ============================================
+
+  /**
+   * GET /api/sync/status
+   * Get the current sync status and database stats
+   */
+  router.get("/sync/status", (req, res) => {
+    try {
+      const status = dataService.getSyncStatus();
+      res.json(status);
+    } catch (error) {
+      logger.error({ error }, "Failed to get sync status");
+      res.status(500).json({ error: "Failed to get sync status" });
+    }
+  });
+
+  /**
+   * POST /api/sync/force
+   * Force a full resync from the blockchain
+   * WARNING: This is an expensive operation - use sparingly
+   */
+  router.post("/sync/force", async (req, res) => {
+    try {
+      logger.info("Force resync requested via API");
+      const count = await dataService.forceResync();
+      res.json({
+        message: "Full resync completed",
+        activitiesSynced: count,
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to force resync");
+      res.status(500).json({ error: "Failed to force resync" });
+    }
+  });
+
+  // ============================================
   // FARMING ENDPOINTS
   // ============================================
 

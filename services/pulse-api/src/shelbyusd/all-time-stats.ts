@@ -1,5 +1,6 @@
 import type { ShelbyAptosClient } from '../aptos-client';
 import { logger } from '../logger';
+import { getAllTimeAggregates, getActivityCount, getLastSyncedVersion } from '../db';
 
 export interface AllTimeStats {
   totalSupply: number; // Total ShelbyUSD in circulation
@@ -12,31 +13,75 @@ export interface AllTimeStats {
 }
 
 /**
+ * Check if database has data
+ */
+function useDatabase(): boolean {
+  try {
+    return getActivityCount() > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get comprehensive all-time statistics for ShelbyUSD on ShelbyNet
- * Shows value accrual from network inception
+ * Uses database when available for instant response, falls back to API
  */
 export async function getAllTimeStats(
   aptosClient: ShelbyAptosClient
 ): Promise<AllTimeStats> {
   try {
-    // Fetch balances and recent activities to calculate stats
-    // Limit activities to 10k for performance (takes ~100 API calls instead of 1000)
+    // Try database first (instant query)
+    if (useDatabase()) {
+      const dbAggregates = getAllTimeAggregates();
+      const lastVersion = getLastSyncedVersion();
+
+      // Still need to fetch balances for current supply/holders (changes frequently)
+      // But this is just one paginated query, not 1000
+      const balances = await aptosClient.getShelbyUSDBalances(10000);
+      const totalSupply = balances.reduce((sum, b) => sum + b.balance, 0);
+      const totalHolders = balances.filter(b => b.balance > 0).length;
+
+      // Calculate total volume from DB aggregates
+      // Volume = deposits + withdrawals (transfers counted once)
+      const totalVolume = dbAggregates.totalDeposited + dbAggregates.totalWithdrawn;
+      const averageTransactionSize = dbAggregates.totalTransactions > 0
+        ? totalVolume / dbAggregates.totalTransactions
+        : 0;
+
+      logger.info(
+        {
+          totalSupply,
+          totalHolders,
+          totalTransactions: dbAggregates.totalTransactions,
+          totalVolume,
+          source: 'database',
+        },
+        'Calculated all-time ShelbyUSD stats from database'
+      );
+
+      return {
+        totalSupply,
+        totalHolders,
+        totalTransactions: dbAggregates.totalTransactions,
+        totalVolume,
+        averageTransactionSize,
+        firstTransactionVersion: '0', // Could query DB for MIN if needed
+        lastTransactionVersion: lastVersion.toString(),
+      };
+    }
+
+    // Fallback: fetch from API (expensive)
+    logger.info('Database empty, fetching all-time stats from API (slow)');
     const [balances, activities] = await Promise.all([
       aptosClient.getShelbyUSDBalances(10000),
       aptosClient.getShelbyUSDActivities(10000),
     ]);
 
-    // Calculate total supply (sum of all balances)
     const totalSupply = balances.reduce((sum, b) => sum + b.balance, 0);
-
-    // Count unique holders
     const totalHolders = balances.filter(b => b.balance > 0).length;
-
-    // Total transactions
     const totalTransactions = activities.length;
 
-    // Calculate total volume
-    // Count each transfer once (use Set to deduplicate by version)
     const uniqueTransfers = new Map<string, number>();
     for (const activity of activities) {
       if (!uniqueTransfers.has(activity.version)) {
@@ -44,11 +89,8 @@ export async function getAllTimeStats(
       }
     }
     const totalVolume = Array.from(uniqueTransfers.values()).reduce((sum, amt) => sum + amt, 0);
-
-    // Average transaction size
     const averageTransactionSize = totalTransactions > 0 ? totalVolume / totalTransactions : 0;
 
-    // First and last transaction versions
     const sortedActivities = [...activities].sort((a, b) =>
       parseInt(a.version) - parseInt(b.version)
     );
@@ -56,14 +98,8 @@ export async function getAllTimeStats(
     const lastTransactionVersion = sortedActivities[sortedActivities.length - 1]?.version || '0';
 
     logger.info(
-      {
-        totalSupply,
-        totalHolders,
-        totalTransactions,
-        totalVolume,
-        averageTransactionSize,
-      },
-      'Calculated all-time ShelbyUSD stats since ShelbyNet inception'
+      { totalSupply, totalHolders, totalTransactions, totalVolume, source: 'api' },
+      'Calculated all-time ShelbyUSD stats from API'
     );
 
     return {
