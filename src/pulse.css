@@ -281,6 +281,17 @@ nav ul li a {
   .tabs {
     padding: 0.75em;
   }
+
+  /* Hide scrollbar on mobile but keep scrolling */
+  html, body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 }
 
 @media screen and (max-width: 1050px) {

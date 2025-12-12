@@ -138,14 +138,14 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
     <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '1rem', flexDirection: 'column' }}>
       <column box-="double" shear-="top" pad-={isDesktop ? "0.5" : "0.75"}>
         <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
-          <span is-="badge" variant-="accent" cap-="triangle ribbon" size-={isDesktop ? "half" : undefined}>💎 Top Holders</span>
+          <span is-="badge" variant-="accent" cap-="triangle ribbon" size-={isDesktop ? "half" : undefined}>Top Holders</span>
         </row>
         <TerminalLeaderboardSkeleton title="holders" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
 
       <column box-="round" shear-="top" pad-={isDesktop ? "0.5" : "0.75"}>
         <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
-          <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>⚡ Most Active</span>
+          <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>Most Active</span>
         </row>
         <TerminalLeaderboardSkeleton title="activity" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
@@ -160,7 +160,7 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
         </span>
       </row>
       <row style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--foreground2)', gap: '0.5rem' }}>
-        <span style={{ color: 'var(--yellow)' }}>⚠</span>
+        <span style={{ color: 'var(--yellow)', fontFamily: 'monospace' }}>!</span>
         <span>waiting for wallet connection...</span>
       </row>
     </column>
@@ -176,7 +176,7 @@ const LoadingState = memo(({ isDesktop = false }: { isDesktop?: boolean }) => (
 
       <column box-="round" shear-="both" pad-={isDesktop ? "0.5" : "0.75"}>
         <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
-          <span is-="badge" variant-="green" cap-="triangle triangle" size-={isDesktop ? "half" : undefined}>📊 Recent Activity</span>
+          <span is-="badge" variant-="green" cap-="triangle triangle" size-={isDesktop ? "half" : undefined}>Recent Activity</span>
         </row>
         <TerminalLeaderboardSkeleton title="transactions" count={isDesktop ? 8 : 10} isDesktop={isDesktop} />
       </column>
@@ -393,7 +393,7 @@ const EconomyTabComponent = () => {
         {/* Top Holders Leaderboard */}
         <column box-="double" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
           <row gap-="1" align-="between" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
-            <span is-="badge" variant-="accent" cap-="triangle ribbon" size-={isDesktop ? "half" : undefined}>💎 Top Holders</span>
+            <span is-="badge" variant-="accent" cap-="triangle ribbon" size-={isDesktop ? "half" : undefined}>Top Holders</span>
             {!isDesktop && (
               <span is-="badge" variant-="green" cap-="round" size-="half">
                 $SHELBY airdrop eligible
@@ -458,7 +458,7 @@ const EconomyTabComponent = () => {
         {/* Most Active Users */}
         <column box-="round" shear-="top" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
           <row gap-="1" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
-            <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>⚡ Most Active</span>
+            <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>Most Active</span>
             {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">by tx count</span>}
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.75rem' : '0.9rem', overflow: 'hidden' }}>
@@ -583,7 +583,7 @@ const EconomyTabComponent = () => {
         {/* Recent Transactions */}
         <column box-="round" shear-="both" pad-={isDesktop ? "0.5" : "1"} gap-={isDesktop ? "0.5" : "1"}>
           <row gap-="1" align-="between" style={{ marginBottom: isDesktop ? '0.25rem' : '0.5rem' }}>
-            <span is-="badge" variant-="green" cap-="triangle triangle" size-={isDesktop ? "half" : undefined}>📊 Recent Activity</span>
+            <span is-="badge" variant-="green" cap-="triangle triangle" size-={isDesktop ? "half" : undefined}>Recent Activity</span>
             {!isDesktop && <span is-="badge" variant-="background2" cap-="round" size-="half">live feed</span>}
           </row>
           <column gap-="0" style={{ fontSize: isDesktop ? '0.7rem' : '0.85rem', fontFamily: 'monospace', overflow: 'hidden' }}>

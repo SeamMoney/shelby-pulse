@@ -97,7 +97,7 @@ export function ProvidersTab() {
       {/* SP Details Table */}
       <column box-="double" shear-="top" pad-="1" style={{ gap: '1rem' }}>
         <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          <span is-="badge" variant-="accent" cap-="triangle slant-bottom">📊 Provider Details</span>
+          <span is-="badge" variant-="accent" cap-="triangle slant-bottom">Provider Details</span>
         </row>
         <table is-="table">
           <thead>
@@ -129,7 +129,7 @@ export function ProvidersTab() {
       <row box-="round" shear-="both" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', transition: 'gap 0.3s ease' }}>
         <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem' }}>
           <row gap-="1">
-            <span is-="badge" variant-="green" cap-="slant-top ribbon">📈 Network Summary</span>
+            <span is-="badge" variant-="green" cap-="slant-top ribbon">Network Summary</span>
           </row>
         </column>
         <column style={{ gap: '0.5rem' }}>

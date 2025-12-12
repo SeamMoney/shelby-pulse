@@ -414,7 +414,7 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       <row box-="double round" shear-="top" pad-="1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: window.innerWidth >= 1024 ? '1rem' : '2rem', flexShrink: 0, transition: 'gap 0.3s ease' }}>
         <column style={{ gap: '0.5rem', gridColumn: '1 / -1', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
           <row gap-="1">
-            <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">⚡ Latency Metrics</span>
+            <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">Latency Metrics</span>
           </row>
         </column>
         <column style={{ gap: '0.5rem' }}>

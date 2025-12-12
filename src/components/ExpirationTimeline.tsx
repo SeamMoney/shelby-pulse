@@ -67,7 +67,7 @@ export function ExpirationTimeline() {
         <>
           <div is-="separator" style={{ margin: '1.5lh 0' }}>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
           <span is-="badge" variant-="red" style={{ fontSize: '1em', padding: '0.3em 0.8em', alignSelf: 'flex-start' }}>
-            ⚠ {expiring.next24h.count} urgent - renew soon!
+            {expiring.next24h.count} urgent - renew soon!
           </span>
         </>
       )}

@@ -12,23 +12,15 @@ const DEFAULT_NUM_NODES = 10;
 const MIN_YIELD_PER_BOT = 100; // Conservative estimate (10 successful calls)
 const MAX_YIELD_PER_BOT = 500; // Optimistic estimate (50 successful calls × 10 ShelbyUSD)
 
-// Simple progress bar component
-const ProgressBar = memo(({ percent, color = 'var(--green)' }: { percent: number; color?: string }) => {
+// Terminal-style ASCII progress bar
+const ProgressBar = memo(({ percent, color = 'var(--green)', width = 20 }: { percent: number; color?: string; width?: number }) => {
+  const filled = Math.round((Math.min(100, percent) / 100) * width);
+  const empty = width - filled;
+  const bar = '█'.repeat(filled) + '░'.repeat(empty);
   return (
-    <div style={{
-      width: '100%',
-      height: '8px',
-      background: 'var(--background2)',
-      borderRadius: '4px',
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        width: `${Math.min(100, percent)}%`,
-        height: '100%',
-        background: color,
-        transition: 'width 0.3s ease',
-      }} />
-    </div>
+    <span style={{ fontFamily: 'monospace', color, fontSize: '0.9rem' }}>
+      [{bar}]
+    </span>
   );
 });
 ProgressBar.displayName = 'ProgressBar';
@@ -424,7 +416,7 @@ const FarmingPanelComponent = () => {
       <row align-="between" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
         <column gap-="0.25">
           <row gap-="0.5" align-="center">
-            <span is-="badge" variant-="pink" cap-="round">🚰 FAUCET</span>
+            <span is-="badge" variant-="pink" cap-="round">FAUCET</span>
             {effectiveState === 'running' && <span is-="badge" variant-="success" cap-="round" size-="half">● LIVE</span>}
             {effectiveState === 'starting' && <span is-="badge" variant-="yellow" cap-="round" size-="half">DEPLOYING</span>}
             {effectiveState === 'stopping' && <span is-="badge" variant-="red" cap-="round" size-="half">STOPPING</span>}
@@ -461,7 +453,7 @@ const FarmingPanelComponent = () => {
       {!connected ? (
         <column gap-="0.5" style={{ padding: '1rem', background: 'var(--background)', borderRadius: '4px' }}>
           <row gap-="0.5" align-="center">
-            <span style={{ color: 'var(--yellow)', fontSize: '1.25rem' }}>⚠</span>
+            <span style={{ color: 'var(--yellow)', fontSize: '1.25rem', fontFamily: 'monospace' }}>!</span>
             <span style={{ fontWeight: 600 }}>Wallet Not Connected</span>
           </row>
           <small style={{ color: 'var(--foreground2)' }}>
@@ -481,7 +473,7 @@ const FarmingPanelComponent = () => {
                 <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
                   <row gap-="0.5">
                     <span style={{ color: 'var(--blue)' }}>1.</span>
-                    <span>We deploy <strong style={{ color: 'var(--foreground)' }}>{DEFAULT_NUM_NODES} cloud bots</strong> on DigitalOcean</span>
+                    <span>We deploy <strong style={{ color: 'var(--foreground)' }}>{DEFAULT_NUM_NODES} cloud servers</strong> to farm for you</span>
                   </row>
                   <row gap-="0.5">
                     <span style={{ color: 'var(--blue)' }}>2.</span>
@@ -555,7 +547,7 @@ const FarmingPanelComponent = () => {
               <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
                 <row gap-="0.5">
                   <span style={{ color: 'var(--green)' }}>✓</span>
-                  <span>Requesting DigitalOcean droplets</span>
+                  <span>Requesting cloud servers</span>
                 </row>
                 <row gap-="0.5">
                   <Spinner color="var(--yellow)" size="0.85rem" />
@@ -650,7 +642,7 @@ const FarmingPanelComponent = () => {
               <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
                 <row gap-="0.5">
                   <Spinner color="var(--red)" size="0.85rem" />
-                  <span>Terminating DigitalOcean droplets</span>
+                  <span>Terminating cloud servers</span>
                 </row>
                 <row gap-="0.5">
                   <span style={{ color: 'var(--foreground2)' }}>○</span>
