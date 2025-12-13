@@ -1,5 +1,6 @@
 import type { ShelbyAptosClient } from '../aptos-client';
 import { logger } from '../logger';
+import { getDatabase, getActivityCount } from '../db';
 
 export interface VolumeData {
   volume24h: number;
@@ -8,31 +9,62 @@ export interface VolumeData {
 }
 
 /**
+ * Check if database has data
+ */
+function useDatabase(): boolean {
+  try {
+    return getActivityCount() > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Calculate 24-hour volume and velocity for ShelbyUSD
+ * Uses database for accurate time-based filtering when available
  */
 export async function get24hVolume(
   aptosClient: ShelbyAptosClient
 ): Promise<VolumeData> {
   try {
-    // Fetch recent events (last 24 hours worth)
+    // Try database first - it has timestamps we can filter on
+    if (useDatabase()) {
+      const db = getDatabase();
+      const oneDayAgoMs = Date.now() - 24 * 60 * 60 * 1000;
+
+      // Query activities from last 24 hours (including mints!)
+      const result = db.prepare(`
+        SELECT
+          SUM(amount) as total_volume,
+          COUNT(*) as tx_count
+        FROM shelbyusd_activities
+        WHERE timestamp >= ?
+      `).get(oneDayAgoMs) as { total_volume: number | null; tx_count: number };
+
+      const totalVolume = result?.total_volume ?? 0;
+      const transferCount = result?.tx_count ?? 0;
+      const velocity = transferCount / 24;
+
+      logger.debug(
+        { volume24h: totalVolume, transferCount24h: transferCount, velocity, source: 'database' },
+        'Calculated 24h ShelbyUSD volume from database'
+      );
+
+      return {
+        volume24h: totalVolume,
+        transferCount24h: transferCount,
+        velocity,
+      };
+    }
+
+    // Fallback to API (less accurate - no real timestamp filtering)
     const events = await aptosClient.getShelbyUSDEvents(5000);
 
-    const now = Date.now();
-    const oneDayAgo = now - 24 * 60 * 60 * 1000;
-
-    // Filter for last 24 hours
-    // Note: We're using current timestamp as placeholder - in production
-    // you'd derive actual timestamp from transaction_version
-    const recentEvents = events; // In real implementation, filter by timestamp
-
-    // Calculate total volume (sum of all deposits or withdraws, not both to avoid double counting)
     let totalVolume = 0;
     let transferCount = 0;
-
     const seenVersions = new Set<string>();
 
-    for (const event of recentEvents) {
-      // Only count each transaction version once
+    for (const event of events) {
       if (!seenVersions.has(event.version)) {
         seenVersions.add(event.version);
         totalVolume += event.amount;
@@ -40,12 +72,11 @@ export async function get24hVolume(
       }
     }
 
-    // Calculate velocity (transfers per hour)
     const velocity = transferCount / 24;
 
     logger.debug(
-      { volume24h: totalVolume, transferCount24h: transferCount, velocity },
-      'Calculated 24h ShelbyUSD volume'
+      { volume24h: totalVolume, transferCount24h: transferCount, velocity, source: 'api' },
+      'Calculated 24h ShelbyUSD volume from API'
     );
 
     return {
