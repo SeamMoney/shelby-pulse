@@ -112,6 +112,58 @@ export interface UserDeposit {
   version: string;
 }
 
+// Continuous farming types
+export interface ContinuousFarmingJobConfig {
+  regions: string[];
+  dropletsPerRegion: number;
+  waveIntervalMs: number;
+  maxWaves?: number;
+}
+
+export interface ContinuousFarmingJob {
+  id: string;
+  wallet_address: string;
+  status: 'active' | 'paused' | 'stopped' | 'completed';
+  started_at: number;
+  stopped_at: number | null;
+  total_minted: number;
+  waves_completed: number;
+  droplets_created: number;
+  droplets_failed: number;
+  last_wave_at: number | null;
+  config: ContinuousFarmingJobConfig;
+}
+
+export interface ContinuousFarmingWave {
+  id: number;
+  job_id: string;
+  wave_number: number;
+  started_at: number;
+  completed_at: number | null;
+  regions: string[];
+  droplets_per_region: number;
+  total_droplets: number;
+  droplets_succeeded: number;
+  droplets_failed: number;
+  estimated_minted: number;
+}
+
+export interface ContinuousFarmingStatus {
+  active: boolean;
+  job: ContinuousFarmingJob | null;
+  waves?: ContinuousFarmingWave[];
+  estimatedYield?: number;
+  runningTime?: string;
+}
+
+export interface ContinuousFarmingSummary {
+  activeJobs: number;
+  totalJobs: number;
+  totalMinted: number;
+  totalWaves: number;
+  totalDropletsCreated: number;
+}
+
 class BackendApiClient {
   private baseUrl: string;
 
@@ -305,6 +357,110 @@ class BackendApiClient {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || `Failed to request faucet: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // ============================================
+  // CONTINUOUS FARMING API
+  // ============================================
+
+  /**
+   * Start a continuous farming job
+   */
+  async startContinuousFarming(
+    walletAddress: string,
+    config?: {
+      regions?: string[];
+      dropletsPerRegion?: number;
+      waveIntervalMinutes?: number;
+      maxWaves?: number;
+    }
+  ): Promise<ContinuousFarmingJob> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress, ...config }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to start continuous farming: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get continuous farming status for a wallet
+   */
+  async getContinuousFarmingStatus(walletAddress: string): Promise<ContinuousFarmingStatus> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/status?walletAddress=${walletAddress}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get continuous farming status: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get continuous farming job status by ID
+   */
+  async getContinuousFarmingJobStatus(jobId: string): Promise<{
+    job: ContinuousFarmingJob;
+    waves: ContinuousFarmingWave[];
+    estimatedYield: number;
+    runningTime: string;
+  }> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/status?jobId=${jobId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get job status: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Stop a continuous farming job
+   */
+  async stopContinuousFarming(jobId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to stop continuous farming: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get continuous farming history for a wallet
+   */
+  async getContinuousFarmingHistory(walletAddress: string): Promise<ContinuousFarmingJob[]> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/history?walletAddress=${walletAddress}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get farming history: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get available regions for continuous farming
+   */
+  async getContinuousFarmingRegions(): Promise<{ regions: string[] }> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/regions`);
+    if (!response.ok) {
+      throw new Error(`Failed to get farming regions: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get global continuous farming summary
+   */
+  async getContinuousFarmingSummary(): Promise<ContinuousFarmingSummary> {
+    const response = await fetch(`${this.baseUrl}/farming/continuous/status`);
+    if (!response.ok) {
+      throw new Error(`Failed to get farming summary: ${response.statusText}`);
     }
     return response.json();
   }

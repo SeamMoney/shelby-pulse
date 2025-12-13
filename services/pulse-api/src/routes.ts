@@ -332,5 +332,154 @@ export function createRouter(
     }
   });
 
+  // ============================================
+  // CONTINUOUS FARMING ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /api/farming/continuous/start
+   * Start a continuous farming job
+   */
+  router.post("/farming/continuous/start", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const { walletAddress, regions, dropletsPerRegion, waveIntervalMinutes, maxWaves } = req.body;
+
+      if (!walletAddress) {
+        return res.status(400).json({ error: "walletAddress is required" });
+      }
+
+      const config: any = {};
+      if (regions) config.regions = regions;
+      if (dropletsPerRegion) config.dropletsPerRegion = dropletsPerRegion;
+      if (waveIntervalMinutes) config.waveIntervalMs = waveIntervalMinutes * 60 * 1000;
+      if (maxWaves) config.maxWaves = maxWaves;
+
+      const job = farmingService.startContinuousFarming(walletAddress, config);
+      res.json(job);
+    } catch (error) {
+      logger.error({ error }, "Failed to start continuous farming");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to start continuous farming",
+      });
+    }
+  });
+
+  /**
+   * GET /api/farming/continuous/status
+   * Get status of continuous farming job(s)
+   */
+  router.get("/farming/continuous/status", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const jobId = req.query.jobId as string | undefined;
+      const walletAddress = req.query.walletAddress as string | undefined;
+
+      if (jobId) {
+        // Get specific job status
+        const status = farmingService.getContinuousJobStatus(jobId);
+        if (!status) {
+          return res.status(404).json({ error: "Job not found" });
+        }
+        res.json(status);
+      } else if (walletAddress) {
+        // Get active job for wallet
+        const job = farmingService.getActiveContinuousJob(walletAddress);
+        if (!job) {
+          return res.json({ active: false, job: null });
+        }
+        const status = farmingService.getContinuousJobStatus(job.id);
+        res.json({ active: true, ...status });
+      } else {
+        // Get global summary
+        const summary = farmingService.getContinuousFarmingSummary();
+        res.json(summary);
+      }
+    } catch (error) {
+      logger.error({ error }, "Failed to get continuous farming status");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to get continuous farming status",
+      });
+    }
+  });
+
+  /**
+   * POST /api/farming/continuous/stop
+   * Stop a continuous farming job
+   */
+  router.post("/farming/continuous/stop", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const { jobId } = req.body;
+
+      if (!jobId) {
+        return res.status(400).json({ error: "jobId is required" });
+      }
+
+      farmingService.stopContinuousFarming(jobId);
+      res.json({ message: "Job stopped successfully" });
+    } catch (error) {
+      logger.error({ error }, "Failed to stop continuous farming");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to stop continuous farming",
+      });
+    }
+  });
+
+  /**
+   * GET /api/farming/continuous/history
+   * Get farming job history for a wallet
+   */
+  router.get("/farming/continuous/history", async (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const walletAddress = req.query.walletAddress as string;
+
+      if (!walletAddress) {
+        return res.status(400).json({ error: "walletAddress is required" });
+      }
+
+      const history = farmingService.getContinuousJobHistory(walletAddress);
+      res.json(history);
+    } catch (error) {
+      logger.error({ error }, "Failed to get farming history");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to get farming history",
+      });
+    }
+  });
+
+  /**
+   * GET /api/farming/continuous/regions
+   * Get available regions for farming
+   */
+  router.get("/farming/continuous/regions", (req, res) => {
+    if (!farmingService) {
+      return res.status(503).json({ error: "Farming service not available" });
+    }
+
+    try {
+      const regions = farmingService.getAvailableRegions();
+      res.json({ regions });
+    } catch (error) {
+      logger.error({ error }, "Failed to get regions");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to get regions",
+      });
+    }
+  });
+
   return router;
 }

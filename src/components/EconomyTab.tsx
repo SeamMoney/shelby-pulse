@@ -2,6 +2,7 @@ import { useEffect, useState, memo } from 'react';
 import { backendApi } from '../api/backend';
 import { AsciiBar } from './AsciiBar';
 import { FarmingPanel } from './FarmingPanel';
+import { ContinuousFarmingPanel } from './ContinuousFarmingPanel';
 
 // Terminal-style blinking cursor
 const BlinkingCursor = memo(() => (
@@ -387,8 +388,9 @@ const EconomyTabComponent = () => {
         </row>
       </column>
 
-      {/* Farming Panel - Featured at top */}
+      {/* Farming Panels - Quick mode and Continuous mode */}
       <FarmingPanel />
+      <ContinuousFarmingPanel />
 
       {/* 2-column layout on desktop */}
       <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>

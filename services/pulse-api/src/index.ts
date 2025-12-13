@@ -18,7 +18,9 @@ async function main() {
   let farmingService: FarmingService | undefined;
   if (config.DO_API_TOKEN) {
     farmingService = new FarmingService(config);
-    logger.info("Farming service initialized");
+    // Start the background scheduler for continuous farming
+    farmingService.startScheduler();
+    logger.info("Farming service initialized with background scheduler");
   } else {
     logger.warn("Cloud API token not set - farming endpoints disabled");
   }
@@ -68,6 +70,13 @@ async function main() {
           cleanup: "POST /api/farming/cleanup",
           faucet: "POST /api/farming/faucet",
         },
+        continuousFarming: {
+          start: "POST /api/farming/continuous/start",
+          status: "GET /api/farming/continuous/status?walletAddress=0x...",
+          stop: "POST /api/farming/continuous/stop",
+          history: "GET /api/farming/continuous/history?walletAddress=0x...",
+          regions: "GET /api/farming/continuous/regions",
+        },
       },
       farmingEnabled: !!farmingService,
     });
@@ -97,11 +106,17 @@ async function main() {
   // Graceful shutdown
   process.on("SIGINT", () => {
     logger.info("Received SIGINT, shutting down gracefully");
+    if (farmingService) {
+      farmingService.stopScheduler();
+    }
     process.exit(0);
   });
 
   process.on("SIGTERM", () => {
     logger.info("Received SIGTERM, shutting down gracefully");
+    if (farmingService) {
+      farmingService.stopScheduler();
+    }
     process.exit(0);
   });
 }

@@ -99,6 +99,50 @@ function createTables(db: Database.Database): void {
     )
   `);
 
+  // Continuous farming jobs - persistent farming sessions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS farming_jobs (
+      id TEXT PRIMARY KEY,
+      wallet_address TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('active', 'paused', 'stopped', 'completed')),
+      started_at INTEGER NOT NULL,
+      stopped_at INTEGER,
+      total_minted INTEGER DEFAULT 0,
+      waves_completed INTEGER DEFAULT 0,
+      droplets_created INTEGER DEFAULT 0,
+      droplets_failed INTEGER DEFAULT 0,
+      last_wave_at INTEGER,
+      config TEXT NOT NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_farming_jobs_status ON farming_jobs(status);
+    CREATE INDEX IF NOT EXISTS idx_farming_jobs_wallet ON farming_jobs(wallet_address);
+  `);
+
+  // Farming waves - track each deployment wave
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS farming_waves (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id TEXT NOT NULL,
+      wave_number INTEGER NOT NULL,
+      started_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      regions TEXT NOT NULL,
+      droplets_per_region INTEGER NOT NULL,
+      total_droplets INTEGER NOT NULL,
+      droplets_succeeded INTEGER DEFAULT 0,
+      droplets_failed INTEGER DEFAULT 0,
+      estimated_minted INTEGER DEFAULT 0,
+      FOREIGN KEY (job_id) REFERENCES farming_jobs(id)
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_farming_waves_job ON farming_waves(job_id);
+  `);
+
   logger.info('Database tables created/verified');
 }
 
@@ -463,4 +507,279 @@ export function closeDatabase(): void {
     db = null;
     logger.info('Database connection closed');
   }
+}
+
+// ============================================================================
+// Farming Job Operations
+// ============================================================================
+
+export interface FarmingJobConfig {
+  regions: string[];
+  dropletsPerRegion: number;
+  waveIntervalMs: number;
+  maxWaves?: number;
+}
+
+export interface FarmingJob {
+  id: string;
+  wallet_address: string;
+  status: 'active' | 'paused' | 'stopped' | 'completed';
+  started_at: number;
+  stopped_at: number | null;
+  total_minted: number;
+  waves_completed: number;
+  droplets_created: number;
+  droplets_failed: number;
+  last_wave_at: number | null;
+  config: FarmingJobConfig;
+}
+
+export interface FarmingWave {
+  id: number;
+  job_id: string;
+  wave_number: number;
+  started_at: number;
+  completed_at: number | null;
+  regions: string[];
+  droplets_per_region: number;
+  total_droplets: number;
+  droplets_succeeded: number;
+  droplets_failed: number;
+  estimated_minted: number;
+}
+
+/**
+ * Create a new farming job
+ */
+export function createFarmingJob(
+  walletAddress: string,
+  config: FarmingJobConfig
+): FarmingJob {
+  const db = getDatabase();
+  const id = `cfarm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const now = Date.now();
+
+  db.prepare(`
+    INSERT INTO farming_jobs (id, wallet_address, status, started_at, config)
+    VALUES (?, ?, 'active', ?, ?)
+  `).run(id, walletAddress, now, JSON.stringify(config));
+
+  logger.info({ jobId: id, walletAddress }, 'Created continuous farming job');
+
+  return {
+    id,
+    wallet_address: walletAddress,
+    status: 'active',
+    started_at: now,
+    stopped_at: null,
+    total_minted: 0,
+    waves_completed: 0,
+    droplets_created: 0,
+    droplets_failed: 0,
+    last_wave_at: null,
+    config,
+  };
+}
+
+/**
+ * Get a farming job by ID
+ */
+export function getFarmingJob(jobId: string): FarmingJob | null {
+  const db = getDatabase();
+  const row = db.prepare('SELECT * FROM farming_jobs WHERE id = ?').get(jobId) as any;
+  if (!row) return null;
+
+  return {
+    ...row,
+    config: JSON.parse(row.config),
+  };
+}
+
+/**
+ * Get active farming job for a wallet (only one active per wallet)
+ */
+export function getActiveFarmingJob(walletAddress: string): FarmingJob | null {
+  const db = getDatabase();
+  const row = db.prepare(`
+    SELECT * FROM farming_jobs
+    WHERE wallet_address = ? AND status = 'active'
+    ORDER BY started_at DESC
+    LIMIT 1
+  `).get(walletAddress) as any;
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    config: JSON.parse(row.config),
+  };
+}
+
+/**
+ * Get all active farming jobs
+ */
+export function getAllActiveFarmingJobs(): FarmingJob[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT * FROM farming_jobs WHERE status = 'active'
+  `).all() as any[];
+
+  return rows.map(row => ({
+    ...row,
+    config: JSON.parse(row.config),
+  }));
+}
+
+/**
+ * Update farming job stats after a wave
+ */
+export function updateFarmingJobAfterWave(
+  jobId: string,
+  dropletsCreated: number,
+  dropletsFailed: number,
+  estimatedMinted: number
+): void {
+  const db = getDatabase();
+  const now = Date.now();
+
+  db.prepare(`
+    UPDATE farming_jobs SET
+      waves_completed = waves_completed + 1,
+      droplets_created = droplets_created + ?,
+      droplets_failed = droplets_failed + ?,
+      total_minted = total_minted + ?,
+      last_wave_at = ?
+    WHERE id = ?
+  `).run(dropletsCreated, dropletsFailed, estimatedMinted, now, jobId);
+}
+
+/**
+ * Stop a farming job
+ */
+export function stopFarmingJob(jobId: string, status: 'stopped' | 'completed' = 'stopped'): void {
+  const db = getDatabase();
+  db.prepare(`
+    UPDATE farming_jobs SET status = ?, stopped_at = ? WHERE id = ?
+  `).run(status, Date.now(), jobId);
+
+  logger.info({ jobId, status }, 'Stopped farming job');
+}
+
+/**
+ * Get farming job history for a wallet
+ */
+export function getFarmingJobHistory(walletAddress: string, limit: number = 10): FarmingJob[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT * FROM farming_jobs
+    WHERE wallet_address = ?
+    ORDER BY started_at DESC
+    LIMIT ?
+  `).all(walletAddress, limit) as any[];
+
+  return rows.map(row => ({
+    ...row,
+    config: JSON.parse(row.config),
+  }));
+}
+
+/**
+ * Create a farming wave record
+ */
+export function createFarmingWave(
+  jobId: string,
+  waveNumber: number,
+  regions: string[],
+  dropletsPerRegion: number
+): FarmingWave {
+  const db = getDatabase();
+  const now = Date.now();
+  const totalDroplets = regions.length * dropletsPerRegion;
+
+  const result = db.prepare(`
+    INSERT INTO farming_waves (job_id, wave_number, started_at, regions, droplets_per_region, total_droplets)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(jobId, waveNumber, now, JSON.stringify(regions), dropletsPerRegion, totalDroplets);
+
+  return {
+    id: Number(result.lastInsertRowid),
+    job_id: jobId,
+    wave_number: waveNumber,
+    started_at: now,
+    completed_at: null,
+    regions,
+    droplets_per_region: dropletsPerRegion,
+    total_droplets: totalDroplets,
+    droplets_succeeded: 0,
+    droplets_failed: 0,
+    estimated_minted: 0,
+  };
+}
+
+/**
+ * Complete a farming wave with results
+ */
+export function completeFarmingWave(
+  waveId: number,
+  dropletsSucceeded: number,
+  dropletsFailed: number,
+  estimatedMinted: number
+): void {
+  const db = getDatabase();
+  db.prepare(`
+    UPDATE farming_waves SET
+      completed_at = ?,
+      droplets_succeeded = ?,
+      droplets_failed = ?,
+      estimated_minted = ?
+    WHERE id = ?
+  `).run(Date.now(), dropletsSucceeded, dropletsFailed, estimatedMinted, waveId);
+}
+
+/**
+ * Get waves for a farming job
+ */
+export function getFarmingWaves(jobId: string, limit: number = 50): FarmingWave[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT * FROM farming_waves
+    WHERE job_id = ?
+    ORDER BY wave_number DESC
+    LIMIT ?
+  `).all(jobId, limit) as any[];
+
+  return rows.map(row => ({
+    ...row,
+    regions: JSON.parse(row.regions),
+  }));
+}
+
+/**
+ * Get summary stats for all farming jobs
+ */
+export function getFarmingSummary(): {
+  activeJobs: number;
+  totalJobs: number;
+  totalMinted: number;
+  totalWaves: number;
+  totalDropletsCreated: number;
+} {
+  const db = getDatabase();
+  const row = db.prepare(`
+    SELECT
+      COUNT(CASE WHEN status = 'active' THEN 1 END) as active_jobs,
+      COUNT(*) as total_jobs,
+      COALESCE(SUM(total_minted), 0) as total_minted,
+      COALESCE(SUM(waves_completed), 0) as total_waves,
+      COALESCE(SUM(droplets_created), 0) as total_droplets
+    FROM farming_jobs
+  `).get() as any;
+
+  return {
+    activeJobs: row.active_jobs || 0,
+    totalJobs: row.total_jobs || 0,
+    totalMinted: row.total_minted || 0,
+    totalWaves: row.total_waves || 0,
+    totalDropletsCreated: row.total_droplets || 0,
+  };
 }

@@ -1,9 +1,29 @@
 import type { ApiConfig } from "./config";
 import { logger } from "./logger";
+import {
+  createFarmingJob,
+  getActiveFarmingJob,
+  getFarmingJob,
+  stopFarmingJob,
+  getFarmingJobHistory,
+  getFarmingWaves,
+  getFarmingSummary,
+  type FarmingJob,
+  type FarmingJobConfig,
+  type FarmingWave,
+} from "./db";
+import { FarmingScheduler } from "./farming-scheduler";
 
 const FAUCET_URL = "https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd";
 const DEFAULT_AMOUNT = 1000000000; // 10 ShelbyUSD (8 decimals)
 const REQUESTS_PER_NODE = 50; // Max 50 requests per IP per day
+
+// Default continuous farming config
+const DEFAULT_CONTINUOUS_CONFIG: FarmingJobConfig = {
+  regions: ['sfo3', 'nyc3', 'ams3', 'sgp1'],
+  dropletsPerRegion: 2,
+  waveIntervalMs: 5 * 60 * 1000, // 5 minutes between waves
+};
 
 interface NodeInfo {
   id: number;
@@ -32,9 +52,25 @@ const farmingSessions: Map<string, FarmingSession> = new Map();
 export class FarmingService {
   private config: ApiConfig;
   private cloudApiUrl = "https://api.digitalocean.com/v2";
+  private scheduler: FarmingScheduler;
 
   constructor(config: ApiConfig) {
     this.config = config;
+    this.scheduler = new FarmingScheduler(config);
+  }
+
+  /**
+   * Start the background scheduler for continuous farming
+   */
+  startScheduler(): void {
+    this.scheduler.start();
+  }
+
+  /**
+   * Stop the background scheduler
+   */
+  stopScheduler(): void {
+    this.scheduler.stop();
   }
 
   private async cloudRequest(
@@ -397,5 +433,161 @@ echo "Goodbye!"
     }
     logger.info({ cleared: toRemove.length }, "Cleared old farming sessions");
     return { cleared: toRemove.length };
+  }
+
+  // ============================================
+  // CONTINUOUS FARMING METHODS
+  // ============================================
+
+  /**
+   * Start a continuous farming job
+   * This creates a persistent job that the scheduler will process
+   */
+  startContinuousFarming(
+    walletAddress: string,
+    config?: Partial<FarmingJobConfig>
+  ): FarmingJob {
+    if (!this.config.DO_API_TOKEN) {
+      throw new Error("Cloud infrastructure not configured");
+    }
+
+    if (!walletAddress || !walletAddress.startsWith("0x")) {
+      throw new Error("Invalid wallet address");
+    }
+
+    // Check if there's already an active job for this wallet
+    const existingJob = getActiveFarmingJob(walletAddress);
+    if (existingJob) {
+      logger.info({ jobId: existingJob.id }, "Returning existing active job");
+      return existingJob;
+    }
+
+    // Merge with defaults
+    const fullConfig: FarmingJobConfig = {
+      ...DEFAULT_CONTINUOUS_CONFIG,
+      ...config,
+    };
+
+    const job = createFarmingJob(walletAddress, fullConfig);
+    logger.info(
+      { jobId: job.id, walletAddress, config: fullConfig },
+      "Started continuous farming job"
+    );
+
+    return job;
+  }
+
+  /**
+   * Stop a continuous farming job
+   */
+  stopContinuousFarming(jobId: string): void {
+    const job = getFarmingJob(jobId);
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
+    }
+
+    stopFarmingJob(jobId);
+
+    // Also cleanup any droplets with this job's tag
+    this.cleanupJobDroplets(jobId).catch((err) => {
+      logger.error({ error: err, jobId }, "Failed to cleanup job droplets");
+    });
+
+    logger.info({ jobId }, "Stopped continuous farming job");
+  }
+
+  /**
+   * Get continuous farming job status
+   */
+  getContinuousJobStatus(jobId: string): {
+    job: FarmingJob;
+    waves: FarmingWave[];
+    estimatedYield: number;
+    runningTime: string;
+  } | null {
+    const job = getFarmingJob(jobId);
+    if (!job) return null;
+
+    const waves = getFarmingWaves(jobId, 20);
+    const runningTimeMs = job.stopped_at
+      ? job.stopped_at - job.started_at
+      : Date.now() - job.started_at;
+
+    const hours = Math.floor(runningTimeMs / (60 * 60 * 1000));
+    const minutes = Math.floor((runningTimeMs % (60 * 60 * 1000)) / (60 * 1000));
+    const runningTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+    return {
+      job,
+      waves,
+      estimatedYield: job.total_minted / 1e8,
+      runningTime,
+    };
+  }
+
+  /**
+   * Get active job for a wallet (if any)
+   */
+  getActiveContinuousJob(walletAddress: string): FarmingJob | null {
+    return getActiveFarmingJob(walletAddress);
+  }
+
+  /**
+   * Get job history for a wallet
+   */
+  getContinuousJobHistory(walletAddress: string): FarmingJob[] {
+    return getFarmingJobHistory(walletAddress);
+  }
+
+  /**
+   * Get global farming summary
+   */
+  getContinuousFarmingSummary(): {
+    activeJobs: number;
+    totalJobs: number;
+    totalMinted: number;
+    totalWaves: number;
+    totalDropletsCreated: number;
+  } {
+    return getFarmingSummary();
+  }
+
+  /**
+   * Get available regions for farming
+   */
+  getAvailableRegions(): string[] {
+    return this.scheduler.getAvailableRegions();
+  }
+
+  /**
+   * Cleanup droplets associated with a job
+   */
+  private async cleanupJobDroplets(jobId: string): Promise<{ deleted: number }> {
+    if (!this.config.DO_API_TOKEN) {
+      return { deleted: 0 };
+    }
+
+    try {
+      // List droplets with this job's tag
+      const response = await this.cloudRequest(`/droplets?tag_name=${jobId}`) as {
+        droplets: Array<{ id: number; name: string }>;
+      };
+
+      let deleted = 0;
+      for (const droplet of response.droplets) {
+        try {
+          await this.cloudRequest(`/droplets/${droplet.id}`, "DELETE");
+          deleted++;
+          logger.info({ dropletId: droplet.id }, "Deleted job droplet");
+        } catch (error) {
+          logger.error({ error, dropletId: droplet.id }, "Failed to delete droplet");
+        }
+      }
+
+      return { deleted };
+    } catch (error) {
+      logger.error({ error, jobId }, "Failed to list job droplets");
+      return { deleted: 0 };
+    }
   }
 }
