@@ -160,6 +160,7 @@ async function fetchActivitiesSinceVersion(
           type
           amount
           transaction_version
+          transaction_timestamp
           event_index
         }
       }
@@ -200,13 +201,18 @@ async function fetchActivitiesSinceVersion(
       }
 
       for (const activity of fetched) {
+        // Parse blockchain timestamp (ISO string) to milliseconds
+        const txTimestamp = activity.transaction_timestamp
+          ? new Date(activity.transaction_timestamp).getTime()
+          : Date.now();
+
         activities.push({
           transaction_version: parseInt(activity.transaction_version, 10),
           event_index: activity.event_index || 0,
           address: activity.owner_address,
           amount: parseInt(activity.amount || '0', 10),
           type: parseActivityType(activity.type),
-          timestamp: Date.now(),
+          timestamp: txTimestamp,
         });
       }
 
@@ -250,6 +256,7 @@ async function fetchAllActivities(aptosClient: ShelbyAptosClient): Promise<Activ
           type
           amount
           transaction_version
+          transaction_timestamp
           event_index
         }
       }
@@ -289,13 +296,18 @@ async function fetchAllActivities(aptosClient: ShelbyAptosClient): Promise<Activ
       }
 
       for (const activity of fetched) {
+        // Parse blockchain timestamp (ISO string) to milliseconds
+        const txTimestamp = activity.transaction_timestamp
+          ? new Date(activity.transaction_timestamp).getTime()
+          : Date.now();
+
         activities.push({
           transaction_version: parseInt(activity.transaction_version, 10),
           event_index: activity.event_index || 0,
           address: activity.owner_address,
           amount: parseInt(activity.amount || '0', 10),
           type: parseActivityType(activity.type),
-          timestamp: Date.now(),
+          timestamp: txTimestamp,
         });
       }
 
