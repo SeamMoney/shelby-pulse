@@ -43,8 +43,9 @@ export async function getAllTimeStats(
       const totalHolders = balances.filter(b => b.balance > 0).length;
 
       // Calculate total volume from DB aggregates
-      // Volume = deposits + withdrawals (transfers counted once)
-      const totalVolume = dbAggregates.totalDeposited + dbAggregates.totalWithdrawn;
+      // Volume = all token movement (deposits include faucet mints)
+      // Note: On ShelbyNet, faucet mints appear as Deposit events
+      const totalVolume = dbAggregates.totalDeposited + dbAggregates.totalWithdrawn + dbAggregates.totalMinted + dbAggregates.totalBurned;
       const averageTransactionSize = dbAggregates.totalTransactions > 0
         ? totalVolume / dbAggregates.totalTransactions
         : 0;

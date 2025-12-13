@@ -140,9 +140,9 @@ async function fetchActivitiesSinceVersion(
   let offset = 0;
   let hasMore = true;
 
-  // For incremental sync, we use a reasonable limit
-  // If there are more than 10k new activities, something unusual happened
-  const maxNewActivities = 10000;
+  // For incremental sync, allow catching up large backlogs
+  // Fetch up to 100k activities per sync cycle
+  const maxNewActivities = 100000;
 
   while (hasMore && activities.length < maxNewActivities) {
     const query = `
