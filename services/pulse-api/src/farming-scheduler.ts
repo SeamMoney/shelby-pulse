@@ -40,8 +40,8 @@ export class FarmingScheduler {
   private intervalId: NodeJS.Timeout | null = null;
   private isProcessing = false;
 
-  // Check for new waves every 30 seconds
-  private readonly CHECK_INTERVAL_MS = 30 * 1000;
+  // Check for new waves every 15 seconds (more responsive)
+  private readonly CHECK_INTERVAL_MS = 15 * 1000;
 
   constructor(config: ApiConfig) {
     this.config = config;

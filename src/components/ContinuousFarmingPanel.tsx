@@ -234,21 +234,21 @@ const ContinuousFarmingPanelComponent = () => {
             <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Est. Per Wave</small>
               <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '1rem' }}>
-                ~4,000
+                ~6,000
               </span>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>ShelbyUSD</small>
             </column>
             <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Wave Interval</small>
               <span style={{ fontWeight: 700, color: 'var(--yellow)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                5
+                3
               </span>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>minutes</small>
             </column>
             <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Regions</small>
               <span style={{ fontWeight: 700, color: 'var(--blue)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                4
+                6
               </span>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>global</small>
             </column>
@@ -298,7 +298,7 @@ const ContinuousFarmingPanelComponent = () => {
               </span>
             </row>
             <small style={{ color: 'var(--foreground2)' }}>
-              Next wave in {job?.config.waveIntervalMs ? Math.ceil((job.config.waveIntervalMs - (Date.now() - (job.last_wave_at || job.started_at))) / 60000) : 5} min
+              Next wave in ~{job?.config.waveIntervalMs ? Math.max(0, Math.ceil((job.config.waveIntervalMs - (Date.now() - (job.last_wave_at || job.started_at))) / 60000)) : 3} min
             </small>
           </column>
 

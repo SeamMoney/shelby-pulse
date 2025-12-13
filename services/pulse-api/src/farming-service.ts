@@ -18,11 +18,13 @@ const FAUCET_URL = "https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd";
 const DEFAULT_AMOUNT = 1000000000; // 10 ShelbyUSD (8 decimals)
 const REQUESTS_PER_NODE = 50; // Max 50 requests per IP per day
 
-// Default continuous farming config
+// Default continuous farming config - AGGRESSIVE MODE
+// More regions = more unique IPs = bypass rate limits
+// 3 min interval = just enough for droplets to boot + farm + self-destruct
 const DEFAULT_CONTINUOUS_CONFIG: FarmingJobConfig = {
-  regions: ['sfo3', 'nyc3', 'ams3', 'sgp1'],
+  regions: ['sfo3', 'nyc3', 'ams3', 'sgp1', 'lon1', 'fra1'],
   dropletsPerRegion: 2,
-  waveIntervalMs: 5 * 60 * 1000, // 5 minutes between waves
+  waveIntervalMs: 3 * 60 * 1000, // 3 minutes between waves (was 5)
 };
 
 interface NodeInfo {
