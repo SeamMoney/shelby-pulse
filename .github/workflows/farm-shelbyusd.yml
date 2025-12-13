@@ -1,0 +1,168 @@
+name: Farm ShelbyUSD
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      wallet_address:
+        description: 'Wallet address to farm to'
+        required: true
+        type: string
+      num_requests:
+        description: 'Number of faucet requests (max 50)'
+        required: false
+        default: '50'
+        type: string
+
+  # Scheduled runs - every 30 minutes
+  schedule:
+    - cron: '0,30 * * * *'
+
+jobs:
+  # Create multiple parallel farming jobs for more IPs
+  farm-1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Farm ShelbyUSD
+        env:
+          WALLET: ${{ github.event.inputs.wallet_address || secrets.SHELBY_WALLET }}
+          REQUESTS: ${{ github.event.inputs.num_requests || '50' }}
+        run: |
+          echo "Farming to wallet: $WALLET"
+          echo "Making $REQUESTS requests..."
+
+          FAUCET_URL="https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd"
+          AMOUNT=1000000000
+
+          success=0
+          failed=0
+
+          for i in $(seq 1 $REQUESTS); do
+            result=$(curl -s -X POST "$FAUCET_URL" \
+              -H "Content-Type: application/json" \
+              -H "Origin: https://docs.shelby.xyz" \
+              -d "{\"address\":\"$WALLET\",\"amount\":$AMOUNT}")
+
+            if echo "$result" | grep -q '"txn_hashes":\[\]'; then
+              echo "[$i/$REQUESTS] Rate limited or failed"
+              ((failed++))
+            elif echo "$result" | grep -q "txn_hashes"; then
+              echo "[$i/$REQUESTS] Success!"
+              ((success++))
+            else
+              echo "[$i/$REQUESTS] Error: $result"
+              ((failed++))
+            fi
+
+            sleep 1
+          done
+
+          echo ""
+          echo "=== Results ==="
+          echo "Success: $success"
+          echo "Failed: $failed"
+          echo "Minted: $((success * 10)) ShelbyUSD"
+
+  farm-2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Farm ShelbyUSD
+        env:
+          WALLET: ${{ github.event.inputs.wallet_address || secrets.SHELBY_WALLET }}
+          REQUESTS: ${{ github.event.inputs.num_requests || '50' }}
+        run: |
+          FAUCET_URL="https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd"
+          AMOUNT=1000000000
+          success=0
+
+          for i in $(seq 1 $REQUESTS); do
+            result=$(curl -s -X POST "$FAUCET_URL" \
+              -H "Content-Type: application/json" \
+              -H "Origin: https://docs.shelby.xyz" \
+              -d "{\"address\":\"$WALLET\",\"amount\":$AMOUNT}")
+
+            if echo "$result" | grep -q "txn_hashes" && ! echo "$result" | grep -q '"txn_hashes":\[\]'; then
+              ((success++))
+            fi
+            sleep 1
+          done
+
+          echo "Job 2 - Minted: $((success * 10)) ShelbyUSD"
+
+  farm-3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Farm ShelbyUSD
+        env:
+          WALLET: ${{ github.event.inputs.wallet_address || secrets.SHELBY_WALLET }}
+          REQUESTS: ${{ github.event.inputs.num_requests || '50' }}
+        run: |
+          FAUCET_URL="https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd"
+          AMOUNT=1000000000
+          success=0
+
+          for i in $(seq 1 $REQUESTS); do
+            result=$(curl -s -X POST "$FAUCET_URL" \
+              -H "Content-Type: application/json" \
+              -H "Origin: https://docs.shelby.xyz" \
+              -d "{\"address\":\"$WALLET\",\"amount\":$AMOUNT}")
+
+            if echo "$result" | grep -q "txn_hashes" && ! echo "$result" | grep -q '"txn_hashes":\[\]'; then
+              ((success++))
+            fi
+            sleep 1
+          done
+
+          echo "Job 3 - Minted: $((success * 10)) ShelbyUSD"
+
+  farm-4:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Farm ShelbyUSD
+        env:
+          WALLET: ${{ github.event.inputs.wallet_address || secrets.SHELBY_WALLET }}
+          REQUESTS: ${{ github.event.inputs.num_requests || '50' }}
+        run: |
+          FAUCET_URL="https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd"
+          AMOUNT=1000000000
+          success=0
+
+          for i in $(seq 1 $REQUESTS); do
+            result=$(curl -s -X POST "$FAUCET_URL" \
+              -H "Content-Type: application/json" \
+              -H "Origin: https://docs.shelby.xyz" \
+              -d "{\"address\":\"$WALLET\",\"amount\":$AMOUNT}")
+
+            if echo "$result" | grep -q "txn_hashes" && ! echo "$result" | grep -q '"txn_hashes":\[\]'; then
+              ((success++))
+            fi
+            sleep 1
+          done
+
+          echo "Job 4 - Minted: $((success * 10)) ShelbyUSD"
+
+  farm-5:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Farm ShelbyUSD
+        env:
+          WALLET: ${{ github.event.inputs.wallet_address || secrets.SHELBY_WALLET }}
+          REQUESTS: ${{ github.event.inputs.num_requests || '50' }}
+        run: |
+          FAUCET_URL="https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd"
+          AMOUNT=1000000000
+          success=0
+
+          for i in $(seq 1 $REQUESTS); do
+            result=$(curl -s -X POST "$FAUCET_URL" \
+              -H "Content-Type: application/json" \
+              -H "Origin: https://docs.shelby.xyz" \
+              -d "{\"address\":\"$WALLET\",\"amount\":$AMOUNT}")
+
+            if echo "$result" | grep -q "txn_hashes" && ! echo "$result" | grep -q '"txn_hashes":\[\]'; then
+              ((success++))
+            fi
+            sleep 1
+          done
+
+          echo "Job 5 - Minted: $((success * 10)) ShelbyUSD"

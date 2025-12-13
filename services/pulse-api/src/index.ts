@@ -5,6 +5,7 @@ import { loadConfig } from "./config";
 import { logger } from "./logger";
 import { DataService } from "./data-service";
 import { FarmingService } from "./farming-service";
+import { GitHubFarmingService } from "./github-farming";
 import { createRouter } from "./routes";
 
 async function main() {
@@ -14,15 +15,22 @@ async function main() {
   const app = express();
   const dataService = new DataService(config);
 
-  // Initialize farming service if configured
+  // Initialize DO farming service for quick farming (optional)
   let farmingService: FarmingService | undefined;
   if (config.DO_API_TOKEN) {
     farmingService = new FarmingService(config);
-    // Start the background scheduler for continuous farming
-    farmingService.startScheduler();
-    logger.info("Farming service initialized with background scheduler");
+    logger.info("DO Farming service initialized (quick farming only)");
   } else {
-    logger.warn("Cloud API token not set - farming endpoints disabled");
+    logger.warn("DO API token not set - quick farming disabled");
+  }
+
+  // Initialize GitHub Actions farming service for continuous farming
+  const githubFarmingService = new GitHubFarmingService();
+  if (githubFarmingService.isAvailable()) {
+    githubFarmingService.startScheduler();
+    logger.info("GitHub Actions farming service initialized with background scheduler");
+  } else {
+    logger.warn("GITHUB_TOKEN not set - continuous farming disabled");
   }
 
   // Middleware
@@ -48,7 +56,7 @@ async function main() {
   });
 
   // Routes
-  app.use("/api", createRouter(dataService, farmingService));
+  app.use("/api", createRouter(dataService, farmingService, githubFarmingService));
 
   // Root endpoint
   app.get("/", (req, res) => {
@@ -106,17 +114,13 @@ async function main() {
   // Graceful shutdown
   process.on("SIGINT", () => {
     logger.info("Received SIGINT, shutting down gracefully");
-    if (farmingService) {
-      farmingService.stopScheduler();
-    }
+    githubFarmingService.stopScheduler();
     process.exit(0);
   });
 
   process.on("SIGTERM", () => {
     logger.info("Received SIGTERM, shutting down gracefully");
-    if (farmingService) {
-      farmingService.stopScheduler();
-    }
+    githubFarmingService.stopScheduler();
     process.exit(0);
   });
 }

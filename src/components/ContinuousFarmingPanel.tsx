@@ -106,7 +106,7 @@ const ContinuousFarmingPanelComponent = () => {
       const job = await backendApi.startContinuousFarming(account.address.toString());
       showToast({
         type: 'success',
-        message: `Continuous farming started! First wave deploying to ${job.config.regions.length} regions...`,
+        message: `Continuous farming started! Triggering first GitHub Actions wave...`,
         duration: 6000,
       });
       // Refresh status
@@ -212,11 +212,11 @@ const ContinuousFarmingPanelComponent = () => {
             <column gap-="0.35" style={{ fontSize: '0.85rem', color: 'var(--foreground2)' }}>
               <row gap-="0.5">
                 <span style={{ color: 'var(--blue)' }}>1.</span>
-                <span>Deploys waves of bots across <strong style={{ color: 'var(--foreground)' }}>4 global regions</strong></span>
+                <span>Triggers <strong style={{ color: 'var(--foreground)' }}>5 parallel jobs</strong> via GitHub Actions</span>
               </row>
               <row gap-="0.5">
                 <span style={{ color: 'var(--blue)' }}>2.</span>
-                <span>New wave every <strong style={{ color: 'var(--foreground)' }}>5 minutes</strong> automatically</span>
+                <span>New wave every <strong style={{ color: 'var(--foreground)' }}>15 minutes</strong> automatically</span>
               </row>
               <row gap-="0.5">
                 <span style={{ color: 'var(--blue)' }}>3.</span>
@@ -224,38 +224,42 @@ const ContinuousFarmingPanelComponent = () => {
               </row>
               <row gap-="0.5">
                 <span style={{ color: 'var(--blue)' }}>4.</span>
-                <span>Come back anytime to check progress</span>
+                <span><strong style={{ color: 'var(--green)' }}>FREE</strong> - uses GitHub Actions compute</span>
               </row>
             </column>
           </column>
 
           {/* Stats grid */}
-          <row style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-            <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Est. Per Wave</small>
-              <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '1rem' }}>
-                ~6,000
+          <row style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+            <column gap-="0.15" style={{ padding: '0.5rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+              <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', textTransform: 'uppercase' }}>Per Wave</small>
+              <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                ~2.5K
               </span>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>ShelbyUSD</small>
+              <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem' }}>ShelbyUSD</small>
             </column>
-            <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Wave Interval</small>
-              <span style={{ fontWeight: 700, color: 'var(--yellow)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                3
+            <column gap-="0.15" style={{ padding: '0.5rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+              <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', textTransform: 'uppercase' }}>Interval</small>
+              <span style={{ fontWeight: 700, color: 'var(--yellow)', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                15 min
               </span>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>minutes</small>
             </column>
-            <column gap-="0.15" style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Regions</small>
-              <span style={{ fontWeight: 700, color: 'var(--blue)', fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                6
+            <column gap-="0.15" style={{ padding: '0.5rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+              <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', textTransform: 'uppercase' }}>Jobs/Wave</small>
+              <span style={{ fontWeight: 700, color: 'var(--blue)', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                5
               </span>
-              <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>global</small>
+            </column>
+            <column gap-="0.15" style={{ padding: '0.5rem', background: 'var(--background)', borderRadius: '4px', textAlign: 'center' }}>
+              <small style={{ color: 'var(--foreground2)', fontSize: '0.6rem', textTransform: 'uppercase' }}>Cost</small>
+              <span style={{ fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                FREE
+              </span>
             </column>
           </row>
 
           <small style={{ color: 'var(--foreground2)', fontSize: '0.75rem', fontStyle: 'italic' }}>
-            * Yields vary based on faucet rate limiting. Each region gets different IPs.
+            * Yields vary based on faucet rate limiting. Each GitHub job gets a different IP.
           </small>
 
           {/* Start button */}
@@ -298,7 +302,7 @@ const ContinuousFarmingPanelComponent = () => {
               </span>
             </row>
             <small style={{ color: 'var(--foreground2)' }}>
-              Next wave in ~{job?.config.waveIntervalMs ? Math.max(0, Math.ceil((job.config.waveIntervalMs - (Date.now() - (job.last_wave_at || job.started_at))) / 60000)) : 3} min
+              Next wave in ~{job?.config.waveIntervalMs ? Math.max(0, Math.ceil((job.config.waveIntervalMs - (Date.now() - (job.last_wave_at || job.started_at))) / 60000)) : 15} min
             </small>
           </column>
 
@@ -317,7 +321,7 @@ const ContinuousFarmingPanelComponent = () => {
                 {job?.waves_completed || 0}
               </span>
               <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>
-                {job?.droplets_created || 0} droplets total
+                {job?.droplets_created || 0} jobs total
               </small>
             </column>
           </row>
@@ -345,7 +349,7 @@ const ContinuousFarmingPanelComponent = () => {
                       +{formatNumber(Math.round(wave.estimated_minted / 1e8))} ShelbyUSD
                     </span>
                     <span style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-                      {wave.droplets_succeeded}/{wave.total_droplets} bots
+                      {wave.droplets_succeeded}/{wave.total_droplets} jobs
                     </span>
                   </row>
                 ))}

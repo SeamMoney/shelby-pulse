@@ -1,11 +1,13 @@
 import { Router } from "express";
 import type { DataService } from "./data-service";
 import type { FarmingService } from "./farming-service";
+import type { GitHubFarmingService } from "./github-farming";
 import { logger } from "./logger";
 
 export function createRouter(
   dataService: DataService,
-  farmingService?: FarmingService
+  farmingService?: FarmingService,
+  githubFarmingService?: GitHubFarmingService
 ): Router {
   const router = Router();
 
@@ -333,32 +335,30 @@ export function createRouter(
   });
 
   // ============================================
-  // CONTINUOUS FARMING ENDPOINTS
+  // CONTINUOUS FARMING ENDPOINTS (GitHub Actions)
   // ============================================
 
   /**
    * POST /api/farming/continuous/start
-   * Start a continuous farming job
+   * Start a continuous farming job via GitHub Actions
    */
   router.post("/farming/continuous/start", async (req, res) => {
-    if (!farmingService) {
-      return res.status(503).json({ error: "Farming service not available" });
+    if (!githubFarmingService || !githubFarmingService.isAvailable()) {
+      return res.status(503).json({ error: "GitHub Actions farming not available (GITHUB_TOKEN not set)" });
     }
 
     try {
-      const { walletAddress, regions, dropletsPerRegion, waveIntervalMinutes, maxWaves } = req.body;
+      const { walletAddress, waveIntervalMinutes, maxWaves } = req.body;
 
       if (!walletAddress) {
         return res.status(400).json({ error: "walletAddress is required" });
       }
 
       const config: any = {};
-      if (regions) config.regions = regions;
-      if (dropletsPerRegion) config.dropletsPerRegion = dropletsPerRegion;
       if (waveIntervalMinutes) config.waveIntervalMs = waveIntervalMinutes * 60 * 1000;
       if (maxWaves) config.maxWaves = maxWaves;
 
-      const job = farmingService.startContinuousFarming(walletAddress, config);
+      const job = githubFarmingService.startFarming(walletAddress, config);
       res.json(job);
     } catch (error) {
       logger.error({ error }, "Failed to start continuous farming");
@@ -373,8 +373,8 @@ export function createRouter(
    * Get status of continuous farming job(s)
    */
   router.get("/farming/continuous/status", async (req, res) => {
-    if (!farmingService) {
-      return res.status(503).json({ error: "Farming service not available" });
+    if (!githubFarmingService) {
+      return res.status(503).json({ error: "GitHub Actions farming not available" });
     }
 
     try {
@@ -383,22 +383,22 @@ export function createRouter(
 
       if (jobId) {
         // Get specific job status
-        const status = farmingService.getContinuousJobStatus(jobId);
+        const status = githubFarmingService.getJobStatus(jobId);
         if (!status) {
           return res.status(404).json({ error: "Job not found" });
         }
         res.json(status);
       } else if (walletAddress) {
         // Get active job for wallet
-        const job = farmingService.getActiveContinuousJob(walletAddress);
+        const job = githubFarmingService.getActiveJob(walletAddress);
         if (!job) {
           return res.json({ active: false, job: null });
         }
-        const status = farmingService.getContinuousJobStatus(job.id);
+        const status = githubFarmingService.getJobStatus(job.id);
         res.json({ active: true, ...status });
       } else {
         // Get global summary
-        const summary = farmingService.getContinuousFarmingSummary();
+        const summary = githubFarmingService.getSummary();
         res.json(summary);
       }
     } catch (error) {
@@ -414,8 +414,8 @@ export function createRouter(
    * Stop a continuous farming job
    */
   router.post("/farming/continuous/stop", async (req, res) => {
-    if (!farmingService) {
-      return res.status(503).json({ error: "Farming service not available" });
+    if (!githubFarmingService) {
+      return res.status(503).json({ error: "GitHub Actions farming not available" });
     }
 
     try {
@@ -425,7 +425,7 @@ export function createRouter(
         return res.status(400).json({ error: "jobId is required" });
       }
 
-      farmingService.stopContinuousFarming(jobId);
+      githubFarmingService.stopFarming(jobId);
       res.json({ message: "Job stopped successfully" });
     } catch (error) {
       logger.error({ error }, "Failed to stop continuous farming");
@@ -440,8 +440,8 @@ export function createRouter(
    * Get farming job history for a wallet
    */
   router.get("/farming/continuous/history", async (req, res) => {
-    if (!farmingService) {
-      return res.status(503).json({ error: "Farming service not available" });
+    if (!githubFarmingService) {
+      return res.status(503).json({ error: "GitHub Actions farming not available" });
     }
 
     try {
@@ -451,7 +451,7 @@ export function createRouter(
         return res.status(400).json({ error: "walletAddress is required" });
       }
 
-      const history = farmingService.getContinuousJobHistory(walletAddress);
+      const history = githubFarmingService.getHistory(walletAddress);
       res.json(history);
     } catch (error) {
       logger.error({ error }, "Failed to get farming history");
@@ -462,23 +462,22 @@ export function createRouter(
   });
 
   /**
-   * GET /api/farming/continuous/regions
-   * Get available regions for farming
+   * GET /api/farming/continuous/info
+   * Get info about the GitHub Actions farming setup
    */
-  router.get("/farming/continuous/regions", (req, res) => {
-    if (!farmingService) {
-      return res.status(503).json({ error: "Farming service not available" });
-    }
-
-    try {
-      const regions = farmingService.getAvailableRegions();
-      res.json({ regions });
-    } catch (error) {
-      logger.error({ error }, "Failed to get regions");
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Failed to get regions",
-      });
-    }
+  router.get("/farming/continuous/info", (req, res) => {
+    res.json({
+      type: "github-actions",
+      available: githubFarmingService?.isAvailable() ?? false,
+      config: {
+        parallelJobs: 5,
+        requestsPerJob: 50,
+        shelbyUsdPerRequest: 10,
+        estimatedPerWave: 2500,
+        waveIntervalMinutes: 15,
+      },
+      description: "Farming runs via GitHub Actions workflows, providing free compute with different IPs per job",
+    });
   });
 
   return router;
