@@ -127,7 +127,7 @@ async function main() {
       totalFarmed += amount;
 
       console.log(`  ✓ Success! Tx: ${result.txn_hashes[0]}`);
-      console.log(`  ✓ Explorer: https://explorer.shelby.xyz/txn/${result.txn_hashes[0]}?network=shelbynet`);
+      console.log(`  ✓ Explorer: https://explorer.aptoslabs.com/txn/${result.txn_hashes[0]}?network=shelbynet`);
       console.log(`  📊 Total farmed: ${formatAmount(totalFarmed)} SHELBY_USD (${successCount} successful, ${failCount} failed)`);
     } catch (error) {
       failCount++;

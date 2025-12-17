@@ -21,8 +21,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AptosWalletAdapterProvider
         autoConnect={true}
-        onError={(error) => {
-          console.error('Wallet error:', error)
+        onError={() => {
+          // Wallet errors are handled by the adapter
         }}
       >
         <ToastProvider>

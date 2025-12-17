@@ -265,8 +265,7 @@ const EconomyTabComponent = () => {
         const economyData = await backendApi.getEconomy(forceRefresh);
         setData(economyData);
         setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch economy data:', error);
+      } catch {
         setIsLoading(false);
       }
     };
@@ -276,7 +275,6 @@ const EconomyTabComponent = () => {
 
     // Listen for farming completion to force-refresh leaderboard
     const handleFarmingComplete = () => {
-      console.log('Farming complete - refreshing leaderboard');
       fetchEconomy(true);
     };
     window.addEventListener('farming-complete', handleFarmingComplete);

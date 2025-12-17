@@ -13,18 +13,20 @@ import {
   type FarmingWave,
 } from "./db";
 import { FarmingScheduler } from "./farming-scheduler";
+import {
+  FAUCET_URL,
+  DEFAULT_AMOUNT,
+  REQUESTS_PER_NODE,
+  generateFarmingScript,
+} from "./farming-constants";
 
-const FAUCET_URL = "https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd";
-const DEFAULT_AMOUNT = 1000000000; // 10 ShelbyUSD (8 decimals)
-const REQUESTS_PER_NODE = 50; // Max 50 requests per IP per day
-
-// Default continuous farming config - AGGRESSIVE MODE
-// More regions = more unique IPs = bypass rate limits
-// 3 min interval = just enough for droplets to boot + farm + self-destruct
+// Default continuous farming config - FITS 15 DROPLET LIMIT
+// 5 regions × 3 droplets = 15 droplets per wave (max for your DO account)
+// 2 min interval = fast waves, droplets self-destruct before next wave
 const DEFAULT_CONTINUOUS_CONFIG: FarmingJobConfig = {
-  regions: ['sfo3', 'nyc3', 'ams3', 'sgp1', 'lon1', 'fra1'],
-  dropletsPerRegion: 2,
-  waveIntervalMs: 3 * 60 * 1000, // 3 minutes between waves (was 5)
+  regions: ['sfo3', 'nyc3', 'ams3', 'sgp1', 'lon1'],
+  dropletsPerRegion: 3,
+  waveIntervalMs: 2 * 60 * 1000, // 2 minutes between waves
 };
 
 interface NodeInfo {
@@ -55,10 +57,61 @@ export class FarmingService {
   private config: ApiConfig;
   private cloudApiUrl = "https://api.digitalocean.com/v2";
   private scheduler: FarmingScheduler;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  // Auto-cleanup old sessions every 5 minutes
+  private static readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+  // Sessions older than 1 hour are considered stale
+  private static readonly SESSION_MAX_AGE_MS = 60 * 60 * 1000;
 
   constructor(config: ApiConfig) {
     this.config = config;
     this.scheduler = new FarmingScheduler(config);
+    this.startAutoCleanup();
+  }
+
+  /**
+   * Start automatic cleanup of old sessions
+   */
+  private startAutoCleanup(): void {
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupStaleSessions();
+    }, FarmingService.CLEANUP_INTERVAL_MS);
+  }
+
+  /**
+   * Stop automatic cleanup
+   */
+  stopAutoCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+
+  /**
+   * Clean up stale sessions (completed/failed/stopped older than max age)
+   */
+  private cleanupStaleSessions(): void {
+    const now = Date.now();
+    const toRemove: string[] = [];
+
+    for (const [id, session] of farmingSessions.entries()) {
+      const sessionAge = now - new Date(session.startedAt).getTime();
+      const isStale = sessionAge > FarmingService.SESSION_MAX_AGE_MS;
+      const isTerminal = ['completed', 'failed', 'stopped'].includes(session.status);
+
+      if (isStale && isTerminal) {
+        toRemove.push(id);
+      }
+    }
+
+    if (toRemove.length > 0) {
+      for (const id of toRemove) {
+        farmingSessions.delete(id);
+      }
+      logger.info({ cleared: toRemove.length }, 'Auto-cleaned stale farming sessions');
+    }
   }
 
   /**
@@ -99,65 +152,6 @@ export class FarmingService {
     }
 
     return response.json();
-  }
-
-  private generateFarmingScript(walletAddress: string, doApiToken: string): string {
-    return `#!/bin/bash
-# ShelbyUSD Farming Script - Self-destructing after completion
-WALLET="${walletAddress}"
-FAUCET_URL="${FAUCET_URL}"
-AMOUNT=${DEFAULT_AMOUNT}
-REQUESTS=${REQUESTS_PER_NODE}
-DELAY=2
-DO_TOKEN="${doApiToken}"
-
-# Get this droplet's ID from metadata
-DROPLET_ID=$(curl -s http://169.254.169.254/metadata/v1/id)
-
-echo "Starting ShelbyUSD farming to $WALLET"
-echo "Droplet ID: $DROPLET_ID"
-echo "Making $REQUESTS requests..."
-
-success=0
-failed=0
-
-for i in $(seq 1 $REQUESTS); do
-    result=$(curl -s -X POST "$FAUCET_URL" \\
-        -H "Content-Type: application/json" \\
-        -H "Origin: https://docs.shelby.xyz" \\
-        -d "{\\"address\\":\\"$WALLET\\",\\"amount\\":$AMOUNT}")
-
-    if echo "$result" | grep -q "txn_hashes"; then
-        if echo "$result" | grep -q '"txn_hashes":\\[\\]'; then
-            echo "[$i/$REQUESTS] Failed: $(echo $result | jq -r .rejection_reasons[0].reason 2>/dev/null || echo $result)"
-            ((failed++))
-        else
-            txn=$(echo $result | jq -r .txn_hashes[0] 2>/dev/null)
-            echo "[$i/$REQUESTS] Success: \${txn:0:16}..."
-            ((success++))
-        fi
-    else
-        echo "[$i/$REQUESTS] Error: $result"
-        ((failed++))
-    fi
-
-    sleep $DELAY
-done
-
-echo ""
-echo "=== Farming Complete ==="
-echo "Success: $success"
-echo "Failed: $failed"
-echo "Total SHELBY_USD: $((success * 10))"
-
-# Self-destruct: delete this droplet
-echo "Self-destructing droplet $DROPLET_ID..."
-curl -s -X DELETE "https://api.digitalocean.com/v2/droplets/$DROPLET_ID" \\
-    -H "Authorization: Bearer $DO_TOKEN" \\
-    -H "Content-Type: application/json"
-
-echo "Goodbye!"
-`;
   }
 
   async startFarming(
@@ -232,7 +226,7 @@ echo "Goodbye!"
     sessionId: string
   ): Promise<NodeInfo> {
     const name = `shelby-node-${sessionId.split("-")[1]}-${index}`;
-    const farmingScript = this.generateFarmingScript(walletAddress, this.config.DO_API_TOKEN!);
+    const farmingScript = generateFarmingScript(walletAddress, this.config.DO_API_TOKEN!);
 
     const createResponse = (await this.cloudRequest("/droplets", "POST", {
       name,

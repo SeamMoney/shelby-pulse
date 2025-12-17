@@ -61,14 +61,8 @@ export default function Header({ stats }: Props) {
               objectFit: 'contain',
               display: logo1Loaded ? 'block' : 'none'
             }}
-            onLoad={() => {
-              console.log('Logo 1 loaded successfully')
-              setLogo1Loaded(true)
-            }}
-            onError={(e) => {
-              console.error('Logo 1 failed to load from:', e.currentTarget.src)
-              setLogo1Loaded(false)
-            }}
+            onLoad={() => setLogo1Loaded(true)}
+            onError={() => setLogo1Loaded(false)}
           />
         </div>
         {/* Try Logo 2 */}
@@ -93,14 +87,8 @@ export default function Header({ stats }: Props) {
               objectFit: 'contain',
               display: logo2Loaded ? 'block' : 'none'
             }}
-            onLoad={() => {
-              console.log('Logo 2 loaded successfully')
-              setLogo2Loaded(true)
-            }}
-            onError={(e) => {
-              console.error('Logo 2 failed to load from:', e.currentTarget.src)
-              setLogo2Loaded(false)
-            }}
+            onLoad={() => setLogo2Loaded(true)}
+            onError={() => setLogo2Loaded(false)}
           />
         </div>
         <span is-="typography" variant-="h2" style={{

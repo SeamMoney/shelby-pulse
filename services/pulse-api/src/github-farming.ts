@@ -2,6 +2,7 @@ import { logger } from './logger';
 import {
   createFarmingJob,
   getActiveFarmingJob,
+  getAllActiveFarmingJobs,
   getFarmingJob,
   stopFarmingJob,
   updateFarmingJobAfterWave,
@@ -12,6 +13,7 @@ import {
   completeFarmingWave,
   type FarmingJob,
   type FarmingJobConfig,
+  type FarmingWave,
 } from './db';
 
 // GitHub Actions configuration
@@ -167,7 +169,10 @@ export class GitHubFarmingService {
           JOBS_PER_WORKFLOW
         );
 
-        // Estimate completion (workflows run ~60 seconds)
+        // Note: GitHub workflow_dispatch doesn't return the run ID, so we can't
+        // track actual completion. We estimate based on typical workflow duration.
+        // Workflows typically complete in 60-90 seconds.
+        // TODO: Could poll /runs endpoint and match by timestamp to get actual status
         setTimeout(() => {
           completeFarmingWave(wave.id, JOBS_PER_WORKFLOW, 0, ESTIMATED_PER_RUN);
         }, 90 * 1000);
@@ -244,7 +249,6 @@ export class GitHubFarmingService {
    * Get all active jobs
    */
   private getActiveJobs(): FarmingJob[] {
-    const { getAllActiveFarmingJobs } = require('./db');
     return getAllActiveFarmingJobs();
   }
 
@@ -253,7 +257,7 @@ export class GitHubFarmingService {
    */
   getJobStatus(jobId: string): {
     job: FarmingJob;
-    waves: any[];
+    waves: FarmingWave[];
     estimatedYield: number;
     runningTime: string;
   } | null {

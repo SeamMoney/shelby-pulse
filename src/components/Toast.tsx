@@ -22,7 +22,7 @@ export const useToast = () => {
   return context;
 };
 
-const SHELBY_EXPLORER_URL = 'https://explorer.shelby.xyz/txn';
+const SHELBY_EXPLORER_URL = 'https://explorer.aptoslabs.com/txn';
 
 const ToastItem = memo(({ toast, onClose }: { toast: Toast; onClose: () => void }) => {
   useEffect(() => {
@@ -77,7 +77,7 @@ const ToastItem = memo(({ toast, onClose }: { toast: Toast; onClose: () => void 
         </div>
         {toast.txHash && (
           <a
-            href={`${SHELBY_EXPLORER_URL}/${toast.txHash}?network=custom&network_url=https://api.shelbynet.shelby.xyz/v1`}
+            href={`${SHELBY_EXPLORER_URL}/${toast.txHash}?network=shelbynet`}
             target="_blank"
             rel="noopener noreferrer"
             style={{

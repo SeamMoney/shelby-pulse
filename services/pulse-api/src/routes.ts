@@ -354,7 +354,7 @@ export function createRouter(
         return res.status(400).json({ error: "walletAddress is required" });
       }
 
-      const config: any = {};
+      const config: { waveIntervalMs?: number; maxWaves?: number } = {};
       if (waveIntervalMinutes) config.waveIntervalMs = waveIntervalMinutes * 60 * 1000;
       if (maxWaves) config.maxWaves = maxWaves;
 

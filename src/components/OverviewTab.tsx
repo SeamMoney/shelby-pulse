@@ -66,8 +66,8 @@ export function OverviewTab({ networkStats }: OverviewTabProps) {
           Shelby Protocol is a decentralized storage system built on Aptos blockchain
         </small>
         <small style={{ color: 'var(--foreground2)', marginTop: '0.5rem', display: 'block' }}>
-          View full explorer: <a href="https://explorer.shelby.xyz/shelbynet" target="_blank" rel="noopener noreferrer">
-            explorer.shelby.xyz
+          View full explorer: <a href="https://explorer.aptoslabs.com/?network=shelbynet" target="_blank" rel="noopener noreferrer">
+            Shelby Explorer
           </a>
         </small>
       </column>

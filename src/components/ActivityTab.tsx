@@ -45,8 +45,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
           localStorage.setItem('shelby-latency-history', JSON.stringify(newData))
           return newData
         })
-      } catch (error) {
-        console.error('Latency check failed:', error)
+      } catch {
+        // Latency check failed - will retry on next interval
       }
     }
     measureLatency()
@@ -60,8 +60,8 @@ export function ActivityTab({ currentTime }: ActivityTabProps) {
       try {
         const events = await backendApi.getRecentEvents(50)
         setEventCount(events.length)
-      } catch (error) {
-        console.error('Failed to fetch events:', error)
+      } catch {
+        // Failed to fetch events - will retry on next interval
       }
     }
     fetchEvents()

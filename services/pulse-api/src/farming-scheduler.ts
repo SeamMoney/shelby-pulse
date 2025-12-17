@@ -2,30 +2,19 @@ import type { ApiConfig } from './config';
 import { logger } from './logger';
 import {
   getAllActiveFarmingJobs,
-  getFarmingJob,
   updateFarmingJobAfterWave,
   createFarmingWave,
   completeFarmingWave,
   stopFarmingJob,
   type FarmingJob,
 } from './db';
-
-// DigitalOcean regions for geographic diversity (different IP pools)
-const DO_REGIONS = [
-  'sfo3',  // San Francisco
-  'nyc3',  // New York
-  'ams3',  // Amsterdam
-  'sgp1',  // Singapore
-  'lon1',  // London
-  'fra1',  // Frankfurt
-  'tor1',  // Toronto
-  'blr1',  // Bangalore
-];
-
-// Faucet config (same as farming-service.ts)
-const FAUCET_URL = 'https://faucet.shelbynet.shelby.xyz/fund?asset=shelbyusd';
-const DEFAULT_AMOUNT = 1000000000; // 10 ShelbyUSD (8 decimals)
-const REQUESTS_PER_NODE = 50; // Max 50 requests per IP per day
+import {
+  FAUCET_URL,
+  DEFAULT_AMOUNT,
+  REQUESTS_PER_NODE,
+  DO_REGIONS,
+  generateFarmingScript,
+} from './farming-constants';
 
 interface DropletResult {
   region: string;
@@ -207,7 +196,7 @@ export class FarmingScheduler {
     }
 
     const name = `cfarm-${jobId.split('-')[1]}-w${waveNumber}-${region}-${index}`;
-    const farmingScript = this.generateFarmingScript(walletAddress, this.config.DO_API_TOKEN);
+    const farmingScript = generateFarmingScript(walletAddress, this.config.DO_API_TOKEN);
 
     try {
       const response = await fetch(`${this.cloudApiUrl}/droplets`, {
@@ -238,69 +227,6 @@ export class FarmingScheduler {
       logger.error({ error: errorMessage, region, name }, 'Failed to create droplet');
       return { region, dropletId: null, success: false, error: errorMessage };
     }
-  }
-
-  /**
-   * Generate the farming script that runs on each droplet
-   * Droplets self-destruct after completing
-   */
-  private generateFarmingScript(walletAddress: string, doApiToken: string): string {
-    return `#!/bin/bash
-# Continuous Farming Bot - Self-destructing after completion
-WALLET="${walletAddress}"
-FAUCET_URL="${FAUCET_URL}"
-AMOUNT=${DEFAULT_AMOUNT}
-REQUESTS=${REQUESTS_PER_NODE}
-DELAY=2
-DO_TOKEN="${doApiToken}"
-
-# Get this droplet's ID from metadata
-DROPLET_ID=$(curl -s http://169.254.169.254/metadata/v1/id)
-
-echo "Starting ShelbyUSD farming to $WALLET"
-echo "Droplet ID: $DROPLET_ID"
-echo "Making $REQUESTS requests..."
-
-success=0
-failed=0
-
-for i in $(seq 1 $REQUESTS); do
-    result=$(curl -s -X POST "$FAUCET_URL" \\
-        -H "Content-Type: application/json" \\
-        -H "Origin: https://docs.shelby.xyz" \\
-        -d "{\\"address\\":\\"$WALLET\\",\\"amount\\":$AMOUNT}")
-
-    if echo "$result" | grep -q "txn_hashes"; then
-        if echo "$result" | grep -q '"txn_hashes":\\[\\]'; then
-            echo "[$i/$REQUESTS] Failed: $(echo $result | jq -r .rejection_reasons[0].reason 2>/dev/null || echo $result)"
-            ((failed++))
-        else
-            txn=$(echo $result | jq -r .txn_hashes[0] 2>/dev/null)
-            echo "[$i/$REQUESTS] Success: \${txn:0:16}..."
-            ((success++))
-        fi
-    else
-        echo "[$i/$REQUESTS] Error: $result"
-        ((failed++))
-    fi
-
-    sleep $DELAY
-done
-
-echo ""
-echo "=== Farming Complete ==="
-echo "Success: $success"
-echo "Failed: $failed"
-echo "Total SHELBY_USD: $((success * 10))"
-
-# Self-destruct: delete this droplet
-echo "Self-destructing droplet $DROPLET_ID..."
-curl -s -X DELETE "https://api.digitalocean.com/v2/droplets/$DROPLET_ID" \\
-    -H "Authorization: Bearer $DO_TOKEN" \\
-    -H "Content-Type: application/json"
-
-echo "Goodbye!"
-`;
   }
 
   /**

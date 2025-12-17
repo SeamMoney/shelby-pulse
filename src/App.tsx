@@ -58,7 +58,6 @@ function App() {
       setError(null)
       setIsLoading(false)
     } catch (err) {
-      console.error('Failed to fetch network stats:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
       setIsLoading(false)
     }

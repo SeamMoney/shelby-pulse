@@ -26,8 +26,7 @@ export function ProvidersTab() {
 
         setProviders(providersWithUsage);
         setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch providers:', error);
+      } catch {
         setIsLoading(false);
       }
     };
