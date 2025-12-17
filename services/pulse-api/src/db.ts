@@ -143,6 +143,28 @@ function createTables(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_farming_waves_job ON farming_waves(job_id);
   `);
 
+  // Blob events table - stores all blob registered events for accurate counts
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS blob_events (
+      transaction_version INTEGER NOT NULL,
+      event_index INTEGER NOT NULL DEFAULT 0,
+      blob_id TEXT NOT NULL,
+      owner_address TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL DEFAULT 0,
+      encoding TEXT,
+      blob_name TEXT,
+      creation_timestamp INTEGER,
+      expiration_timestamp INTEGER,
+      PRIMARY KEY (transaction_version, event_index)
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_blob_events_owner ON blob_events(owner_address);
+    CREATE INDEX IF NOT EXISTS idx_blob_events_version_desc ON blob_events(transaction_version DESC);
+    CREATE INDEX IF NOT EXISTS idx_blob_events_creation ON blob_events(creation_timestamp DESC);
+  `);
+
   logger.info('Database tables created/verified');
 }
 
@@ -781,5 +803,183 @@ export function getFarmingSummary(): {
     totalMinted: row.total_minted || 0,
     totalWaves: row.total_waves || 0,
     totalDropletsCreated: row.total_droplets || 0,
+  };
+}
+
+// ============================================================================
+// Blob Events Operations
+// ============================================================================
+
+export interface BlobEventRecord {
+  transaction_version: number;
+  event_index: number;
+  blob_id: string;
+  owner_address: string;
+  size_bytes: number;
+  encoding: string | null;
+  blob_name: string | null;
+  creation_timestamp: number | null;
+  expiration_timestamp: number | null;
+}
+
+/**
+ * Insert blob events in a batch transaction
+ */
+export function insertBlobEvents(events: BlobEventRecord[]): number {
+  if (events.length === 0) return 0;
+
+  const db = getDatabase();
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO blob_events
+    (transaction_version, event_index, blob_id, owner_address, size_bytes, encoding, blob_name, creation_timestamp, expiration_timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertMany = db.transaction((items: BlobEventRecord[]) => {
+    let inserted = 0;
+    for (const item of items) {
+      const result = insert.run(
+        item.transaction_version,
+        item.event_index,
+        item.blob_id,
+        item.owner_address,
+        item.size_bytes,
+        item.encoding,
+        item.blob_name,
+        item.creation_timestamp,
+        item.expiration_timestamp
+      );
+      if (result.changes > 0) inserted++;
+    }
+    return inserted;
+  });
+
+  const inserted = insertMany(events);
+  logger.info({ inserted, total: events.length }, 'Inserted blob events into database');
+  return inserted;
+}
+
+/**
+ * Get the highest transaction version for blob events
+ */
+export function getLastBlobSyncedVersion(): number {
+  const db = getDatabase();
+  const row = db.prepare('SELECT MAX(transaction_version) as max_version FROM blob_events').get() as { max_version: number | null };
+  return row?.max_version ?? 0;
+}
+
+/**
+ * Get total blob count from local database
+ */
+export function getBlobCount(): number {
+  const db = getDatabase();
+  const row = db.prepare('SELECT COUNT(*) as count FROM blob_events').get() as { count: number };
+  return row.count;
+}
+
+/**
+ * Get total storage from local database
+ */
+export function getTotalBlobStorage(): number {
+  const db = getDatabase();
+  const row = db.prepare('SELECT COALESCE(SUM(size_bytes), 0) as total FROM blob_events').get() as { total: number };
+  return row.total;
+}
+
+/**
+ * Get unique blob owners count
+ */
+export function getUniqueBlobOwners(): number {
+  const db = getDatabase();
+  const row = db.prepare('SELECT COUNT(DISTINCT owner_address) as count FROM blob_events').get() as { count: number };
+  return row.count;
+}
+
+/**
+ * Get blob stats aggregated by owner
+ */
+export function getBlobStatsByOwner(limit: number = 10): Array<{
+  owner_address: string;
+  blob_count: number;
+  total_bytes: number;
+}> {
+  const db = getDatabase();
+  return db.prepare(`
+    SELECT
+      owner_address,
+      COUNT(*) as blob_count,
+      SUM(size_bytes) as total_bytes
+    FROM blob_events
+    GROUP BY owner_address
+    ORDER BY total_bytes DESC
+    LIMIT ?
+  `).all(limit) as Array<{ owner_address: string; blob_count: number; total_bytes: number }>;
+}
+
+/**
+ * Get blob stats by file type (inferred from encoding/name)
+ */
+export function getBlobStatsByType(): Array<{
+  file_type: string;
+  count: number;
+  total_bytes: number;
+}> {
+  const db = getDatabase();
+  return db.prepare(`
+    SELECT
+      CASE
+        WHEN blob_name LIKE '%.json' OR encoding = 'application/json' THEN 'json'
+        WHEN blob_name LIKE '%.png' OR blob_name LIKE '%.jpg' OR blob_name LIKE '%.jpeg' OR blob_name LIKE '%.gif' OR blob_name LIKE '%.webp' THEN 'image'
+        WHEN blob_name LIKE '%.mp4' OR blob_name LIKE '%.webm' OR blob_name LIKE '%.mov' THEN 'video'
+        WHEN blob_name LIKE '%.mp3' OR blob_name LIKE '%.wav' OR blob_name LIKE '%.ogg' THEN 'audio'
+        WHEN blob_name LIKE '%.txt' OR blob_name LIKE '%.md' THEN 'text'
+        WHEN blob_name LIKE '%.pdf' THEN 'document'
+        WHEN blob_name LIKE '%.zip' OR blob_name LIKE '%.tar' OR blob_name LIKE '%.gz' THEN 'archive'
+        ELSE 'other'
+      END as file_type,
+      COUNT(*) as count,
+      SUM(size_bytes) as total_bytes
+    FROM blob_events
+    GROUP BY file_type
+    ORDER BY count DESC
+  `).all() as Array<{ file_type: string; count: number; total_bytes: number }>;
+}
+
+/**
+ * Get recent blob events
+ */
+export function getRecentBlobEvents(limit: number = 20): BlobEventRecord[] {
+  const db = getDatabase();
+  return db.prepare(`
+    SELECT * FROM blob_events
+    ORDER BY transaction_version DESC
+    LIMIT ?
+  `).all(limit) as BlobEventRecord[];
+}
+
+/**
+ * Get blob sync statistics
+ */
+export function getBlobSyncStats(): {
+  totalBlobs: number;
+  totalStorage: number;
+  uniqueOwners: number;
+  lastVersion: number;
+} {
+  const db = getDatabase();
+  const stats = db.prepare(`
+    SELECT
+      COUNT(*) as total_blobs,
+      COALESCE(SUM(size_bytes), 0) as total_storage,
+      COUNT(DISTINCT owner_address) as unique_owners,
+      COALESCE(MAX(transaction_version), 0) as last_version
+    FROM blob_events
+  `).get() as any;
+
+  return {
+    totalBlobs: stats.total_blobs || 0,
+    totalStorage: stats.total_storage || 0,
+    uniqueOwners: stats.unique_owners || 0,
+    lastVersion: stats.last_version || 0,
   };
 }

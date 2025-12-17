@@ -9,8 +9,10 @@ export interface BlobEvent {
     owner?: string;
     expiration_micros?: string;
     size_bytes?: string;
-    encoding?: string;
+    blob_size?: string;
+    encoding?: string | { __variant__?: string };
     blob_id?: string;
+    blob_name?: string;
   };
   version: string;
   guid: {
@@ -77,6 +79,16 @@ export class ShelbyAptosClient {
       headers['Authorization'] = `Bearer ${this.config.APTOS_API_KEY}`;
     }
     return headers;
+  }
+
+  /**
+   * Get GraphQL config for external services (like blob sync)
+   */
+  getGraphQLConfig(): { url: string; headers: Record<string, string> } {
+    return {
+      url: this.config.APTOS_INDEXER_URL!,
+      headers: this.getGraphQLHeaders(),
+    };
   }
 
   /**
@@ -229,15 +241,14 @@ export class ShelbyAptosClient {
   }
 
   /**
-   * Get total storage size from events
-   * OPTIMIZED: Limited pagination to prevent timeout
+   * Get both total storage and blob count in a single query
+   * This avoids rate limits by combining what used to be two separate calls
    */
-  async getTotalStorage(): Promise<number> {
+  async getTotalStorageAndCount(): Promise<{ totalStorage: number; totalBlobs: number }> {
     try {
       const blobEventType = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5::blob_metadata::BlobRegisteredEvent";
 
-      // Note: GraphQL aggregate SUM is tricky for nested JSON fields
-      // Using limited pagination instead to prevent timeout
+      // Using limited pagination to prevent timeout
       const maxResults = 10000; // Cap at 10k blobs
       let totalBytes = 0;
       let offset = 0;
@@ -268,10 +279,19 @@ export class ShelbyAptosClient {
         });
 
         const result = await response.json();
+
+        // Check for rate limit errors
+        if (result.errors?.length > 0) {
+          const rateLimitError = result.errors.find((e: { extensions?: { code?: string } }) => e.extensions?.code === "429");
+          if (rateLimitError) {
+            logger.warn("Rate limited during storage query, returning partial results");
+            break;
+          }
+        }
+
         const events = result.data?.events || [];
 
         for (const event of events) {
-          // The actual field is blob_size, not size_bytes
           const sizeBytes = Number.parseInt(event.data?.blob_size || "0", 10);
           totalBytes += sizeBytes;
         }
@@ -285,12 +305,20 @@ export class ShelbyAptosClient {
         }
       }
 
-      logger.info({ totalBytes, blobsCounted: count, capped: count >= maxResults }, "Fetched total storage via pagination");
-      return totalBytes;
+      logger.info({ totalBytes, totalBlobs: count, capped: count >= maxResults }, "Fetched total storage and blob count");
+      return { totalStorage: totalBytes, totalBlobs: count };
     } catch (error) {
       logger.warn({ error }, "Failed to fetch total storage");
-      return 0;
+      return { totalStorage: 0, totalBlobs: 0 };
     }
+  }
+
+  /**
+   * Get total storage size from events (uses combined query)
+   */
+  async getTotalStorage(): Promise<number> {
+    const { totalStorage } = await this.getTotalStorageAndCount();
+    return totalStorage;
   }
 
   /**

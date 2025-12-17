@@ -6,8 +6,10 @@ import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/lead
 import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
 import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, clearActivityCache, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
 import { getAllTimeStats, type AllTimeStats } from "./shelbyusd/all-time-stats";
-import { initDatabase, closeDatabase, getDatabaseStats, resetDatabase } from "./db";
+import { initDatabase, closeDatabase, getDatabaseStats, resetDatabase, getBlobSyncStats, getBlobStatsByType, getBlobStatsByOwner } from "./db";
 import { incrementalSync, fullSync, getSyncStatus, isInitialSyncComplete } from "./sync-service";
+import { incrementalBlobSync, getBlobSyncStatus } from "./blob-sync-service";
+import { getAnalyticsData, computeAnalyticsFromEvents, type AnalyticsData } from "./analytics-service";
 
 export interface NetworkStats {
   totalBlobs: number;
@@ -85,14 +87,21 @@ export class DataService {
   }
 
   /**
-   * Run incremental sync
+   * Run incremental sync for both blob events AND ShelbyUSD activities
+   * Blob sync runs first to prioritize accurate blob counts
    */
   private async runSync(): Promise<void> {
-    const dbStats = getDatabaseStats();
+    // Blob event sync FIRST - prioritize blob counts for Metrics tab
+    try {
+      await incrementalBlobSync(this.aptosClient);
+    } catch (err) {
+      logger.error({ err }, 'Blob sync failed');
+    }
 
-    // If database is empty, do a full sync first
+    // ShelbyUSD activity sync (for Economy tab)
+    const dbStats = getDatabaseStats();
     if (dbStats.activityCount === 0) {
-      logger.info('Database empty, performing full sync...');
+      logger.info('Database empty, performing full ShelbyUSD sync...');
       await fullSync(this.aptosClient);
     } else {
       await incrementalSync(this.aptosClient);
@@ -103,7 +112,10 @@ export class DataService {
    * Get sync status for monitoring
    */
   getSyncStatus() {
-    return getSyncStatus();
+    return {
+      ...getSyncStatus(),
+      blobSync: getBlobSyncStatus(),
+    };
   }
 
   /**
@@ -150,6 +162,7 @@ export class DataService {
 
   /**
    * Get network statistics with caching
+   * Uses local SQLite database for accurate counts (synced incrementally)
    */
   async getNetworkStats(): Promise<NetworkStats> {
     const cacheKey = "network_stats";
@@ -159,10 +172,10 @@ export class DataService {
     }
 
     try {
-      const [totalBlobs, totalStorage] = await Promise.all([
-        this.aptosClient.getTotalBlobCount(),
-        this.aptosClient.getTotalStorage(),
-      ]);
+      // Use local database for accurate counts
+      const blobStats = getBlobSyncStats();
+      const totalBlobs = blobStats.totalBlobs;
+      const totalStorage = blobStats.totalStorage;
 
       // Calculate upload rate (blobs per minute)
       const now = Date.now();
@@ -182,9 +195,8 @@ export class DataService {
         timestamp: now,
       };
 
-      // Cache network stats for 30 minutes (1800 seconds) instead of default 30s
-      // These are expensive queries so we cache longer
-      this.cache.set(cacheKey, stats, 1800);
+      // Cache network stats for 30 seconds (data is from local DB, cheap to query)
+      this.cache.set(cacheKey, stats, 30);
       return stats;
     } catch (error) {
       logger.error({ error }, "Failed to fetch network stats");
@@ -366,6 +378,76 @@ export class DataService {
     version: string;
   }>> {
     return this.aptosClient.getUserShelbyUSDDeposits(userAddress, sinceVersion, limit);
+  }
+
+  /**
+   * Get storage analytics - file types, top storage users
+   * Uses local SQLite database for accurate data (synced incrementally)
+   */
+  async getAnalytics(): Promise<AnalyticsData> {
+    const cacheKey = "analytics_data";
+    const cached = this.cache.get<AnalyticsData>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    return this.coalesce(cacheKey, async () => {
+      try {
+        // Get data from local database (accurate, no rate limits)
+        const blobStats = getBlobSyncStats();
+        const fileTypes = getBlobStatsByType();
+        const topOwners = getBlobStatsByOwner(10);
+
+        // Map file type stats to analytics format
+        const fileTypeDistribution = fileTypes.map(ft => ({
+          type: ft.file_type,
+          count: ft.count,
+          percentage: blobStats.totalBlobs > 0 ? (ft.count / blobStats.totalBlobs) * 100 : 0,
+          totalSize: ft.total_bytes,
+        }));
+
+        // Map owner stats to analytics format
+        const topUploaders = topOwners.map(owner => ({
+          address: owner.owner_address,
+          blobCount: owner.blob_count,
+          totalSize: owner.total_bytes,
+          percentage: blobStats.totalStorage > 0 ? (owner.total_bytes / blobStats.totalStorage) * 100 : 0,
+        }));
+
+        // Calculate average blob size
+        const avgSize = blobStats.totalBlobs > 0 ? blobStats.totalStorage / blobStats.totalBlobs : 0;
+
+        const analytics: AnalyticsData = {
+          totalBlobs: blobStats.totalBlobs,
+          totalSize: blobStats.totalStorage,
+          totalSizeFormatted: this.formatBytes(blobStats.totalStorage),
+          avgBlobSize: avgSize,
+          avgBlobSizeFormatted: this.formatBytes(avgSize),
+          uniqueOwners: blobStats.uniqueOwners,
+          fileTypeDistribution,
+          topUploaders,
+          blobsPerHour: 0, // TODO: calculate from timestamps
+          bytesPerHour: 0,
+          bytesPerHourFormatted: '0 B/hr',
+          timestamp: Date.now(),
+        };
+
+        // Cache for 30 seconds (local DB query is cheap)
+        this.cache.set(cacheKey, analytics, 30);
+
+        logger.info({
+          totalBlobs: analytics.totalBlobs,
+          totalStorage: analytics.totalSize,
+          uniqueOwners: analytics.uniqueOwners,
+          syncedFromDB: true,
+        }, "Analytics computed from local database");
+
+        return analytics;
+      } catch (error) {
+        logger.error({ error }, "Failed to compute analytics from database");
+        throw error;
+      }
+    });
   }
 
   /**

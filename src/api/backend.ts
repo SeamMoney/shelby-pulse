@@ -164,6 +164,39 @@ export interface ContinuousFarmingSummary {
   totalDropletsCreated: number;
 }
 
+// Analytics types
+export interface FileTypeStats {
+  extension: string;
+  count: number;
+  totalSize: number;
+  totalSizeFormatted: string;
+  percentage: number;
+  color: string;
+}
+
+export interface StorageLeader {
+  address: string;
+  addressShort: string;
+  blobCount: number;
+  totalSize: number;
+  totalSizeFormatted: string;
+  fileTypes: string[];
+}
+
+export interface AnalyticsData {
+  fileTypes: FileTypeStats[];
+  storageLeaders: StorageLeader[];
+  totalBlobs: number;
+  totalSize: number;
+  totalSizeFormatted: string;
+  uniqueOwners: number;
+  // Growth metrics
+  blobsPerHour: number;
+  bytesPerHour: number;
+  bytesPerHourFormatted: string;
+  timestamp: number;
+}
+
 class BackendApiClient {
   private baseUrl: string;
 
@@ -226,6 +259,17 @@ class BackendApiClient {
     const response = await fetch(`${this.baseUrl}/health`);
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Get storage analytics - file types and top storage users
+   */
+  async getAnalytics(): Promise<AnalyticsData> {
+    const response = await fetch(`${this.baseUrl}/analytics`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch analytics: ${response.statusText}`);
     }
     return response.json();
   }

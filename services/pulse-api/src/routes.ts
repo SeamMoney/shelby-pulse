@@ -84,6 +84,20 @@ export function createRouter(
   });
 
   /**
+   * GET /api/analytics
+   * Returns storage analytics - file types breakdown and top storage users
+   */
+  router.get("/analytics", async (req, res) => {
+    try {
+      const analytics = await dataService.getAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      logger.error({ error }, "Failed to get analytics data");
+      res.status(500).json({ error: "Failed to fetch analytics data" });
+    }
+  });
+
+  /**
    * GET /api/economy?refresh=true
    * Returns ShelbyUSD economy data (leaderboards, volume, earners, spenders)
    * Use refresh=true to bypass cache (for after farming completes)
