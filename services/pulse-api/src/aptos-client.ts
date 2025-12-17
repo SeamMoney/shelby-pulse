@@ -7,6 +7,7 @@ export interface BlobEvent {
   data: {
     blob_commitment?: string;
     owner?: string;
+    creation_micros?: string;
     expiration_micros?: string;
     size_bytes?: string;
     blob_size?: string;

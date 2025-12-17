@@ -25,6 +25,8 @@ export interface AnalyticsData {
   totalBlobs: number;
   totalSize: number;
   totalSizeFormatted: string;
+  avgBlobSize: number;
+  avgBlobSizeFormatted: string;
   uniqueOwners: number;
   // Growth metrics
   blobsPerHour: number;
@@ -200,6 +202,7 @@ export function computeAnalyticsFromEvents(
   // Use provided totals if available, otherwise use sample totals
   const finalTotalBlobs = totalBlobs > 0 ? totalBlobs : events.length;
   const finalTotalStorage = totalStorage > 0 ? totalStorage : sampleTotalSize;
+  const avgBlobSize = finalTotalBlobs > 0 ? finalTotalStorage / finalTotalBlobs : 0;
 
   return {
     fileTypes: scaledFileTypes,
@@ -207,6 +210,8 @@ export function computeAnalyticsFromEvents(
     totalBlobs: finalTotalBlobs,
     totalSize: finalTotalStorage,
     totalSizeFormatted: formatBytes(finalTotalStorage),
+    avgBlobSize,
+    avgBlobSizeFormatted: formatBytes(avgBlobSize),
     uniqueOwners: ownerMap.size,
     blobsPerHour,
     bytesPerHour,
