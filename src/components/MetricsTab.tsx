@@ -1,17 +1,17 @@
 import { useEffect, useState, useRef } from 'react'
 import { backendApi, type AnalyticsData, type StorageLeader } from '../api/backend'
 
-// Color mapping for file type categories
+// Color mapping for file type categories (lowercase to match DB output from getBlobStatsByType)
+// These match the SQL CASE statement in db.ts
 const categoryColors: Record<string, string> = {
-  'Images': '#FF69B4',
-  'Documents': '#4A90E2',
-  'Data': '#00C896',
-  'Media': '#9B59B6',
-  'Archives': '#E67E22',
-  'Code': '#1ABC9C',
-  'Ebooks': '#F39C12',
-  'Binary': '#95A5A6',
-  'Other': '#7F8C8D',
+  'image': '#FF69B4',    // Pink - most visually striking
+  'json': '#00C896',     // Green - data/config files
+  'text': '#4A90E2',     // Blue - readable content
+  'document': '#9B59B6', // Purple - PDFs
+  'archive': '#E67E22',  // Orange - compressed files
+  'video': '#1ABC9C',    // Teal - multimedia
+  'audio': '#F39C12',    // Gold - sound files
+  'other': '#7F8C8D',    // Gray - unknown types
 }
 
 // Animated counter component
@@ -69,10 +69,10 @@ function AnimatedCounter({
   )
 }
 
-// Donut chart component using canvas
+// Donut chart component using canvas - renders a perfect circle
 function DonutChart({
   data,
-  size = 200
+  size = 180
 }: {
   data: Array<{ label: string; value: number; color: string }>
   size?: number
@@ -87,18 +87,31 @@ function DonutChart({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // High DPI canvas setup - this is crucial for crisp rendering
     const dpr = window.devicePixelRatio || 1
     canvas.width = size * dpr
     canvas.height = size * dpr
+    canvas.style.width = `${size}px`
+    canvas.style.height = `${size}px`
     ctx.scale(dpr, dpr)
 
     const centerX = size / 2
     const centerY = size / 2
-    const outerRadius = size / 2 - 10
-    const innerRadius = outerRadius * 0.6
+    const outerRadius = size / 2 - 8
+    const innerRadius = outerRadius * 0.55
 
     const total = data.reduce((sum, d) => sum + d.value, 0)
-    if (total === 0) return
+    if (total === 0) {
+      // Draw empty state
+      ctx.clearRect(0, 0, size, size)
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2)
+      ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true)
+      ctx.closePath()
+      ctx.fillStyle = '#3a3a4a'
+      ctx.fill()
+      return
+    }
 
     ctx.clearRect(0, 0, size, size)
 
@@ -107,18 +120,19 @@ function DonutChart({
     data.forEach((segment, index) => {
       const sliceAngle = (segment.value / total) * 2 * Math.PI
       const isHovered = hoveredSegment === index
+      const radius = isHovered ? outerRadius + 4 : outerRadius
 
       ctx.beginPath()
-      ctx.arc(centerX, centerY, isHovered ? outerRadius + 5 : outerRadius, startAngle, startAngle + sliceAngle)
+      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle)
       ctx.arc(centerX, centerY, innerRadius, startAngle + sliceAngle, startAngle, true)
       ctx.closePath()
 
       ctx.fillStyle = segment.color
-      ctx.globalAlpha = isHovered ? 1 : 0.85
+      ctx.globalAlpha = isHovered ? 1 : 0.9
       ctx.fill()
 
-      // Add subtle border
-      ctx.strokeStyle = 'var(--background1)'
+      // Add subtle border between segments
+      ctx.strokeStyle = '#1a1a2e'
       ctx.lineWidth = 2
       ctx.stroke()
 
@@ -133,13 +147,15 @@ function DonutChart({
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left - size / 2
-    const y = e.clientY - rect.top - size / 2
+    const scaleX = size / rect.width
+    const scaleY = size / rect.height
+    const x = (e.clientX - rect.left) * scaleX - size / 2
+    const y = (e.clientY - rect.top) * scaleY - size / 2
     const distance = Math.sqrt(x * x + y * y)
-    const outerRadius = size / 2 - 10
-    const innerRadius = outerRadius * 0.6
+    const outerRadius = size / 2 - 8
+    const innerRadius = outerRadius * 0.55
 
-    if (distance < innerRadius || distance > outerRadius + 5) {
+    if (distance < innerRadius || distance > outerRadius + 8) {
       setHoveredSegment(null)
       return
     }
@@ -159,93 +175,124 @@ function DonutChart({
     }
   }
 
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+
   return (
     <div style={{
       position: 'relative',
-      width: size,
-      height: size,
-      minWidth: size,
-      minHeight: size,
+      width: `${size}px`,
+      height: `${size}px`,
       flexShrink: 0,
-      aspectRatio: '1 / 1'
     }}>
       <canvas
         ref={canvasRef}
         style={{
-          width: size,
-          height: size,
+          display: 'block',
           cursor: 'pointer',
-          aspectRatio: '1 / 1',
-          display: 'block'
         }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredSegment(null)}
       />
-      {hoveredSegment !== null && data[hoveredSegment] && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          textAlign: 'center',
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            color: data[hoveredSegment].color,
-            fontWeight: 700,
-            fontSize: '1rem'
-          }}>
-            {data[hoveredSegment].label}
-          </div>
-          <div style={{
-            color: 'var(--foreground2)',
-            fontSize: '0.75rem'
-          }}>
-            {((data[hoveredSegment].value / data.reduce((s, d) => s + d.value, 0)) * 100).toFixed(1)}%
-          </div>
-        </div>
-      )}
+      {/* Center label - show hovered or total */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+        pointerEvents: 'none',
+        width: `${size * 0.4}px`
+      }}>
+        {hoveredSegment !== null && data[hoveredSegment] ? (
+          <>
+            <div style={{
+              color: data[hoveredSegment].color,
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              textTransform: 'capitalize'
+            }}>
+              {data[hoveredSegment].label}
+            </div>
+            <div style={{
+              color: 'var(--foreground2)',
+              fontSize: '0.7rem'
+            }}>
+              {((data[hoveredSegment].value / total) * 100).toFixed(1)}%
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{
+              color: 'var(--foreground1)',
+              fontWeight: 700,
+              fontSize: '0.9rem'
+            }}>
+              {total.toLocaleString()}
+            </div>
+            <div style={{
+              color: 'var(--foreground2)',
+              fontSize: '0.65rem'
+            }}>
+              total files
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
 
-// Legend for donut chart
+// Legend for donut chart - compact horizontal bars
 function DonutLegend({ data }: { data: Array<{ label: string; value: number; color: string; size: string }> }) {
   const total = data.reduce((sum, d) => sum + d.value, 0)
+  const maxValue = Math.max(...data.map(d => d.value), 1)
 
   return (
-    <column gap-="0.5" style={{ minWidth: '160px' }}>
+    <column gap-="0.4" style={{ flex: 1, minWidth: '180px', maxWidth: '250px' }}>
       {data.map((item) => (
-        <row key={item.label} gap-="0.5" align-="center">
+        <row key={item.label} gap-="0.5" align-="center" style={{ height: '24px' }}>
           <div style={{
-            width: '12px',
-            height: '12px',
-            borderRadius: '3px',
+            width: '10px',
+            height: '10px',
+            borderRadius: '2px',
             background: item.color,
             flexShrink: 0
           }} />
           <small style={{
-            flex: 1,
+            width: '55px',
+            flexShrink: 0,
             color: 'var(--foreground1)',
-            fontSize: '0.75rem'
+            fontSize: '0.7rem',
+            textTransform: 'capitalize'
           }}>
             {item.label}
           </small>
+          {/* Progress bar showing relative size */}
+          <div style={{
+            flex: 1,
+            height: '6px',
+            background: 'var(--background2)',
+            borderRadius: '3px',
+            overflow: 'hidden',
+            minWidth: '40px'
+          }}>
+            <div style={{
+              width: `${(item.value / maxValue) * 100}%`,
+              height: '100%',
+              background: item.color,
+              borderRadius: '3px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
           <small style={{
             color: 'var(--foreground2)',
             fontVariantNumeric: 'tabular-nums',
-            fontSize: '0.7rem'
+            fontSize: '0.65rem',
+            width: '32px',
+            textAlign: 'right',
+            flexShrink: 0
           }}>
-            {((item.value / total) * 100).toFixed(0)}%
-          </small>
-          <small style={{
-            color: 'var(--foreground2)',
-            fontVariantNumeric: 'tabular-nums',
-            fontSize: '0.7rem',
-            width: '50px',
-            textAlign: 'right'
-          }}>
-            {item.size}
+            {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '0%'}
           </small>
         </row>
       ))}
@@ -478,19 +525,19 @@ export function MetricsTab() {
       {/* File Types Distribution - Donut Chart + Leaderboard */}
       <row gap-="1" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
       }}>
         {/* Donut Chart Section */}
-        <column box-="round" shear-="top" pad-="1" gap-="1">
-          <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-            <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">File Types</span>
+        <column box-="round" shear-="top" pad-="1" gap-="0.75">
+          <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.25rem' }}>
+            <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">Storage by File Type</span>
           </row>
-          <row gap-="1" style={{
+          <row gap-="1.5" style={{
             justifyContent: 'center',
             alignItems: 'center',
-            flexWrap: 'wrap'
+            padding: '0.5rem 0'
           }}>
-            <DonutChart data={donutData} size={180} />
+            <DonutChart data={donutData} size={160} />
             <DonutLegend data={donutData} />
           </row>
         </column>
