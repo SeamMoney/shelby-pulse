@@ -87,13 +87,18 @@ function DonutChart({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // High DPI canvas setup - this is crucial for crisp rendering
+    // High DPI canvas setup - scale internal resolution but keep visual size fixed
     const dpr = window.devicePixelRatio || 1
-    canvas.width = size * dpr
-    canvas.height = size * dpr
-    canvas.style.width = `${size}px`
-    canvas.style.height = `${size}px`
-    ctx.scale(dpr, dpr)
+    const internalSize = size * dpr
+
+    // Only update canvas dimensions if they changed (prevents flicker)
+    if (canvas.width !== internalSize || canvas.height !== internalSize) {
+      canvas.width = internalSize
+      canvas.height = internalSize
+    }
+
+    // Reset transform and scale for DPI
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     const centerX = size / 2
     const centerY = size / 2
@@ -182,13 +187,22 @@ function DonutChart({
       position: 'relative',
       width: `${size}px`,
       height: `${size}px`,
+      minWidth: `${size}px`,
+      minHeight: `${size}px`,
+      maxWidth: `${size}px`,
+      maxHeight: `${size}px`,
       flexShrink: 0,
+      flexGrow: 0,
     }}>
       <canvas
         ref={canvasRef}
+        width={size}
+        height={size}
         style={{
           display: 'block',
           cursor: 'pointer',
+          width: `${size}px`,
+          height: `${size}px`,
         }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredSegment(null)}
@@ -525,19 +539,21 @@ export function MetricsTab() {
       {/* File Types Distribution - Donut Chart + Leaderboard */}
       <row gap-="1" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))'
       }}>
         {/* Donut Chart Section */}
-        <column box-="round" shear-="top" pad-="1" gap-="0.75">
+        <column box-="round" shear-="top" pad-="1" gap-="0.75" style={{ overflow: 'hidden' }}>
           <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.25rem' }}>
             <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">Storage by File Type</span>
           </row>
           <row gap-="1.5" style={{
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             alignItems: 'center',
-            padding: '0.5rem 0'
+            padding: '0.5rem',
+            flexWrap: 'nowrap',
+            overflow: 'hidden'
           }}>
-            <DonutChart data={donutData} size={160} />
+            <DonutChart data={donutData} size={140} />
             <DonutLegend data={donutData} />
           </row>
         </column>
