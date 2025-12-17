@@ -1,12 +1,12 @@
 name: Farm ShelbyUSD
 
 on:
-  # Manual trigger
+  # API-triggered only - each user triggers farming to their own wallet
   workflow_dispatch:
     inputs:
       wallet_address:
         description: 'Wallet address to farm to'
-        required: false
+        required: true
         type: string
       num_requests:
         description: 'Number of faucet requests (max 50)'
@@ -14,13 +14,9 @@ on:
         default: '50'
         type: string
 
-  # Scheduled runs - every 5 minutes for aggressive farming
-  schedule:
-    - cron: '*/5 * * * *'
-
 env:
-  # Centralized wallet - used by all jobs
-  FARM_WALLET: ${{ github.event.inputs.wallet_address || secrets.SHELBY_WALLET }}
+  # User's wallet - passed from Pulse API when user starts farming
+  FARM_WALLET: ${{ github.event.inputs.wallet_address }}
   FARM_REQUESTS: ${{ github.event.inputs.num_requests || '50' }}
 
 jobs:
