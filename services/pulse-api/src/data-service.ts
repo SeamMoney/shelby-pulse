@@ -395,37 +395,41 @@ export class DataService {
       try {
         // Get data from local database (accurate, no rate limits)
         const blobStats = getBlobSyncStats();
-        const fileTypes = getBlobStatsByType();
+        const fileTypesData = getBlobStatsByType();
         const topOwners = getBlobStatsByOwner(10);
 
-        // Map file type stats to analytics format
-        const fileTypeDistribution = fileTypes.map(ft => ({
-          type: ft.file_type,
+        // Map file type stats to analytics format (matching FileTypeStats interface)
+        const fileTypes = fileTypesData.map(ft => ({
+          extension: ft.file_type,
           count: ft.count,
-          percentage: blobStats.totalBlobs > 0 ? (ft.count / blobStats.totalBlobs) * 100 : 0,
           totalSize: ft.total_bytes,
+          totalSizeFormatted: this.formatBytes(ft.total_bytes),
+          percentage: blobStats.totalBlobs > 0 ? (ft.count / blobStats.totalBlobs) * 100 : 0,
+          color: '#7F8C8D', // Default color
         }));
 
-        // Map owner stats to analytics format
-        const topUploaders = topOwners.map(owner => ({
+        // Map owner stats to analytics format (matching StorageLeader interface)
+        const storageLeaders = topOwners.map(owner => ({
           address: owner.owner_address,
+          addressShort: this.shortenAddress(owner.owner_address),
           blobCount: owner.blob_count,
           totalSize: owner.total_bytes,
-          percentage: blobStats.totalStorage > 0 ? (owner.total_bytes / blobStats.totalStorage) * 100 : 0,
+          totalSizeFormatted: this.formatBytes(owner.total_bytes),
+          fileTypes: [] as string[],
         }));
 
         // Calculate average blob size
         const avgSize = blobStats.totalBlobs > 0 ? blobStats.totalStorage / blobStats.totalBlobs : 0;
 
         const analytics: AnalyticsData = {
+          fileTypes,
+          storageLeaders,
           totalBlobs: blobStats.totalBlobs,
           totalSize: blobStats.totalStorage,
           totalSizeFormatted: this.formatBytes(blobStats.totalStorage),
           avgBlobSize: avgSize,
           avgBlobSizeFormatted: this.formatBytes(avgSize),
           uniqueOwners: blobStats.uniqueOwners,
-          fileTypeDistribution,
-          topUploaders,
           blobsPerHour: 0, // TODO: calculate from timestamps
           bytesPerHour: 0,
           bytesPerHourFormatted: '0 B/hr',

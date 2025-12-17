@@ -242,6 +242,8 @@ export async function getAnalyticsData(
         totalBlobs: 0,
         totalSize: 0,
         totalSizeFormatted: '0 B',
+        avgBlobSize: 0,
+        avgBlobSizeFormatted: '0 B',
         uniqueOwners: 0,
         blobsPerHour: 0,
         bytesPerHour: 0,
