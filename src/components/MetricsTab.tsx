@@ -69,185 +69,141 @@ function AnimatedCounter({
   )
 }
 
-// Donut chart component using canvas - renders a perfect circle
+// SVG Donut chart - SVG maintains perfect aspect ratio unlike canvas
 function DonutChart({
   data,
-  size = 180
+  size = 150
 }: {
   data: Array<{ label: string; value: number; color: string }>
   size?: number
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    // High DPI canvas setup - scale internal resolution but keep visual size fixed
-    const dpr = window.devicePixelRatio || 1
-    const internalSize = size * dpr
-
-    // Only update canvas dimensions if they changed (prevents flicker)
-    if (canvas.width !== internalSize || canvas.height !== internalSize) {
-      canvas.width = internalSize
-      canvas.height = internalSize
-    }
-
-    // Reset transform and scale for DPI
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-
-    const centerX = size / 2
-    const centerY = size / 2
-    const outerRadius = size / 2 - 8
-    const innerRadius = outerRadius * 0.55
-
-    const total = data.reduce((sum, d) => sum + d.value, 0)
-    if (total === 0) {
-      // Draw empty state
-      ctx.clearRect(0, 0, size, size)
-      ctx.beginPath()
-      ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2)
-      ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true)
-      ctx.closePath()
-      ctx.fillStyle = '#3a3a4a'
-      ctx.fill()
-      return
-    }
-
-    ctx.clearRect(0, 0, size, size)
-
-    let startAngle = -Math.PI / 2 // Start from top
-
-    data.forEach((segment, index) => {
-      const sliceAngle = (segment.value / total) * 2 * Math.PI
-      const isHovered = hoveredSegment === index
-      const radius = isHovered ? outerRadius + 4 : outerRadius
-
-      ctx.beginPath()
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle)
-      ctx.arc(centerX, centerY, innerRadius, startAngle + sliceAngle, startAngle, true)
-      ctx.closePath()
-
-      ctx.fillStyle = segment.color
-      ctx.globalAlpha = isHovered ? 1 : 0.9
-      ctx.fill()
-
-      // Add subtle border between segments
-      ctx.strokeStyle = '#1a1a2e'
-      ctx.lineWidth = 2
-      ctx.stroke()
-
-      startAngle += sliceAngle
-    })
-
-    ctx.globalAlpha = 1
-  }, [data, size, hoveredSegment])
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = size / rect.width
-    const scaleY = size / rect.height
-    const x = (e.clientX - rect.left) * scaleX - size / 2
-    const y = (e.clientY - rect.top) * scaleY - size / 2
-    const distance = Math.sqrt(x * x + y * y)
-    const outerRadius = size / 2 - 8
-    const innerRadius = outerRadius * 0.55
-
-    if (distance < innerRadius || distance > outerRadius + 8) {
-      setHoveredSegment(null)
-      return
-    }
-
-    let angle = Math.atan2(y, x) + Math.PI / 2
-    if (angle < 0) angle += 2 * Math.PI
-
-    const total = data.reduce((sum, d) => sum + d.value, 0)
-    let cumulative = 0
-
-    for (let i = 0; i < data.length; i++) {
-      cumulative += data[i].value / total
-      if (angle / (2 * Math.PI) <= cumulative) {
-        setHoveredSegment(i)
-        return
-      }
-    }
-  }
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   const total = data.reduce((sum, d) => sum + d.value, 0)
+  const centerX = size / 2
+  const centerY = size / 2
+  const outerRadius = size / 2 - 4
+  const innerRadius = outerRadius * 0.6
+
+  // Generate SVG arc paths
+  const createArcPath = (startAngle: number, endAngle: number, outer: number, inner: number) => {
+    const startOuter = {
+      x: centerX + outer * Math.cos(startAngle),
+      y: centerY + outer * Math.sin(startAngle)
+    }
+    const endOuter = {
+      x: centerX + outer * Math.cos(endAngle),
+      y: centerY + outer * Math.sin(endAngle)
+    }
+    const startInner = {
+      x: centerX + inner * Math.cos(endAngle),
+      y: centerY + inner * Math.sin(endAngle)
+    }
+    const endInner = {
+      x: centerX + inner * Math.cos(startAngle),
+      y: centerY + inner * Math.sin(startAngle)
+    }
+
+    const largeArc = endAngle - startAngle > Math.PI ? 1 : 0
+
+    return `M ${startOuter.x} ${startOuter.y}
+            A ${outer} ${outer} 0 ${largeArc} 1 ${endOuter.x} ${endOuter.y}
+            L ${startInner.x} ${startInner.y}
+            A ${inner} ${inner} 0 ${largeArc} 0 ${endInner.x} ${endInner.y}
+            Z`
+  }
+
+  // Build segments
+  const segments: Array<{ path: string; color: string; index: number }> = []
+  let currentAngle = -Math.PI / 2 // Start from top
+
+  if (total > 0) {
+    data.forEach((item, index) => {
+      const sliceAngle = (item.value / total) * 2 * Math.PI
+      if (sliceAngle > 0.001) { // Skip tiny segments
+        const isHovered = hoveredIndex === index
+        const r = isHovered ? outerRadius + 3 : outerRadius
+        segments.push({
+          path: createArcPath(currentAngle, currentAngle + sliceAngle, r, innerRadius),
+          color: item.color,
+          index
+        })
+      }
+      currentAngle += sliceAngle
+    })
+  }
 
   return (
     <div style={{
-      position: 'relative',
-      width: `${size}px`,
-      height: `${size}px`,
-      minWidth: `${size}px`,
-      minHeight: `${size}px`,
-      maxWidth: `${size}px`,
-      maxHeight: `${size}px`,
+      width: size,
+      height: size,
       flexShrink: 0,
-      flexGrow: 0,
+      position: 'relative'
     }}>
-      <canvas
-        ref={canvasRef}
+      <svg
         width={size}
         height={size}
-        style={{
-          display: 'block',
-          cursor: 'pointer',
-          width: `${size}px`,
-          height: `${size}px`,
-        }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredSegment(null)}
-      />
-      {/* Center label - show hovered or total */}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ display: 'block' }}
+      >
+        {/* Empty state */}
+        {total === 0 && (
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={outerRadius}
+            fill="none"
+            stroke="#3a3a4a"
+            strokeWidth={outerRadius - innerRadius}
+          />
+        )}
+
+        {/* Segments */}
+        {segments.map((seg) => (
+          <path
+            key={seg.index}
+            d={seg.path}
+            fill={seg.color}
+            opacity={hoveredIndex === seg.index ? 1 : 0.85}
+            stroke="#1a1a2e"
+            strokeWidth={1}
+            style={{ cursor: 'pointer', transition: 'opacity 0.15s' }}
+            onMouseEnter={() => setHoveredIndex(seg.index)}
+            onMouseLeave={() => setHoveredIndex(null)}
+          />
+        ))}
+      </svg>
+
+      {/* Center text */}
       <div style={{
         position: 'absolute',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         textAlign: 'center',
-        pointerEvents: 'none',
-        width: `${size * 0.4}px`
+        pointerEvents: 'none'
       }}>
-        {hoveredSegment !== null && data[hoveredSegment] ? (
+        {hoveredIndex !== null && data[hoveredIndex] ? (
           <>
             <div style={{
-              color: data[hoveredSegment].color,
+              color: data[hoveredIndex].color,
               fontWeight: 700,
-              fontSize: '0.85rem',
+              fontSize: '0.75rem',
               textTransform: 'capitalize'
             }}>
-              {data[hoveredSegment].label}
+              {data[hoveredIndex].label}
             </div>
-            <div style={{
-              color: 'var(--foreground2)',
-              fontSize: '0.7rem'
-            }}>
-              {((data[hoveredSegment].value / total) * 100).toFixed(1)}%
+            <div style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>
+              {((data[hoveredIndex].value / total) * 100).toFixed(0)}%
             </div>
           </>
         ) : (
           <>
-            <div style={{
-              color: 'var(--foreground1)',
-              fontWeight: 700,
-              fontSize: '0.9rem'
-            }}>
+            <div style={{ color: 'var(--foreground1)', fontWeight: 700, fontSize: '0.8rem' }}>
               {total.toLocaleString()}
             </div>
-            <div style={{
-              color: 'var(--foreground2)',
-              fontSize: '0.65rem'
-            }}>
-              total files
+            <div style={{ color: 'var(--foreground2)', fontSize: '0.55rem' }}>
+              files
             </div>
           </>
         )}
@@ -537,35 +493,44 @@ export function MetricsTab() {
       </row>
 
       {/* File Types Distribution - Donut Chart + Leaderboard */}
-      <row gap-="1" style={{
+      <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: '1rem'
       }}>
         {/* Donut Chart Section */}
-        <column box-="round" shear-="top" pad-="1" gap-="0.75" style={{ overflow: 'hidden' }}>
-          <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.25rem' }}>
+        <div style={{
+          background: 'var(--background1)',
+          border: '1px solid var(--background2)',
+          borderRadius: '8px',
+          padding: '1rem'
+        }}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <span is-="badge" variant-="pink" cap-="ribbon slant-bottom">Storage by File Type</span>
-          </row>
-          <row gap-="1.5" style={{
-            justifyContent: 'flex-start',
+          </div>
+          <div style={{
+            display: 'flex',
             alignItems: 'center',
-            padding: '0.5rem',
-            flexWrap: 'nowrap',
-            overflow: 'hidden'
+            gap: '1.5rem'
           }}>
-            <DonutChart data={donutData} size={140} />
+            <DonutChart data={donutData} size={130} />
             <DonutLegend data={donutData} />
-          </row>
-        </column>
+          </div>
+        </div>
 
         {/* Top Storage Users */}
-        <column box-="round" shear-="top" pad-="1" gap-="0.5">
-          <row gap-="1" style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{
+          background: 'var(--background1)',
+          border: '1px solid var(--background2)',
+          borderRadius: '8px',
+          padding: '1rem'
+        }}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <span is-="badge" variant-="blue" cap-="ribbon slant-bottom">Top Storage Users</span>
-          </row>
+          </div>
           <StorageLeaderboard leaders={analytics.storageLeaders} />
-        </column>
-      </row>
+        </div>
+      </div>
 
       {/* Network Stats Footer */}
       <row gap-="1" style={{
