@@ -3,6 +3,7 @@ import type { DataService } from "./data-service";
 import type { FarmingService } from "./farming-service";
 import type { GitHubFarmingService } from "./github-farming";
 import { logger } from "./logger";
+import { resetFarmingStats } from "./db";
 
 export function createRouter(
   dataService: DataService,
@@ -184,6 +185,25 @@ export function createRouter(
     } catch (error) {
       logger.error({ error }, "Failed to force resync");
       res.status(500).json({ error: "Failed to force resync" });
+    }
+  });
+
+  /**
+   * POST /api/farming/reset-stats
+   * Reset farming stats after a network reset
+   * Keeps jobs active but zeroes out cumulative stats (waves, minted amounts)
+   */
+  router.post("/farming/reset-stats", async (req, res) => {
+    try {
+      logger.info("Farming stats reset requested via API");
+      const result = resetFarmingStats();
+      res.json({
+        message: "Farming stats reset complete",
+        ...result,
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to reset farming stats");
+      res.status(500).json({ error: "Failed to reset farming stats" });
     }
   });
 

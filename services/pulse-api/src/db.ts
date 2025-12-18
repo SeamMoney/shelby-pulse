@@ -480,6 +480,32 @@ export function resetDatabase(): void {
 }
 
 /**
+ * Reset farming stats after a network reset
+ * Keeps jobs active but zeroes out the cumulative stats
+ */
+export function resetFarmingStats(): { jobsReset: number; wavesDeleted: number } {
+  const db = getDatabase();
+
+  // Count jobs and waves before reset
+  const jobCount = (db.prepare('SELECT COUNT(*) as c FROM farming_jobs').get() as { c: number }).c;
+  const waveCount = (db.prepare('SELECT COUNT(*) as c FROM farming_waves').get() as { c: number }).c;
+
+  // Reset all job stats to 0 but keep them active
+  db.exec(`
+    UPDATE farming_jobs SET
+      total_minted = 0,
+      waves_completed = 0,
+      droplets_created = 0,
+      droplets_failed = 0,
+      last_wave_at = NULL;
+    DELETE FROM farming_waves;
+  `);
+
+  logger.info({ jobsReset: jobCount, wavesDeleted: waveCount }, 'Farming stats reset complete');
+  return { jobsReset: jobCount, wavesDeleted: waveCount };
+}
+
+/**
  * Run VACUUM to reclaim space and optimize
  */
 export function vacuumDatabase(): void {
