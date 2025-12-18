@@ -290,6 +290,17 @@ const EconomyTabComponent = () => {
     return `${address.slice(0, 6)}...${address.slice(-5)}`;
   };
 
+  // Format large transaction counts (no decimals conversion)
+  const formatTxCount = (count: number) => {
+    if (count >= 1_000_000) {
+      return `${(count / 1_000_000).toFixed(2)}M`;
+    }
+    if (count >= 1_000) {
+      return `${(count / 1_000).toFixed(2)}K`;
+    }
+    return count.toLocaleString();
+  };
+
   const formatAmount = (amount: number) => {
     // ShelbyUSD has 8 decimals, so convert from smallest units first
     const shelbyUSD = amount / 100_000_000;
@@ -372,7 +383,7 @@ const EconomyTabComponent = () => {
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>Total Txs</small>
             <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>
-              {data.allTimeStats.totalTransactions >= 10000 ? '10k+' : data.allTimeStats.totalTransactions.toLocaleString()}
+              {formatTxCount(data.allTimeStats.totalTransactions)}
             </span>
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
@@ -381,7 +392,7 @@ const EconomyTabComponent = () => {
           </column>
           <column gap-="0" style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden' }}>
             <small style={{ color: 'var(--foreground2)', fontSize: isDesktop ? '0.65rem' : '0.7rem', textTransform: 'uppercase' }}>24h Txs</small>
-            <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{data.volume.transferCount24h.toLocaleString()}</span>
+            <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.5rem', fontWeight: 700 }}>{formatTxCount(data.volume.transferCount24h)}</span>
           </column>
         </row>
       </column>
