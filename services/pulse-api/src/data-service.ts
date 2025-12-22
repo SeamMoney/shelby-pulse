@@ -6,7 +6,7 @@ import { getShelbyUSDLeaderboard, type LeaderboardEntry } from "./shelbyusd/lead
 import { get24hVolume, type VolumeData } from "./shelbyusd/volume";
 import { getMostActiveUsers, getBiggestSpenders, getRecentTransactions, clearActivityCache, type ActivityEntry, type SpenderEntry, type RecentTransaction } from "./shelbyusd/activity";
 import { getAllTimeStats, type AllTimeStats } from "./shelbyusd/all-time-stats";
-import { initDatabase, closeDatabase, getDatabaseStats, resetDatabase, getBlobSyncStats, getBlobStatsByType, getBlobStatsByOwner } from "./db";
+import { initDatabase, closeDatabase, getDatabaseStats, resetDatabase, getBlobSyncStats, getBlobStatsByType, getBlobStatsByOwner, getActivityBreakdown, get24hActivityStats, get24hBlobStats, getTopUploaders } from "./db";
 import { incrementalSync, fullSync, getSyncStatus, isInitialSyncComplete } from "./sync-service";
 import { incrementalBlobSync, getBlobSyncStatus } from "./blob-sync-service";
 import { getAnalyticsData, computeAnalyticsFromEvents, type AnalyticsData } from "./analytics-service";
@@ -30,6 +30,41 @@ export interface BlobData {
   version: string;
 }
 
+export interface NetworkActivityMetrics {
+  // Activity breakdown (for pie chart)
+  activityBreakdown: {
+    deposits: number;
+    withdrawals: number;
+    mints: number;
+    burns: number;
+    total: number;
+  };
+  // 24h ShelbyUSD activity stats
+  activity24h: {
+    uniqueWallets: number;
+    transactionCount: number;
+    totalVolume: number;
+    avgTxSize: number;
+  };
+  // 24h storage activity stats
+  storage24h: {
+    blobCount: number;
+    totalBytes: number;
+    uniqueUploaders: number;
+    avgBlobSize: number;
+  };
+  // Top uploaders by storage
+  topUploaders: Array<{
+    address: string;
+    addressShort: string;
+    blobCount: number;
+    totalBytes: number;
+    totalBytesFormatted: string;
+    avgBlobSize: number;
+    topFileType: string | null;
+  }>;
+}
+
 export interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
@@ -37,6 +72,7 @@ export interface EconomyData {
   mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
   recentTransactions: RecentTransaction[];
+  networkActivity: NetworkActivityMetrics;
   timestamp: number;
 }
 
@@ -344,6 +380,26 @@ export class DataService {
           getRecentTransactions(this.aptosClient, 20),
         ]);
 
+        // Get network activity metrics from local database (fast, no API calls)
+        const activityBreakdown = getActivityBreakdown();
+        const activity24h = get24hActivityStats();
+        const storage24h = get24hBlobStats();
+        const topUploadersRaw = getTopUploaders(10);
+
+        // Format top uploaders with human-readable values
+        const topUploaders = topUploadersRaw.map(uploader => ({
+          ...uploader,
+          addressShort: this.shortenAddress(uploader.address),
+          totalBytesFormatted: this.formatBytes(uploader.totalBytes),
+        }));
+
+        const networkActivity: NetworkActivityMetrics = {
+          activityBreakdown,
+          activity24h,
+          storage24h,
+          topUploaders,
+        };
+
         const economyData: EconomyData = {
           leaderboard,
           volume,
@@ -351,6 +407,7 @@ export class DataService {
           mostActive,
           topSpenders,
           recentTransactions,
+          networkActivity,
           timestamp: Date.now(),
         };
 

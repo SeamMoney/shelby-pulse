@@ -245,6 +245,37 @@ interface RecentTransaction {
   version: number;
 }
 
+interface NetworkActivityMetrics {
+  activityBreakdown: {
+    deposits: number;
+    withdrawals: number;
+    mints: number;
+    burns: number;
+    total: number;
+  };
+  activity24h: {
+    uniqueWallets: number;
+    transactionCount: number;
+    totalVolume: number;
+    avgTxSize: number;
+  };
+  storage24h: {
+    blobCount: number;
+    totalBytes: number;
+    uniqueUploaders: number;
+    avgBlobSize: number;
+  };
+  topUploaders: Array<{
+    address: string;
+    addressShort: string;
+    blobCount: number;
+    totalBytes: number;
+    totalBytesFormatted: string;
+    avgBlobSize: number;
+    topFileType: string | null;
+  }>;
+}
+
 interface EconomyData {
   leaderboard: LeaderboardEntry[];
   volume: VolumeData;
@@ -252,6 +283,7 @@ interface EconomyData {
   mostActive: ActivityEntry[];
   topSpenders: SpenderEntry[];
   recentTransactions: RecentTransaction[];
+  networkActivity?: NetworkActivityMetrics;
   timestamp: number;
 }
 
@@ -314,7 +346,26 @@ const EconomyTabComponent = () => {
     if (shelbyUSD >= 1) {
       return shelbyUSD.toFixed(2);
     }
-    return shelbyUSD.toFixed(4);
+    if (shelbyUSD >= 0.01) {
+      return shelbyUSD.toFixed(4);
+    }
+    if (shelbyUSD >= 0.0001) {
+      return shelbyUSD.toFixed(6);
+    }
+    // For very small amounts, show in scientific notation or raw units
+    if (shelbyUSD > 0) {
+      // Show raw units for clarity
+      return `${amount.toLocaleString()} units`;
+    }
+    return '0';
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
   };
 
   const getTransactionLabel = (type: RecentTransaction['type']) => {
@@ -400,6 +451,137 @@ const EconomyTabComponent = () => {
       {/* Farming Panels - Quick mode and Continuous mode */}
       <FarmingPanel />
       <ContinuousFarmingPanel />
+
+      {/* Network Activity Metrics */}
+      {data.networkActivity && (
+        <>
+          {/* 24h Activity Stats - Developer-focused metrics */}
+          <column box-="double" shear-="top" pad-={isDesktop ? "0.75" : "1"}>
+            <row gap-="1" align-="between" style={{ marginBottom: '0.5rem' }}>
+              <span is-="badge" variant-="accent" cap-="ribbon triangle">24H NETWORK ACTIVITY</span>
+              <span is-="badge" variant-="background2" cap-="round" size-="half">Developer Metrics</span>
+            </row>
+            <row style={{
+              display: 'grid',
+              gridTemplateColumns: isDesktop ? 'repeat(6, 1fr)' : 'repeat(3, 1fr)',
+              gap: isDesktop ? '0.5rem' : '0.75rem',
+              width: '100%',
+            }}>
+              <column gap-="0" style={{ textAlign: 'center' }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Active Wallets</small>
+                <span style={{ color: '#4A90E2', fontSize: isDesktop ? '1.1rem' : '1.3rem', fontWeight: 700 }}>
+                  {data.networkActivity.activity24h.uniqueWallets}
+                </span>
+              </column>
+              <column gap-="0" style={{ textAlign: 'center' }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Token Txs</small>
+                <span style={{ color: '#00C896', fontSize: isDesktop ? '1.1rem' : '1.3rem', fontWeight: 700 }}>
+                  {formatTxCount(data.networkActivity.activity24h.transactionCount)}
+                </span>
+              </column>
+              <column gap-="0" style={{ textAlign: 'center' }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Avg Tx Size</small>
+                <span style={{ color: '#FFA500', fontSize: isDesktop ? '1.1rem' : '1.3rem', fontWeight: 700 }}>
+                  {formatAmount(data.networkActivity.activity24h.avgTxSize)}
+                </span>
+              </column>
+              <column gap-="0" style={{ textAlign: 'center' }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Blobs Uploaded</small>
+                <span style={{ color: '#FF1493', fontSize: isDesktop ? '1.1rem' : '1.3rem', fontWeight: 700 }}>
+                  {data.networkActivity.storage24h.blobCount}
+                </span>
+              </column>
+              <column gap-="0" style={{ textAlign: 'center' }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Storage Used</small>
+                <span style={{ color: '#9B59B6', fontSize: isDesktop ? '1.1rem' : '1.3rem', fontWeight: 700 }}>
+                  {formatBytes(data.networkActivity.storage24h.totalBytes)}
+                </span>
+              </column>
+              <column gap-="0" style={{ textAlign: 'center' }}>
+                <small style={{ color: 'var(--foreground2)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Uploaders</small>
+                <span style={{ color: '#E74C3C', fontSize: isDesktop ? '1.1rem' : '1.3rem', fontWeight: 700 }}>
+                  {data.networkActivity.storage24h.uniqueUploaders}
+                </span>
+              </column>
+            </row>
+          </column>
+
+          {/* Activity Breakdown and Top Uploaders */}
+          <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '1rem', flexDirection: 'column' }}>
+            {/* Activity Breakdown */}
+            <column box-="round" shear-="top" pad-={isDesktop ? "0.5" : "0.75"} gap-="0.5">
+              <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
+                <span is-="badge" variant-="blue" cap-="slant-bottom triangle" size-={isDesktop ? "half" : undefined}>Transaction Types</span>
+                <span is-="badge" variant-="background2" cap-="round" size-="half">All-Time</span>
+              </row>
+              <column gap-="0.25" style={{ fontSize: '0.8rem' }}>
+                {[
+                  { label: 'Mints', value: data.networkActivity.activityBreakdown.mints, color: '#00C896', icon: '✨' },
+                  { label: 'Deposits', value: data.networkActivity.activityBreakdown.deposits, color: '#4A90E2', icon: '↓' },
+                  { label: 'Withdrawals', value: data.networkActivity.activityBreakdown.withdrawals, color: '#FFA500', icon: '↑' },
+                  { label: 'Burns', value: data.networkActivity.activityBreakdown.burns, color: '#FF1493', icon: '🔥' },
+                ].map(({ label, value, color, icon }) => {
+                  const total = data.networkActivity!.activityBreakdown.total;
+                  const percentage = total > 0 ? (value / total * 100) : 0;
+                  return (
+                    <row key={label} style={{ padding: '0.25rem 0.5rem', gap: '0.5rem', alignItems: 'center' }}>
+                      <span style={{ color, minWidth: '1.5rem' }}>{icon}</span>
+                      <span style={{ color: 'var(--foreground)', minWidth: '5rem' }}>{label}</span>
+                      <span style={{ flex: 1, height: '6px', background: 'var(--background2)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <span style={{ display: 'block', width: `${percentage}%`, height: '100%', background: color, borderRadius: '3px' }} />
+                      </span>
+                      <span style={{ color, fontWeight: 600, minWidth: '3rem', textAlign: 'right' }}>
+                        {formatTxCount(value)}
+                      </span>
+                      <span style={{ color: 'var(--foreground2)', fontSize: '0.7rem', minWidth: '3rem', textAlign: 'right' }}>
+                        {percentage.toFixed(1)}%
+                      </span>
+                    </row>
+                  );
+                })}
+              </column>
+            </column>
+
+            {/* Top Uploaders */}
+            <column box-="double round" shear-="top" pad-={isDesktop ? "0.5" : "0.75"} gap-="0.5">
+              <row gap-="0.5" style={{ marginBottom: '0.25rem' }}>
+                <span is-="badge" variant-="pink" cap-="ribbon slant-top" size-={isDesktop ? "half" : undefined}>📦 Top Uploaders</span>
+                <span is-="badge" variant-="background2" cap-="round" size-="half">by storage</span>
+              </row>
+              <column gap-="0" style={{ fontSize: isDesktop ? '0.7rem' : '0.8rem', fontFamily: 'monospace' }}>
+                {data.networkActivity.topUploaders.slice(0, 5).map((uploader, i) => (
+                  <column key={`uploader-${i}-${uploader.address}`} gap-="0">
+                    <row style={{
+                      padding: isDesktop ? '0.25rem 0.5rem' : '0.35rem 0.5rem',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                    }}>
+                      <span style={{ color: 'var(--foreground2)', minWidth: '1.2rem' }}>{i + 1}.</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {uploader.addressShort}
+                      </span>
+                      <span style={{ color: '#9B59B6', fontWeight: 600 }}>
+                        {uploader.totalBytesFormatted}
+                      </span>
+                      <span style={{ color: 'var(--foreground2)', fontSize: '0.65rem' }}>
+                        {uploader.blobCount} blobs
+                      </span>
+                      {uploader.topFileType && (
+                        <span is-="badge" variant-="background2" cap-="round" size-="half" style={{ fontSize: '0.6rem' }}>
+                          {uploader.topFileType}
+                        </span>
+                      )}
+                    </row>
+                    {i < 4 && (
+                      <div style={{ height: '1px', background: 'var(--background2)', margin: '0 0.5rem' }} />
+                    )}
+                  </column>
+                ))}
+              </column>
+            </column>
+          </row>
+        </>
+      )}
 
       {/* 2-column layout on desktop */}
       <row style={{ display: isDesktop ? 'grid' : 'flex', gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr', gap: isDesktop ? '0.5rem' : '2rem', flexDirection: 'column' }}>

@@ -1009,3 +1009,172 @@ export function getBlobSyncStats(): {
     lastVersion: stats.last_version || 0,
   };
 }
+
+// ============================================================================
+// Enhanced Network Activity Metrics
+// ============================================================================
+
+/**
+ * Get activity breakdown by type (for pie chart / percentages)
+ */
+export function getActivityBreakdown(): {
+  deposits: number;
+  withdrawals: number;
+  mints: number;
+  burns: number;
+  total: number;
+} {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT type, COUNT(*) as count
+    FROM shelbyusd_activities
+    GROUP BY type
+  `).all() as Array<{ type: string; count: number }>;
+
+  const breakdown = {
+    deposits: 0,
+    withdrawals: 0,
+    mints: 0,
+    burns: 0,
+    total: 0,
+  };
+
+  for (const row of rows) {
+    switch (row.type) {
+      case 'deposit':
+        breakdown.deposits = row.count;
+        break;
+      case 'withdraw':
+        breakdown.withdrawals = row.count;
+        break;
+      case 'mint':
+        breakdown.mints = row.count;
+        break;
+      case 'burn':
+        breakdown.burns = row.count;
+        break;
+    }
+    breakdown.total += row.count;
+  }
+
+  return breakdown;
+}
+
+/**
+ * Get 24h activity stats
+ */
+export function get24hActivityStats(): {
+  uniqueWallets: number;
+  transactionCount: number;
+  totalVolume: number;
+  avgTxSize: number;
+} {
+  const db = getDatabase();
+  const now = Date.now();
+  const dayAgo = now - 24 * 60 * 60 * 1000;
+
+  const row = db.prepare(`
+    SELECT
+      COUNT(DISTINCT address) as unique_wallets,
+      COUNT(*) as tx_count,
+      COALESCE(SUM(amount), 0) as total_volume
+    FROM shelbyusd_activities
+    WHERE timestamp >= ?
+  `).get(dayAgo) as any;
+
+  const txCount = row?.tx_count || 0;
+  const totalVolume = row?.total_volume || 0;
+
+  return {
+    uniqueWallets: row?.unique_wallets || 0,
+    transactionCount: txCount,
+    totalVolume,
+    avgTxSize: txCount > 0 ? totalVolume / txCount : 0,
+  };
+}
+
+/**
+ * Get 24h blob/storage stats
+ */
+export function get24hBlobStats(): {
+  blobCount: number;
+  totalBytes: number;
+  uniqueUploaders: number;
+  avgBlobSize: number;
+} {
+  const db = getDatabase();
+  const now = Date.now();
+  const dayAgo = now - 24 * 60 * 60 * 1000;
+
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) as blob_count,
+      COALESCE(SUM(size_bytes), 0) as total_bytes,
+      COUNT(DISTINCT owner_address) as unique_uploaders
+    FROM blob_events
+    WHERE creation_timestamp >= ?
+  `).get(dayAgo) as any;
+
+  const blobCount = row?.blob_count || 0;
+  const totalBytes = row?.total_bytes || 0;
+
+  return {
+    blobCount,
+    totalBytes,
+    uniqueUploaders: row?.unique_uploaders || 0,
+    avgBlobSize: blobCount > 0 ? totalBytes / blobCount : 0,
+  };
+}
+
+/**
+ * Get top uploaders by storage used
+ */
+export function getTopUploaders(limit: number = 10): Array<{
+  address: string;
+  blobCount: number;
+  totalBytes: number;
+  avgBlobSize: number;
+  topFileType: string | null;
+}> {
+  const db = getDatabase();
+
+  // Get top uploaders by total bytes
+  const uploaders = db.prepare(`
+    SELECT
+      owner_address as address,
+      COUNT(*) as blob_count,
+      SUM(size_bytes) as total_bytes
+    FROM blob_events
+    GROUP BY owner_address
+    ORDER BY total_bytes DESC
+    LIMIT ?
+  `).all(limit) as Array<{ address: string; blob_count: number; total_bytes: number }>;
+
+  // For each uploader, get their most common file type
+  return uploaders.map(uploader => {
+    const fileType = db.prepare(`
+      SELECT
+        CASE
+          WHEN blob_name LIKE '%.json' THEN 'json'
+          WHEN blob_name LIKE '%.png' OR blob_name LIKE '%.jpg' OR blob_name LIKE '%.jpeg' OR blob_name LIKE '%.gif' THEN 'image'
+          WHEN blob_name LIKE '%.mp4' OR blob_name LIKE '%.webm' THEN 'video'
+          WHEN blob_name LIKE '%.txt' OR blob_name LIKE '%.md' THEN 'text'
+          ELSE 'other'
+        END as file_type,
+        COUNT(*) as count
+      FROM blob_events
+      WHERE owner_address = ?
+      GROUP BY file_type
+      ORDER BY count DESC
+      LIMIT 1
+    `).get(uploader.address) as { file_type: string; count: number } | undefined;
+
+    return {
+      address: uploader.address,
+      blobCount: uploader.blob_count,
+      totalBytes: uploader.total_bytes,
+      avgBlobSize: uploader.blob_count > 0 ? uploader.total_bytes / uploader.blob_count : 0,
+      topFileType: fileType?.file_type || null,
+    };
+  });
+}
