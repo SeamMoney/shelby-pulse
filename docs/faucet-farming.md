@@ -115,9 +115,37 @@ function resetDailyCountsIfNeeded(wallet: WalletInfo): void {
 | 10 wallets | 5,000 ShelbyUSD/day |
 | 100 wallets | 50,000 ShelbyUSD/day |
 
-### Limitation
+### Critical Limitation: Untransferable Tokens
 
-This method is still constrained by the **single IP's 50 requests/day limit** when the faucet tracks IP + wallet combinations. The next methods solve this.
+**ShelbyUSD has the Untransferable flag**, meaning tokens cannot be moved between wallets. This creates a significant limitation for multi-wallet farming:
+
+| Aspect | Impact |
+|--------|--------|
+| Token aggregation | **Not possible** - each wallet's tokens are permanently stuck |
+| Leaderboard impact | Only the connected wallet's balance is shown |
+| Practical value | Limited unless transfers become enabled in the future |
+
+**Example scenario:**
+- User generates 100 wallets, each farms 500 ShelbyUSD
+- Total farmed: 50,000 ShelbyUSD across all wallets
+- User connects Wallet A to the app
+- Leaderboard shows: **500 ShelbyUSD** (only Wallet A's balance)
+- The other 49,500 ShelbyUSD in Wallets B-Z is invisible and inaccessible
+
+The code acknowledges this limitation:
+```typescript
+interface WalletsData {
+  wallets: WalletInfo[];
+  mainWallet?: string; // For future aggregation if transfers become possible
+}
+```
+
+**Bottom line:** Multi-wallet farming is only useful if:
+1. The Untransferable flag gets removed in the future
+2. Per-wallet utility matters (voting, staking, access)
+3. You're testing/development scenarios
+
+For leaderboard purposes, use Cloud Droplet or CI/CD farming instead (they farm to a single target wallet).
 
 ---
 
@@ -128,6 +156,22 @@ This method is still constrained by the **single IP's 50 requests/day limit** wh
 - `services/pulse-api/src/farming-service.ts` - Main orchestration
 - `services/pulse-api/src/farming-scheduler.ts` - Wave deployment
 - `services/pulse-api/src/farming-constants.ts` - Configuration & scripts
+
+### Key Difference: Single Target Wallet
+
+Unlike multi-wallet farming, cloud droplet farming sends **all tokens to a single user-specified wallet**. The droplets don't have their own wallets - they simply make HTTP requests to the faucet asking it to fund the target address:
+
+```typescript
+export function generateFarmingScript(walletAddress: string, ...) {
+  return `...
+WALLET="${walletAddress}"
+curl ... -d "{\"address\":\"$WALLET\",\"amount\":$AMOUNT}"
+```
+
+This means:
+- All 15 droplets per wave fund the **same wallet**
+- The leaderboard accurately reflects the user's total farmed amount
+- No token aggregation issues since everything goes to one place
 
 ### Architecture Overview
 
