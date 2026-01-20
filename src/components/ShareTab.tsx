@@ -12,6 +12,7 @@ export const ShareTab = memo(() => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string>('Uploading...');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,27 +30,58 @@ export const ShareTab = memo(() => {
     setIsDragging(false);
   }, []);
 
-  const uploadFile = async (file: File): Promise<UploadedFile> => {
-    const formData = new FormData();
-    formData.append('file', file);
+  const uploadFile = async (file: File, onProgress: (percent: number) => void): Promise<UploadedFile> => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const response = await fetch('/api/share/upload', {
-      method: 'POST',
-      body: formData,
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({
+              name: file.name,
+              size: file.size,
+              url: data.url,
+              uploadedAt: new Date(),
+            });
+          } catch {
+            reject(new Error('Invalid response from server'));
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            reject(new Error(errorData.error || `Upload failed (${xhr.status})`));
+          } catch {
+            reject(new Error(`Upload failed (${xhr.status})`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error - check your connection'));
+      };
+
+      xhr.ontimeout = () => {
+        reject(new Error('Upload timed out'));
+      };
+
+      // 10 minute timeout for large files
+      xhr.timeout = 10 * 60 * 1000;
+
+      xhr.open('POST', '/api/share/upload');
+      xhr.send(formData);
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Upload failed');
-    }
-
-    const data = await response.json();
-    return {
-      name: file.name,
-      size: file.size,
-      url: data.url,
-      uploadedAt: new Date(),
-    };
   };
 
   const handleFiles = useCallback(async (files: FileList | null) => {
@@ -58,6 +90,7 @@ export const ShareTab = memo(() => {
     setError(null);
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadStatus('Uploading...');
 
     const newFiles: UploadedFile[] = [];
     const totalFiles = files.length;
@@ -72,7 +105,18 @@ export const ShareTab = memo(() => {
       }
 
       try {
-        const uploaded = await uploadFile(file);
+        setUploadStatus(`Uploading ${file.name}...`);
+        const uploaded = await uploadFile(file, (percent) => {
+          // For multiple files, show progress as: completed files + current file progress
+          const baseProgress = (i / totalFiles) * 100;
+          const fileProgress = (percent / totalFiles);
+          setUploadProgress(Math.round(baseProgress + fileProgress));
+
+          // When upload to our server completes, show processing status
+          if (percent >= 100) {
+            setUploadStatus(`Processing on Shelby... (this may take a while for large files)`);
+          }
+        });
         newFiles.push(uploaded);
         setUploadProgress(((i + 1) / totalFiles) * 100);
         showToast({ type: 'success', message: `Uploaded ${file.name}` });
@@ -220,7 +264,7 @@ export const ShareTab = memo(() => {
         {isUploading ? (
           <column gap-="1">
             <span style={{ color: 'var(--foreground0)', fontSize: '1.1rem' }}>
-              Uploading...
+              {uploadStatus}
             </span>
             <div style={{
               width: '200px',
