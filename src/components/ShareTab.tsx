@@ -98,13 +98,21 @@ export const ShareTab = memo(() => {
     for (let i = 0; i < totalFiles; i++) {
       const file = files[i];
 
-      // Check file size (max 50MB for web uploads due to proxy timeout)
-      if (file.size > 50 * 1024 * 1024) {
+      // Check file size (max 2GB)
+      if (file.size > 2 * 1024 * 1024 * 1024) {
         showToast({
           type: 'error',
-          message: `${file.name} is too large for web upload (max 50MB). Use CLI: npm run shelby:upload`
+          message: `${file.name} is too large (max 2GB)`
         });
         continue;
+      }
+
+      // Warn for large files that may timeout
+      if (file.size > 50 * 1024 * 1024) {
+        showToast({
+          type: 'info',
+          message: `Large file - upload may take a while...`
+        });
       }
 
       try {
@@ -302,7 +310,7 @@ export const ShareTab = memo(() => {
               or click to browse
             </span>
             <span style={{ color: 'var(--foreground2)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-              Images, Videos, PDFs (max 50MB)
+              Images, Videos, PDFs (max 2GB)
             </span>
           </column>
         )}
