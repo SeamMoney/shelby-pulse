@@ -11,7 +11,7 @@ import { resetFarmingStats } from "./db";
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB max (for videos)
+    fileSize: 500 * 1024 * 1024, // 500MB max (for videos)
     files: 5, // Max 5 files per request
   },
   fileFilter: (req, file, cb) => {
@@ -604,7 +604,7 @@ export function createRouter(
     res.json({
       available: uploadService?.isAvailable() ?? false,
       uploaderAddress: uploadService?.getAddress() ?? null,
-      maxFileSize: "100MB",
+      maxFileSize: "500MB",
       allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif", "mp4", "webm", "mov", "avi", "mkv", "pdf"],
       expiration: "1 year",
     });
