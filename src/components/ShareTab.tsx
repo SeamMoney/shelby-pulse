@@ -65,9 +65,9 @@ export const ShareTab = memo(() => {
     for (let i = 0; i < totalFiles; i++) {
       const file = files[i];
 
-      // Check file size (max 500MB)
-      if (file.size > 500 * 1024 * 1024) {
-        showToast({ type: 'error', message: `${file.name} is too large (max 500MB)` });
+      // Check file size (max 2GB)
+      if (file.size > 2 * 1024 * 1024 * 1024) {
+        showToast({ type: 'error', message: `${file.name} is too large (max 2GB)` });
         continue;
       }
 
@@ -255,7 +255,7 @@ export const ShareTab = memo(() => {
               or click to browse
             </span>
             <span style={{ color: 'var(--foreground2)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-              Images, Videos, PDFs (max 500MB)
+              Images, Videos, PDFs (max 2GB)
             </span>
           </column>
         )}
