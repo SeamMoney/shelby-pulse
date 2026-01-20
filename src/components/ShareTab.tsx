@@ -264,7 +264,7 @@ export const ShareTab = memo(() => {
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,video/*,.svg"
+          accept="image/*,video/*,.svg,.pdf,application/pdf"
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />

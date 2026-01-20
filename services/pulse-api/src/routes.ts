@@ -31,6 +31,8 @@ const upload = multer({
       "video/quicktime",
       "video/x-msvideo",
       "video/x-matroska",
+      // Documents
+      "application/pdf",
     ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -603,7 +605,7 @@ export function createRouter(
       available: uploadService?.isAvailable() ?? false,
       uploaderAddress: uploadService?.getAddress() ?? null,
       maxFileSize: "100MB",
-      allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif", "mp4", "webm", "mov", "avi", "mkv"],
+      allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif", "mp4", "webm", "mov", "avi", "mkv", "pdf"],
       expiration: "1 year",
     });
   });
