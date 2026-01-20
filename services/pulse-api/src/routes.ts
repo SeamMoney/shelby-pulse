@@ -11,12 +11,13 @@ import { resetFarmingStats } from "./db";
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max
+    fileSize: 100 * 1024 * 1024, // 100MB max (for videos)
     files: 5, // Max 5 files per request
   },
   fileFilter: (req, file, cb) => {
-    // Allow images and SVG
+    // Allow images, videos, and common file types
     const allowedTypes = [
+      // Images
       "image/png",
       "image/jpeg",
       "image/gif",
@@ -24,6 +25,12 @@ const upload = multer({
       "image/svg+xml",
       "image/x-icon",
       "image/avif",
+      // Videos
+      "video/mp4",
+      "video/webm",
+      "video/quicktime",
+      "video/x-msvideo",
+      "video/x-matroska",
     ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -595,8 +602,8 @@ export function createRouter(
     res.json({
       available: uploadService?.isAvailable() ?? false,
       uploaderAddress: uploadService?.getAddress() ?? null,
-      maxFileSize: "10MB",
-      allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif"],
+      maxFileSize: "100MB",
+      allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif", "mp4", "webm", "mov", "avi", "mkv"],
       expiration: "1 year",
     });
   });
