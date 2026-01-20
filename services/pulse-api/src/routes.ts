@@ -1,14 +1,43 @@
 import { Router } from "express";
+import multer from "multer";
 import type { DataService } from "./data-service";
 import type { FarmingService } from "./farming-service";
 import type { GitHubFarmingService } from "./github-farming";
+import type { UploadService } from "./upload-service";
 import { logger } from "./logger";
 import { resetFarmingStats } from "./db";
+
+// Configure multer for memory storage (no disk writes)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max
+    files: 5, // Max 5 files per request
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow images and SVG
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+      "image/x-icon",
+      "image/avif",
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} not allowed`));
+    }
+  },
+});
 
 export function createRouter(
   dataService: DataService,
   farmingService?: FarmingService,
-  githubFarmingService?: GitHubFarmingService
+  githubFarmingService?: GitHubFarmingService,
+  uploadService?: UploadService
 ): Router {
   const router = Router();
 
@@ -511,6 +540,64 @@ export function createRouter(
         waveIntervalMinutes: 15,
       },
       description: "Farming runs via GitHub Actions workflows, providing free compute with different IPs per job",
+    });
+  });
+
+  // ============================================
+  // SHARE/UPLOAD ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /api/share/upload
+   * Upload a file to Shelby (no wallet needed - server pays)
+   */
+  router.post("/share/upload", upload.single("file"), async (req, res) => {
+    if (!uploadService || !uploadService.isAvailable()) {
+      return res.status(503).json({
+        error: "Upload service not available",
+        message: "SHELBY_PRIVATE_KEY not configured",
+      });
+    }
+
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+
+      logger.info(
+        { filename: file.originalname, size: file.size },
+        "Received file for upload"
+      );
+
+      const result = await uploadService.uploadFile(file.buffer, file.originalname);
+
+      res.json({
+        success: true,
+        url: result.url,
+        blobName: result.blobName,
+        size: result.size,
+        expiresAt: result.expiresAt,
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to upload file");
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Upload failed",
+      });
+    }
+  });
+
+  /**
+   * GET /api/share/info
+   * Get info about the share/upload service
+   */
+  router.get("/share/info", (req, res) => {
+    res.json({
+      available: uploadService?.isAvailable() ?? false,
+      uploaderAddress: uploadService?.getAddress() ?? null,
+      maxFileSize: "10MB",
+      allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif"],
+      expiration: "1 year",
     });
   });
 

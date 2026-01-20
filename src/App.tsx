@@ -4,9 +4,10 @@ import { MetricsTab } from './components/MetricsTab'
 import { ProvidersTab } from './components/ProvidersTab'
 import { ActivityTab } from './components/ActivityTab'
 import { EconomyTab } from './components/EconomyTab'
+import { ShareTab } from './components/ShareTab'
 import { WalletButton } from './components/WalletButton'
 
-type Tab = 'activity' | 'metrics' | 'providers' | 'economy'
+type Tab = 'activity' | 'metrics' | 'providers' | 'economy' | 'share'
 
 interface NetworkStats {
   totalBlobs: number
@@ -159,6 +160,12 @@ function App() {
             >
               Providers
             </button>
+            <button
+              onClick={() => setActiveTab('share')}
+              className={activeTab === 'share' ? 'active' : ''}
+            >
+              Share
+            </button>
             {/* Wallet Button - Mobile only (as tab) */}
             {windowWidth < 768 && <WalletButton variant="tab" />}
           </row>
@@ -208,6 +215,7 @@ function App() {
           {activeTab === 'economy' && <EconomyTab />}
           {activeTab === 'metrics' && <MetricsTab />}
           {activeTab === 'providers' && <ProvidersTab />}
+          {activeTab === 'share' && <ShareTab />}
         </column>
       </column>
     </column>

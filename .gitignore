@@ -33,3 +33,4 @@ metrics
 artifacts
 data/cache
 .vercel
+.shelby-key cat .gitignore

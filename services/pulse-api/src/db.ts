@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { logger } from './logger';
 
 // Database instance (singleton)
@@ -16,7 +17,6 @@ export function initDatabase(): Database.Database {
   if (db) return db;
 
   // Ensure data directory exists
-  const fs = require('fs');
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
@@ -524,7 +524,6 @@ export function getDatabaseStats(): {
   dbSizeBytes: number;
 } {
   const db = getDatabase();
-  const fs = require('fs');
 
   const activityCount = (db.prepare('SELECT COUNT(*) as c FROM shelbyusd_activities').get() as { c: number }).c;
   const addressCount = (db.prepare('SELECT COUNT(*) as c FROM address_stats').get() as { c: number }).c;

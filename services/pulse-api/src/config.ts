@@ -19,6 +19,8 @@ const configSchema = z.object({
   // Cloud infrastructure API for farming nodes
   DO_API_TOKEN: z.string().optional().default(""),
   FARMING_WALLET_ADDRESS: z.string().optional().default(""),
+  // Private key for server-managed uploads (Shelby Share feature)
+  SHELBY_PRIVATE_KEY: z.string().optional().default(""),
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;

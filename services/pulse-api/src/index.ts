@@ -6,6 +6,7 @@ import { logger } from "./logger";
 import { DataService } from "./data-service";
 import { FarmingService } from "./farming-service";
 import { GitHubFarmingService } from "./github-farming";
+import { UploadService } from "./upload-service";
 import { createRouter } from "./routes";
 
 async function main() {
@@ -33,6 +34,23 @@ async function main() {
     logger.warn("GITHUB_TOKEN not set - continuous farming disabled");
   }
 
+  // Initialize Upload Service for Shelby Share feature
+  let uploadService: UploadService | undefined;
+  if (config.SHELBY_PRIVATE_KEY) {
+    uploadService = new UploadService(config.SHELBY_PRIVATE_KEY);
+    if (uploadService.isAvailable()) {
+      logger.info(
+        { address: uploadService.getAddress() },
+        "Upload service initialized for Shelby Share"
+      );
+    } else {
+      logger.warn("Upload service failed to initialize");
+      uploadService = undefined;
+    }
+  } else {
+    logger.warn("SHELBY_PRIVATE_KEY not set - Shelby Share disabled");
+  }
+
   // Middleware
   app.use(cors());
   app.use(express.json());
@@ -56,7 +74,7 @@ async function main() {
   });
 
   // Routes
-  app.use("/api", createRouter(dataService, farmingService, githubFarmingService));
+  app.use("/api", createRouter(dataService, farmingService, githubFarmingService, uploadService));
 
   // Root endpoint
   app.get("/", (req, res) => {
@@ -85,8 +103,13 @@ async function main() {
           history: "GET /api/farming/continuous/history?walletAddress=0x...",
           regions: "GET /api/farming/continuous/regions",
         },
+        share: {
+          upload: "POST /api/share/upload (multipart/form-data with 'file' field)",
+          info: "GET /api/share/info",
+        },
       },
       farmingEnabled: !!farmingService,
+      shareEnabled: !!uploadService,
     });
   });
 
@@ -126,6 +149,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  logger.error({ error }, "Fatal API error");
+  logger.error({ err: error, message: error?.message, stack: error?.stack }, "Fatal API error");
+  console.error("Fatal error:", error);
   process.exit(1);
 });
