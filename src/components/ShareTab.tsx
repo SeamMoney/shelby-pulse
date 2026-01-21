@@ -38,10 +38,12 @@ export const ShareTab = memo(() => {
 
       const xhr = new XMLHttpRequest();
 
-      // Track upload progress - show full 0-100% range
+      // Track upload progress - cap at 99% until server responds
+      // This ensures toast appears exactly when we hit 100%
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
+          // Cap at 99% - we'll set 100% when server confirms
+          const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
           onProgress(percent);
         }
       };
@@ -98,13 +100,6 @@ export const ShareTab = memo(() => {
     setUploadProgress(0);
     setUploadStatus('Uploading...');
 
-    // For iOS Safari: open window synchronously from user gesture, update URL later
-    // This prevents popup blockers from blocking the window.open() call
-    let viewerWindow: Window | null = null;
-    if (files.length === 1) {
-      viewerWindow = window.open('about:blank', '_blank');
-    }
-
     const newFiles: UploadedFile[] = [];
     const totalFiles = files.length;
 
@@ -140,22 +135,10 @@ export const ShareTab = memo(() => {
 
         newFiles.push(uploaded);
 
-        // Show 100% and toast immediately
+        // Show 100% and toast at the exact same moment
         setUploadProgress(100);
         showToast({ type: 'success', message: `Uploaded ${file.name}` });
-
-        // Navigate the pre-opened window to the viewer URL (for single file)
-        if (viewerWindow && totalFiles === 1) {
-          viewerWindow.location.href = uploaded.viewerUrl;
-        } else if (totalFiles > 1) {
-          // For multiple files, open each in new tab
-          window.open(uploaded.viewerUrl, '_blank');
-        }
       } catch (err) {
-        // Close the blank window if upload failed
-        if (viewerWindow) {
-          viewerWindow.close();
-        }
         showToast({
           type: 'error',
           message: `Failed to upload ${file.name}: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -166,7 +149,7 @@ export const ShareTab = memo(() => {
     setUploadedFiles(prev => [...newFiles, ...prev]);
 
     // Brief delay before resetting to show 100% state
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 600));
     setIsUploading(false);
     setUploadProgress(0);
     setUploadStatus('Uploading...');
@@ -282,13 +265,24 @@ export const ShareTab = memo(() => {
             <span style={{ color: 'var(--foreground0)', fontSize: '0.9rem', textAlign: 'center' }}>
               {uploadStatus}
             </span>
-            <progress
-              is-="progress"
-              value={uploadProgress}
-              max={100}
-              variant-="pink"
-              style={{ width: '100%', margin: '0.5rem 0' }}
-            />
+            {/* Progress bar */}
+            <div style={{
+              width: '100%',
+              height: '12px',
+              background: 'var(--background2)',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              margin: '0.5rem 0',
+              border: '1px solid var(--background2)',
+            }}>
+              <div style={{
+                width: `${uploadProgress}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #F25D94 0%, #7D56F4 100%)',
+                borderRadius: '6px',
+                transition: 'width 0.2s ease-out',
+              }} />
+            </div>
             <span style={{ color: 'var(--foreground2)', fontSize: '0.85rem', textAlign: 'center' }}>
               {Math.round(uploadProgress)}%
             </span>
@@ -358,7 +352,7 @@ export const ShareTab = memo(() => {
                   padding: '0.75rem 1rem',
                 }}
               >
-                <row style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                <row style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                   <column gap-="0" style={{ flex: 1, minWidth: 0 }}>
                     <span style={{
                       color: 'var(--foreground0)',
@@ -373,27 +367,50 @@ export const ShareTab = memo(() => {
                       {formatFileSize(file.size)}
                     </span>
                   </column>
-                  <button
-                    is-="button"
-                    variant-="accent"
-                    size-="half"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(file.viewerUrl);
-                    }}
-                    style={{
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                    Copy Link
-                  </button>
+                  <row gap-="0.5" style={{ flexShrink: 0 }}>
+                    <a
+                      href={file.viewerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      is-="button"
+                      variant-="accent"
+                      size-="half"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                      View
+                    </a>
+                    <button
+                      is-="button"
+                      variant-="background2"
+                      size-="half"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyToClipboard(file.viewerUrl);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                      Copy
+                    </button>
+                  </row>
                 </row>
                 <div style={{
                   marginTop: '0.5rem',
