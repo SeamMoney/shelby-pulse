@@ -261,7 +261,7 @@ export const ShareTab = memo(() => {
           width: '80px',
           height: '80px',
           margin: '0 auto 1.5rem',
-          background: 'linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%)',
+          background: 'linear-gradient(135deg, #F25D94 0%, #7D56F4 100%)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -270,7 +270,6 @@ export const ShareTab = memo(() => {
             ? '0 0 40px rgba(242, 93, 148, 0.5)'
             : '0 4px 20px rgba(0, 0, 0, 0.3)',
           transition: 'all 0.3s ease',
-          overflow: 'hidden',
           zIndex: 1,
         }}>
           <svg
@@ -278,8 +277,8 @@ export const ShareTab = memo(() => {
             height="36"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="white"
-            strokeWidth="2"
+            stroke="#FFFFFF"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{
