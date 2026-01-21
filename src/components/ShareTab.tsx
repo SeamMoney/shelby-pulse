@@ -148,10 +148,13 @@ export const ShareTab = memo(() => {
       for (let i = 0; i < validFiles.length; i++) {
         const file = validFiles[i];
 
-        // Reset progress for each file
+        // Reset progress for each file - use functional updates to ensure state changes
         setCurrentFileIndex(i + 1);
         setCurrentFileName(file.name);
         setUploadProgress(0);
+
+        // Small delay to ensure UI updates before starting upload
+        await new Promise(r => setTimeout(r, 50));
 
         try {
           const uploaded = await uploadFile(file, sessionId, (percent) => {
@@ -163,15 +166,19 @@ export const ShareTab = memo(() => {
           newFiles.push(uploaded);
           showToast({ type: 'success', message: `Uploaded ${file.name}` });
 
-          // Small delay before next file
+          // Delay before next file to show 100% state
           if (i < validFiles.length - 1) {
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 400));
           }
         } catch (err) {
           showToast({
             type: 'error',
             message: `Failed: ${file.name}`
           });
+          // Still delay before next file on error
+          if (i < validFiles.length - 1) {
+            await new Promise(r => setTimeout(r, 300));
+          }
         }
       }
 
@@ -295,67 +302,71 @@ export const ShareTab = memo(() => {
           Upload
         </button>
 
-        {isUploading ? (
-          <div style={{ width: '100%', maxWidth: '320px', margin: '0 auto' }}>
-            {/* File counter */}
-            {totalFiles > 1 && (
-              <div style={{
-                color: 'var(--foreground2)',
-                fontSize: '0.75rem',
-                textAlign: 'center',
-                fontFamily: 'monospace',
-                marginBottom: '0.5rem',
-              }}>
-                File {currentFileIndex} of {totalFiles}
-              </div>
-            )}
+        {isUploading ? (() => {
+          // ASCII terminal progress bar
+          const barWidth = 20;
+          const filled = Math.round((uploadProgress / 100) * barWidth);
+          const empty = barWidth - filled;
+          const bar = '█'.repeat(filled) + '░'.repeat(empty);
 
-            {/* Current file name */}
-            <div style={{
-              color: 'var(--foreground0)',
-              fontSize: '0.85rem',
-              textAlign: 'center',
-              fontFamily: 'monospace',
-              marginBottom: '0.75rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              padding: '0 0.5rem',
-            }}>
-              {currentFileName}
-            </div>
-
-            {/* Big progress bar */}
+          return (
             <div style={{
               width: '100%',
-              height: '24px',
-              background: 'var(--background1)',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              border: '1px solid var(--background2)',
-              marginBottom: '0.5rem',
-            }}>
-              <div style={{
-                width: `${uploadProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #F25D94 0%, #7D56F4 100%)',
-                borderRadius: '12px',
-                transition: 'width 0.15s ease-out',
-              }} />
-            </div>
-
-            {/* Percentage */}
-            <div style={{
-              color: 'var(--foreground0)',
-              fontSize: '1rem',
-              textAlign: 'center',
+              maxWidth: '340px',
+              margin: '0 auto',
               fontFamily: 'monospace',
-              fontWeight: 600,
             }}>
-              {uploadProgress}%
+              {/* File counter */}
+              {totalFiles > 1 && (
+                <div style={{
+                  color: 'var(--foreground2)',
+                  fontSize: '0.8rem',
+                  textAlign: 'center',
+                  marginBottom: '0.5rem',
+                }}>
+                  [{currentFileIndex}/{totalFiles}]
+                </div>
+              )}
+
+              {/* Current file name */}
+              <div style={{
+                color: 'var(--foreground0)',
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                marginBottom: '0.75rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {currentFileName}
+              </div>
+
+              {/* Terminal ASCII progress bar */}
+              <div style={{
+                background: 'var(--background1)',
+                border: '1px solid var(--background2)',
+                borderRadius: '4px',
+                padding: '0.75rem 1rem',
+                textAlign: 'center',
+              }}>
+                <div style={{
+                  fontSize: '1.1rem',
+                  letterSpacing: '1px',
+                  color: '#F25D94',
+                }}>
+                  [{bar}]
+                </div>
+                <div style={{
+                  color: 'var(--foreground0)',
+                  fontSize: '0.9rem',
+                  marginTop: '0.5rem',
+                }}>
+                  {uploadProgress}%
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
+          );
+        })() : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, border: 'none' }}>
             <span style={{
               color: 'var(--foreground0)',
