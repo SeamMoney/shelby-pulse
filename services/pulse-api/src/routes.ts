@@ -683,8 +683,8 @@ export function createRouter(
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      background: #0d0d0d;
-      color: #e0e0e0;
+      background: #FCFAF8;
+      color: #1a1a1a;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -695,18 +695,22 @@ export function createRouter(
     .container {
       text-align: center;
       max-width: 400px;
+      background: #FFDFEF;
+      padding: 2rem;
+      border-radius: 12px;
+      border: 1px solid #FFC2E1;
     }
-    .icon { color: #F25D94; font-size: 4rem; margin-bottom: 1rem; }
-    h1 { color: #F25D94; margin-bottom: 0.5rem; }
-    p { color: #888; margin-bottom: 1.5rem; }
+    .icon { color: #FF1493; font-size: 4rem; margin-bottom: 1rem; }
+    h1 { color: #FF1493; margin-bottom: 0.5rem; }
+    p { color: #737373; margin-bottom: 1.5rem; }
     a {
-      color: #F25D94;
+      color: #FF1493;
       text-decoration: none;
-      border: 1px solid #F25D94;
+      border: 1px solid #FF1493;
       padding: 0.5rem 1rem;
       border-radius: 4px;
     }
-    a:hover { background: rgba(242, 93, 148, 0.1); }
+    a:hover { background: rgba(255, 20, 147, 0.1); }
   </style>
 </head>
 <body>
@@ -762,21 +766,21 @@ export function createRouter(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1a1625">
+  <meta name="theme-color" content="#FCFAF8">
   <title>Shared Folder - Shelby Share</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --root: #1a1625;
-      --background0: #0d0d0d;
-      --background1: #151515;
-      --background2: #252525;
-      --foreground0: #e0e0e0;
-      --foreground1: #c0c0c0;
-      --foreground2: #808080;
-      --accent: #F25D94;
-      --pink: #F25D94;
+      --root: #FCFAF8;
+      --background0: #F7F1E9;
+      --background1: #FFDFEF;
+      --background2: #FFC2E1;
+      --foreground0: #1a1a1a;
+      --foreground1: #404040;
+      --foreground2: #737373;
+      --accent: #FF1493;
+      --pink: #FF1493;
       --purple: #7D56F4;
       --green: #00C896;
       --red: #ff5f56;
@@ -785,7 +789,7 @@ export function createRouter(
 
     body {
       font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', Monaco, monospace;
-      background: linear-gradient(135deg, var(--root) 0%, #0d0a14 100%);
+      background: var(--root);
       color: var(--foreground0);
       min-height: 100vh;
       padding: 1rem;
@@ -806,7 +810,7 @@ export function createRouter(
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--background2);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     /* Terminal Header */
@@ -1250,9 +1254,9 @@ export function createRouter(
               padding: 2rem;
               gap: 1rem;
             }
-            .pdf-icon { color: #F25D94; margin-bottom: 0.5rem; }
-            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; color: #e0e0e0; }
-            .pdf-hint { color: #888; font-size: 0.9rem; }
+            .pdf-icon { color: #FF1493; margin-bottom: 0.5rem; }
+            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; color: #1a1a1a; }
+            .pdf-hint { color: #737373; font-size: 0.9rem; }
           }
         `;
       } else {
@@ -1274,9 +1278,9 @@ export function createRouter(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <meta name="theme-color" content="#0d0d0d">
+  <meta name="theme-color" content="#FCFAF8">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>${filename} - Shelby Share</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1286,8 +1290,8 @@ export function createRouter(
     }
     body {
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-      background: #0d0d0d;
-      color: #e0e0e0;
+      background: #FCFAF8;
+      color: #1a1a1a;
       min-height: 100vh;
       min-height: -webkit-fill-available;
       display: flex;
@@ -1297,8 +1301,8 @@ export function createRouter(
     /* Header - Terminal style */
     header {
       padding: 0;
-      background: #1a1a1a;
-      border-bottom: 1px solid #333;
+      background: #FFDFEF;
+      border-bottom: 1px solid #FFC2E1;
       display: flex;
       align-items: stretch;
       flex-shrink: 0;
@@ -1319,13 +1323,10 @@ export function createRouter(
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #e0e0e0;
+      color: #1a1a1a;
     }
     .brand {
-      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #FF1493;
       font-size: 0.7rem;
       font-weight: 600;
     }
@@ -1338,8 +1339,8 @@ export function createRouter(
     .btn-tab {
       background: none;
       border: none;
-      border-left: 1px solid #333;
-      color: #888;
+      border-left: 1px solid #FFC2E1;
+      color: #737373;
       cursor: pointer;
       font-family: inherit;
       font-size: 0.85rem;
@@ -1351,8 +1352,8 @@ export function createRouter(
       gap: 0.4rem;
     }
     .btn-tab:hover {
-      color: #F25D94;
-      background-color: #252525;
+      color: #FF1493;
+      background-color: #FFC2E1;
     }
     .btn-tab svg {
       width: 16px;
@@ -1375,7 +1376,7 @@ export function createRouter(
       font-family: inherit;
     }
     .btn-primary {
-      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
+      background: #FF1493;
       color: white;
       border-radius: 4px;
     }
@@ -1383,12 +1384,12 @@ export function createRouter(
       opacity: 0.9;
     }
     .btn-secondary {
-      background: #252525;
-      color: #888;
-      border: 1px solid #333;
+      background: #FFC2E1;
+      color: #737373;
+      border: 1px solid #FFC2E1;
     }
     .btn-secondary:hover {
-      color: #F25D94;
+      color: #FF1493;
     }
     .btn-large {
       padding: 0.875rem 1.5rem;
@@ -1406,7 +1407,7 @@ export function createRouter(
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       padding: 1rem;
-      background: #0d0d0d;
+      background: #F7F1E9;
     }
 
     /* Media containers */
@@ -1427,7 +1428,8 @@ export function createRouter(
       height: auto;
       object-fit: contain;
       border-radius: 4px;
-      border: 1px solid #333;
+      border: 1px solid #FFC2E1;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     /* Videos */
@@ -1438,8 +1440,9 @@ export function createRouter(
       width: auto;
       height: auto;
       border-radius: 4px;
-      border: 1px solid #333;
+      border: 1px solid #FFC2E1;
       background: #000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     /* PDFs */
@@ -1447,7 +1450,7 @@ export function createRouter(
       width: 100%;
       height: calc(100vh - 80px);
       height: calc(100dvh - 80px);
-      border: 1px solid #333;
+      border: 1px solid #FFC2E1;
       border-radius: 4px;
       background: #fff;
     }
@@ -1458,11 +1461,11 @@ export function createRouter(
       flex-direction: column;
       align-items: center;
       gap: 1rem;
-      color: #F25D94;
+      color: #FF1493;
       text-align: center;
     }
-    .unsupported-content p { font-size: 1rem; color: #e0e0e0; }
-    .unsupported-content .hint { font-size: 0.875rem; color: #666; }
+    .unsupported-content p { font-size: 1rem; color: #1a1a1a; }
+    .unsupported-content .hint { font-size: 0.875rem; color: #737373; }
 
     /* Mobile adjustments */
     @media (max-width: 480px) {
