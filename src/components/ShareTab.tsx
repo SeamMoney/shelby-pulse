@@ -270,7 +270,10 @@ export const ShareTab = memo(() => {
             transform: isDragging ? 'scale(1.05)' : 'scale(1)',
             transition: 'transform 0.2s ease',
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            fileInputRef.current?.click();
+          }}
         >
           <svg
             width="20"
