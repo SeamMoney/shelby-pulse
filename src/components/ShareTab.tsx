@@ -7,14 +7,59 @@ interface UploadedFile {
   url: string;
   viewerUrl: string;
   uploadedAt: Date;
+  sessionId?: string;
 }
+
+interface FileUploadProgress {
+  file: File;
+  progress: number;
+  status: 'pending' | 'uploading' | 'complete' | 'error';
+  error?: string;
+}
+
+// ASCII-style terminal progress bar
+const AsciiProgressBar = memo(({ percent, width = 20, label }: { percent: number; width?: number; label?: string }) => {
+  const filled = Math.round((Math.min(100, percent) / 100) * width);
+  const empty = width - filled;
+  const bar = '█'.repeat(filled) + '░'.repeat(empty);
+
+  return (
+    <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      {label && (
+        <span style={{
+          color: 'var(--foreground2)',
+          minWidth: '120px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {label}
+        </span>
+      )}
+      <span style={{ color: '#F25D94' }}>[</span>
+      <span style={{ color: '#F25D94' }}>{bar.slice(0, filled)}</span>
+      <span style={{ color: 'var(--background2)' }}>{bar.slice(filled)}</span>
+      <span style={{ color: '#F25D94' }}>]</span>
+      <span style={{ color: 'var(--foreground0)', minWidth: '40px', textAlign: 'right' }}>
+        {Math.round(percent)}%
+      </span>
+    </div>
+  );
+});
+
+AsciiProgressBar.displayName = 'AsciiProgressBar';
+
+// Generate a random session ID for grouping files
+const generateSessionId = () => {
+  return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+};
 
 export const ShareTab = memo(() => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<string>('Uploading...');
+  const [uploadQueue, setUploadQueue] = useState<FileUploadProgress[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
@@ -31,18 +76,17 @@ export const ShareTab = memo(() => {
     setIsDragging(false);
   }, []);
 
-  const uploadFile = async (file: File, onProgress: (percent: number) => void): Promise<UploadedFile> => {
+  const uploadFile = async (file: File, sessionId: string, onProgress: (percent: number) => void): Promise<UploadedFile> => {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('sessionId', sessionId);
 
       const xhr = new XMLHttpRequest();
 
       // Track upload progress - cap at 99% until server responds
-      // This ensures toast appears exactly when we hit 100%
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          // Cap at 99% - we'll set 100% when server confirms
           const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
           onProgress(percent);
         }
@@ -52,7 +96,6 @@ export const ShareTab = memo(() => {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const data = JSON.parse(xhr.responseText);
-            // viewerUrl is relative, make it absolute using current origin
             const viewerUrl = data.viewerUrl
               ? `${window.location.origin}${data.viewerUrl}`
               : data.url;
@@ -62,6 +105,7 @@ export const ShareTab = memo(() => {
               url: data.url,
               viewerUrl,
               uploadedAt: new Date(),
+              sessionId,
             });
           } catch {
             reject(new Error('Invalid response from server'));
@@ -84,7 +128,6 @@ export const ShareTab = memo(() => {
         reject(new Error('Upload timed out'));
       };
 
-      // 5 minute timeout
       xhr.timeout = 5 * 60 * 1000;
 
       xhr.open('POST', '/api/share/upload');
@@ -97,62 +140,75 @@ export const ShareTab = memo(() => {
 
     setError(null);
     setIsUploading(true);
-    setUploadProgress(0);
-    setUploadStatus('Uploading...');
+
+    // Generate a new session ID for this batch
+    const sessionId = generateSessionId();
+    setCurrentSessionId(sessionId);
+
+    // Initialize upload queue with all files
+    const initialQueue: FileUploadProgress[] = Array.from(files).map(file => ({
+      file,
+      progress: 0,
+      status: 'pending' as const,
+    }));
+
+    // Filter out files that are too large
+    const validQueue = initialQueue.filter(item => {
+      if (item.file.size > 2 * 1024 * 1024 * 1024) {
+        showToast({
+          type: 'error',
+          message: `${item.file.name} is too large (max 2GB)`
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setUploadQueue(validQueue);
 
     const newFiles: UploadedFile[] = [];
-    const totalFiles = files.length;
 
-    for (let i = 0; i < totalFiles; i++) {
-      const file = files[i];
+    // Upload files sequentially with individual progress tracking
+    for (let i = 0; i < validQueue.length; i++) {
+      const item = validQueue[i];
 
-      // Check file size (max 2GB)
-      if (file.size > 2 * 1024 * 1024 * 1024) {
-        showToast({
-          type: 'error',
-          message: `${file.name} is too large (max 2GB)`
-        });
-        continue;
-      }
-
-      // Warn for large files that may timeout
-      if (file.size > 50 * 1024 * 1024) {
-        showToast({
-          type: 'info',
-          message: `Large file - upload may take a while...`
-        });
-      }
+      // Update status to uploading
+      setUploadQueue(prev => prev.map((q, idx) =>
+        idx === i ? { ...q, status: 'uploading' } : q
+      ));
 
       try {
-        setUploadStatus(`Uploading...`);
-
-        const uploaded = await uploadFile(file, (percent) => {
-          // For multiple files, show progress as: completed files + current file progress
-          const baseProgress = (i / totalFiles) * 100;
-          const fileProgress = (percent / totalFiles);
-          setUploadProgress(Math.round(baseProgress + fileProgress));
+        const uploaded = await uploadFile(item.file, sessionId, (percent) => {
+          setUploadQueue(prev => prev.map((q, idx) =>
+            idx === i ? { ...q, progress: percent } : q
+          ));
         });
 
-        newFiles.push(uploaded);
+        // Mark as complete with 100%
+        setUploadQueue(prev => prev.map((q, idx) =>
+          idx === i ? { ...q, progress: 100, status: 'complete' } : q
+        ));
 
-        // Show 100% and toast at the exact same moment
-        setUploadProgress(100);
-        showToast({ type: 'success', message: `Uploaded ${file.name}` });
+        newFiles.push(uploaded);
+        showToast({ type: 'success', message: `Uploaded ${item.file.name}` });
       } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        setUploadQueue(prev => prev.map((q, idx) =>
+          idx === i ? { ...q, status: 'error', error: errorMsg } : q
+        ));
         showToast({
           type: 'error',
-          message: `Failed to upload ${file.name}: ${err instanceof Error ? err.message : 'Unknown error'}`
+          message: `Failed: ${item.file.name}`
         });
       }
     }
 
     setUploadedFiles(prev => [...newFiles, ...prev]);
 
-    // Brief delay before resetting to show 100% state
-    await new Promise(r => setTimeout(r, 600));
+    // Brief delay before resetting to show completed state
+    await new Promise(r => setTimeout(r, 800));
     setIsUploading(false);
-    setUploadProgress(0);
-    setUploadStatus('Uploading...');
+    setUploadQueue([]);
   }, [showToast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -260,32 +316,44 @@ export const ShareTab = memo(() => {
           Upload
         </button>
 
-        {isUploading ? (
-          <column gap-="1" style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
-            <span style={{ color: 'var(--foreground0)', fontSize: '0.9rem', textAlign: 'center' }}>
-              {uploadStatus}
-            </span>
-            {/* Progress bar */}
-            <div style={{
-              width: '100%',
-              height: '12px',
-              background: 'var(--background2)',
-              borderRadius: '6px',
-              overflow: 'hidden',
-              margin: '0.5rem 0',
-              border: '1px solid var(--background2)',
+        {isUploading && uploadQueue.length > 0 ? (
+          <column gap-="0.5" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+            <span style={{
+              color: 'var(--foreground0)',
+              fontSize: '0.9rem',
+              textAlign: 'center',
+              fontFamily: 'monospace',
+              marginBottom: '0.5rem',
             }}>
-              <div style={{
-                width: `${uploadProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #F25D94 0%, #7D56F4 100%)',
-                borderRadius: '6px',
-                transition: 'width 0.2s ease-out',
-              }} />
-            </div>
-            <span style={{ color: 'var(--foreground2)', fontSize: '0.85rem', textAlign: 'center' }}>
-              {Math.round(uploadProgress)}%
+              ▶ Uploading {uploadQueue.length} file{uploadQueue.length !== 1 ? 's' : ''}...
             </span>
+            {/* Individual file progress bars */}
+            <div style={{
+              background: 'var(--background1)',
+              border: '1px solid var(--background2)',
+              borderRadius: '8px',
+              padding: '0.75rem',
+            }}>
+              {uploadQueue.map((item, idx) => (
+                <div key={idx} style={{ marginBottom: idx < uploadQueue.length - 1 ? '0.5rem' : 0 }}>
+                  <AsciiProgressBar
+                    percent={item.progress}
+                    width={16}
+                    label={item.file.name.length > 15 ? item.file.name.slice(0, 12) + '...' : item.file.name}
+                  />
+                  {item.status === 'error' && (
+                    <span style={{ color: 'var(--pink)', fontSize: '0.75rem', fontFamily: 'monospace', marginLeft: '120px' }}>
+                      ✗ {item.error}
+                    </span>
+                  )}
+                  {item.status === 'complete' && (
+                    <span style={{ color: 'var(--green)', fontSize: '0.75rem', fontFamily: 'monospace', marginLeft: '120px' }}>
+                      ✓ Complete
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </column>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, border: 'none' }}>
@@ -329,12 +397,68 @@ export const ShareTab = memo(() => {
         </div>
       )}
 
+      {/* Shareable Folder Link */}
+      {currentSessionId && uploadedFiles.filter(f => f.sessionId === currentSessionId).length > 0 && (
+        <div style={{
+          background: 'var(--background1)',
+          border: '1px solid var(--background2)',
+          borderRadius: '8px',
+          padding: '1rem',
+        }}>
+          <row style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <row gap-="0.5" style={{ alignItems: 'center' }}>
+              <span style={{ fontFamily: 'monospace', color: '#F25D94', fontSize: '1.1rem' }}>📁</span>
+              <span style={{ color: 'var(--foreground0)', fontWeight: 500, fontFamily: 'monospace' }}>
+                Session Folder
+              </span>
+            </row>
+            <span is-="badge" variant-="pink">
+              {uploadedFiles.filter(f => f.sessionId === currentSessionId).length} files
+            </span>
+          </row>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'var(--background0)',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '6px',
+            border: '1px solid var(--background2)',
+          }}>
+            <span style={{
+              fontFamily: 'monospace',
+              fontSize: '0.8rem',
+              color: 'var(--foreground2)',
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {`${window.location.origin}/api/share/folder/${currentSessionId}`}
+            </span>
+            <button
+              is-="button"
+              variant-="accent"
+              size-="half"
+              onClick={() => copyToClipboard(`${window.location.origin}/api/share/folder/${currentSessionId}`)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              Copy Link
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Uploaded Files */}
       {uploadedFiles.length > 0 && (
         <column gap-="1">
           <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--foreground0)', fontWeight: 500 }}>
-              Uploaded Files
+            <span style={{ color: 'var(--foreground0)', fontWeight: 500, fontFamily: 'monospace' }}>
+              ▸ Uploaded Files
             </span>
             <span is-="badge" variant-="background2">
               {uploadedFiles.length} file{uploadedFiles.length !== 1 ? 's' : ''}

@@ -7,6 +7,26 @@ import type { UploadService } from "./upload-service";
 import { logger } from "./logger";
 import { resetFarmingStats } from "./db";
 
+// In-memory session storage for folder links
+interface SessionFile {
+  blobName: string;
+  originalName: string;
+  size: number;
+  url: string;
+  viewerUrl: string;
+  uploadedAt: string;
+  address: string;
+}
+
+interface Session {
+  id: string;
+  files: SessionFile[];
+  createdAt: string;
+}
+
+// Store sessions in memory (they persist until server restart)
+const sessions = new Map<string, Session>();
+
 // Configure multer for memory storage (no disk writes)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -574,12 +594,37 @@ export function createRouter(
         return res.status(400).json({ error: "No file provided" });
       }
 
+      // Get session ID from request body (optional)
+      const sessionId = req.body.sessionId;
+
       logger.info(
-        { filename: file.originalname, size: file.size },
+        { filename: file.originalname, size: file.size, sessionId },
         "Received file for upload"
       );
 
       const result = await uploadService.uploadFile(file.buffer, file.originalname);
+
+      // If a session ID was provided, add the file to the session
+      if (sessionId) {
+        if (!sessions.has(sessionId)) {
+          sessions.set(sessionId, {
+            id: sessionId,
+            files: [],
+            createdAt: new Date().toISOString(),
+          });
+        }
+        const session = sessions.get(sessionId)!;
+        session.files.push({
+          blobName: result.blobName,
+          originalName: file.originalname,
+          size: result.size,
+          url: result.url,
+          viewerUrl: result.viewerUrl,
+          uploadedAt: new Date().toISOString(),
+          address: result.owner,
+        });
+        logger.info({ sessionId, fileCount: session.files.length }, "Added file to session");
+      }
 
       res.json({
         success: true,
@@ -588,6 +633,7 @@ export function createRouter(
         blobName: result.blobName,
         size: result.size,
         expiresAt: result.expiresAt,
+        sessionId,
       });
     } catch (error) {
       logger.error({ error }, "Failed to upload file");
@@ -609,6 +655,383 @@ export function createRouter(
       allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif", "mp4", "webm", "mov", "avi", "mkv", "pdf"],
       expiration: "1 year",
     });
+  });
+
+  /**
+   * GET /api/share/folder/:sessionId
+   * HTML page showing all files in a session (like a Google Drive folder)
+   */
+  router.get("/share/folder/:sessionId", (req, res) => {
+    try {
+      const { sessionId } = req.params;
+
+      if (!sessionId) {
+        return res.status(400).send("Missing session ID");
+      }
+
+      const session = sessions.get(sessionId);
+
+      if (!session || session.files.length === 0) {
+        // Return a nice "folder not found" page
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folder Not Found - Shelby Share</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      background: #0d0d0d;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .icon { color: #F25D94; font-size: 4rem; margin-bottom: 1rem; }
+    h1 { color: #F25D94; margin-bottom: 0.5rem; }
+    p { color: #888; margin-bottom: 1.5rem; }
+    a {
+      color: #F25D94;
+      text-decoration: none;
+      border: 1px solid #F25D94;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+    }
+    a:hover { background: rgba(242, 93, 148, 0.1); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📁</div>
+    <h1>Folder Not Found</h1>
+    <p>This folder doesn't exist or has expired.</p>
+    <a href="/">← Back to Shelby Pulse</a>
+  </div>
+</body>
+</html>`;
+        return res.status(404).send(html);
+      }
+
+      // Format file size
+      const formatSize = (bytes: number): string => {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+      };
+
+      // Get file icon based on extension
+      const getFileIcon = (filename: string): string => {
+        const ext = filename.split('.').pop()?.toLowerCase() || '';
+        const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'avif'];
+        const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
+        if (imageExts.includes(ext)) return '🖼️';
+        if (videoExts.includes(ext)) return '🎬';
+        if (ext === 'pdf') return '📄';
+        return '📁';
+      };
+
+      // Generate file list HTML
+      const filesHtml = session.files.map(file => `
+        <div class="file-item">
+          <div class="file-icon">${getFileIcon(file.originalName)}</div>
+          <div class="file-info">
+            <div class="file-name">${file.originalName}</div>
+            <div class="file-meta">${formatSize(file.size)}</div>
+          </div>
+          <div class="file-actions">
+            <a href="${file.viewerUrl}" target="_blank" class="btn btn-view" title="View">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </a>
+            <a href="${file.url}" download class="btn btn-download" title="Download">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      `).join('');
+
+      const totalSize = session.files.reduce((sum, f) => sum + f.size, 0);
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d0d0d">
+  <title>Shared Folder - Shelby Share</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      background: #0d0d0d;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 1.5rem 0 1rem;
+      border-bottom: 1px solid #333;
+      margin-bottom: 1.5rem;
+    }
+    .brand {
+      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle { color: #666; font-size: 0.85rem; }
+
+    /* Folder info */
+    .folder-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .folder-icon {
+      font-size: 2rem;
+    }
+    .folder-info h1 {
+      font-size: 1rem;
+      color: #F25D94;
+      margin-bottom: 0.25rem;
+    }
+    .folder-stats {
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .folder-stats span {
+      margin-right: 1rem;
+    }
+
+    /* Copy link button */
+    .copy-section {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .link-display {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.75rem;
+      color: #888;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-copy {
+      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: opacity 0.15s;
+    }
+    .btn-copy:hover { opacity: 0.9; }
+
+    /* File list */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      transition: border-color 0.15s;
+    }
+    .file-item:hover {
+      border-color: #F25D94;
+    }
+    .file-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .file-name {
+      font-size: 0.9rem;
+      color: #e0e0e0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-meta {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 0.125rem;
+    }
+    .file-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-view {
+      background: rgba(242, 93, 148, 0.1);
+      color: #F25D94;
+      border: 1px solid #F25D94;
+    }
+    .btn-view:hover {
+      background: rgba(242, 93, 148, 0.2);
+    }
+    .btn-download {
+      background: rgba(125, 86, 244, 0.1);
+      color: #7D56F4;
+      border: 1px solid #7D56F4;
+    }
+    .btn-download:hover {
+      background: rgba(125, 86, 244, 0.2);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem 0 1rem;
+      color: #444;
+      font-size: 0.75rem;
+    }
+    footer a {
+      color: #F25D94;
+      text-decoration: none;
+    }
+
+    /* ASCII decoration */
+    .ascii-border {
+      color: #333;
+      font-size: 0.7rem;
+      text-align: center;
+      margin: 1rem 0;
+      user-select: none;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 0.75rem; }
+      .folder-header { padding: 0.75rem; }
+      .file-item { padding: 0.6rem 0.75rem; }
+      .file-name { font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">Shelby Share</div>
+      <div class="subtitle">Decentralized File Sharing</div>
+    </header>
+
+    <div class="folder-header">
+      <div class="folder-icon">📁</div>
+      <div class="folder-info">
+        <h1>Shared Folder</h1>
+        <div class="folder-stats">
+          <span>${session.files.length} file${session.files.length !== 1 ? 's' : ''}</span>
+          <span>${formatSize(totalSize)} total</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="copy-section">
+      <div class="link-display">${req.protocol}://${req.get('host')}${req.originalUrl}</div>
+      <button class="btn-copy" onclick="copyLink()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span id="copyText">Copy</span>
+      </button>
+    </div>
+
+    <div class="ascii-border">┌${'─'.repeat(40)}┐</div>
+
+    <div class="file-list">
+      ${filesHtml}
+    </div>
+
+    <div class="ascii-border">└${'─'.repeat(40)}┘</div>
+
+    <footer>
+      Stored on <a href="https://shelby.xyz" target="_blank">Shelby Protocol</a>
+    </footer>
+  </div>
+
+  <script>
+    function copyLink() {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.getElementById('copyText');
+        if (btn) {
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
+      });
+    }
+  </script>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error) {
+      logger.error({ error }, "Failed to render folder page");
+      res.status(500).send("Failed to load folder");
+    }
   });
 
   /**
