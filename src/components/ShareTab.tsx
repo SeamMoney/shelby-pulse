@@ -38,18 +38,12 @@ export const ShareTab = memo(() => {
 
       const xhr = new XMLHttpRequest();
 
-      // Track upload progress - cap at 90% since server processing takes additional time
+      // Track upload progress - show full 0-100% range
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          // Cap at 90% - the remaining 10% is for server-side processing
-          const percent = Math.round((event.loaded / event.total) * 90);
+          const percent = Math.round((event.loaded / event.total) * 100);
           onProgress(percent);
         }
-      };
-
-      // When upload to server completes, show 95% while processing
-      xhr.upload.onload = () => {
-        onProgress(95);
       };
 
       xhr.onload = () => {
@@ -135,29 +129,19 @@ export const ShareTab = memo(() => {
       }
 
       try {
-        setUploadStatus(`Uploading ${file.name}...`);
+        setUploadStatus(`Uploading...`);
 
         const uploaded = await uploadFile(file, (percent) => {
           // For multiple files, show progress as: completed files + current file progress
           const baseProgress = (i / totalFiles) * 100;
           const fileProgress = (percent / totalFiles);
           setUploadProgress(Math.round(baseProgress + fileProgress));
-
-          // When upload to our server completes (95%), show processing status
-          if (percent >= 95) {
-            setUploadStatus(`Processing...`);
-          }
         });
 
         newFiles.push(uploaded);
 
-        // Show 100% completion
+        // Show 100% and toast immediately
         setUploadProgress(100);
-        setUploadStatus('Complete!');
-
-        // Brief pause to show 100%
-        await new Promise(r => setTimeout(r, 300));
-
         showToast({ type: 'success', message: `Uploaded ${file.name}` });
 
         // Navigate the pre-opened window to the viewer URL (for single file)
@@ -181,10 +165,11 @@ export const ShareTab = memo(() => {
 
     setUploadedFiles(prev => [...newFiles, ...prev]);
 
-    // Brief delay before resetting to show completion state
-    await new Promise(r => setTimeout(r, 500));
+    // Brief delay before resetting to show 100% state
+    await new Promise(r => setTimeout(r, 800));
     setIsUploading(false);
     setUploadProgress(0);
+    setUploadStatus('Uploading...');
   }, [showToast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -293,16 +278,17 @@ export const ShareTab = memo(() => {
         </button>
 
         {isUploading ? (
-          <column gap-="1" style={{ width: '100%', maxWidth: '250px', margin: '0 auto' }}>
+          <column gap-="1" style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
             <span style={{ color: 'var(--foreground0)', fontSize: '0.9rem', textAlign: 'center' }}>
               {uploadStatus}
             </span>
-            <div className="progress-bar" style={{ margin: '0.5rem 0' }}>
-              <div
-                className="progress-fill"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
+            <progress
+              is-="progress"
+              value={uploadProgress}
+              max={100}
+              variant-="pink"
+              style={{ width: '100%', margin: '0.5rem 0' }}
+            />
             <span style={{ color: 'var(--foreground2)', fontSize: '0.85rem', textAlign: 'center' }}>
               {Math.round(uploadProgress)}%
             </span>
