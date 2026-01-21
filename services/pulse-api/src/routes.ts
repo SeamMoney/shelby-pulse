@@ -584,7 +584,7 @@ export function createRouter(
       res.json({
         success: true,
         url: result.url,
-        viewUrl: result.viewUrl,
+        viewerUrl: result.viewerUrl,
         blobName: result.blobName,
         size: result.size,
         expiresAt: result.expiresAt,
@@ -675,6 +675,191 @@ export function createRouter(
     } catch (error) {
       logger.error({ error }, "Failed to proxy file for viewing");
       res.status(500).json({ error: "Failed to fetch file" });
+    }
+  });
+
+  /**
+   * GET /api/share/viewer/:address/:filename
+   * HTML viewer page that displays the file with a download button
+   */
+  router.get("/share/viewer/:address/:filename", async (req, res) => {
+    try {
+      const { address, filename } = req.params;
+
+      if (!address || !filename) {
+        return res.status(400).send("Missing address or filename");
+      }
+
+      // Determine file type from extension
+      const ext = filename.split('.').pop()?.toLowerCase() || '';
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'avif'];
+      const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
+      const pdfExts = ['pdf'];
+
+      const isImage = imageExts.includes(ext);
+      const isVideo = videoExts.includes(ext);
+      const isPdf = pdfExts.includes(ext);
+
+      // URLs for viewing and downloading
+      const viewUrl = `/api/share/view/${address}/${encodeURIComponent(filename)}`;
+      const downloadUrl = `https://api.shelbynet.shelby.xyz/shelby/v1/blobs/${address}/${encodeURIComponent(filename)}`;
+
+      // Generate the appropriate embed element
+      let embedHtml = '';
+      if (isImage) {
+        embedHtml = `<img src="${viewUrl}" alt="${filename}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />`;
+      } else if (isVideo) {
+        embedHtml = `<video src="${viewUrl}" controls autoplay style="max-width: 100%; max-height: 80vh;"></video>`;
+      } else if (isPdf) {
+        embedHtml = `<iframe src="${viewUrl}" style="width: 100%; height: 80vh; border: none;"></iframe>`;
+      } else {
+        embedHtml = `<p>Preview not available for this file type.</p>`;
+      }
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${filename} - Shelby Share</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1rem 1.5rem;
+      background: #111;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+    .file-info h1 {
+      font-size: 1rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
+    }
+    .brand {
+      color: #666;
+      font-size: 0.875rem;
+    }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .btn-secondary {
+      background: #222;
+      color: #fff;
+      border: 1px solid #333;
+    }
+    .btn-secondary:hover {
+      background: #333;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      overflow: auto;
+    }
+    .content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+    }
+    img, video {
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    svg { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="file-info">
+      <h1>${filename}</h1>
+      <span class="brand">Shelby Share</span>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="copyLink()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span id="copyText">Copy Link</span>
+      </button>
+      <a href="${downloadUrl}" download="${filename}" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download
+      </a>
+    </div>
+  </header>
+  <main>
+    <div class="content">
+      ${embedHtml}
+    </div>
+  </main>
+  <script>
+    function copyLink() {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.getElementById('copyText');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy Link', 2000);
+      });
+    }
+  </script>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error) {
+      logger.error({ error }, "Failed to render viewer page");
+      res.status(500).send("Failed to load viewer");
     }
   });
 

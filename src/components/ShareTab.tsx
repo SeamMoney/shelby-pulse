@@ -5,7 +5,7 @@ interface UploadedFile {
   name: string;
   size: number;
   url: string;
-  viewUrl: string;
+  viewerUrl: string;
   uploadedAt: Date;
 }
 
@@ -50,15 +50,15 @@ export const ShareTab = memo(() => {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const data = JSON.parse(xhr.responseText);
-            // viewUrl is relative, make it absolute using current origin
-            const viewUrl = data.viewUrl
-              ? `${window.location.origin}${data.viewUrl}`
+            // viewerUrl is relative, make it absolute using current origin
+            const viewerUrl = data.viewerUrl
+              ? `${window.location.origin}${data.viewerUrl}`
               : data.url;
             resolve({
               name: file.name,
               size: file.size,
               url: data.url,
-              viewUrl,
+              viewerUrl,
               uploadedAt: new Date(),
             });
           } catch {
@@ -389,7 +389,7 @@ export const ShareTab = memo(() => {
                     size-="half"
                     onClick={(e) => {
                       e.stopPropagation();
-                      copyToClipboard(file.viewUrl);
+                      copyToClipboard(file.viewerUrl);
                     }}
                     style={{
                       flexShrink: 0,
@@ -402,7 +402,7 @@ export const ShareTab = memo(() => {
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
-                    Copy View URL
+                    Copy Link
                   </button>
                 </row>
                 <div style={{
@@ -416,7 +416,7 @@ export const ShareTab = memo(() => {
                   wordBreak: 'break-all',
                   userSelect: 'all',
                 }}>
-                  {file.viewUrl}
+                  {file.viewerUrl}
                 </div>
               </div>
             ))}

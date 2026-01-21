@@ -13,7 +13,7 @@ function sanitizeFilename(name: string): string {
 
 export interface UploadResult {
   url: string;
-  viewUrl: string;
+  viewerUrl: string;
   blobName: string;
   owner: string;
   size: number;
@@ -130,14 +130,14 @@ export class UploadService {
       });
 
       const url = `${SHELBY_RPC_BASE}/v1/blobs/${address}/${encodeURIComponent(blobName)}`;
-      const viewUrl = `/api/share/view/${address}/${encodeURIComponent(blobName)}`;
+      const viewerUrl = `/api/share/viewer/${address}/${encodeURIComponent(blobName)}`;
       const expiresAt = new Date(expirationMicros / 1000).toISOString();
 
-      logger.info({ url, viewUrl, blobName }, "File uploaded successfully");
+      logger.info({ url, viewerUrl, blobName }, "File uploaded successfully");
 
       return {
         url,
-        viewUrl,
+        viewerUrl,
         blobName,
         owner: address,
         size: fileBuffer.length,
@@ -164,12 +164,12 @@ export class UploadService {
         });
 
         const url = `${SHELBY_RPC_BASE}/v1/blobs/${address}/${encodeURIComponent(blobName)}`;
-        const viewUrl = `/api/share/view/${address}/${encodeURIComponent(blobName)}`;
+        const viewerUrl = `/api/share/viewer/${address}/${encodeURIComponent(blobName)}`;
         const expiresAt = new Date(expirationMicros / 1000).toISOString();
 
         return {
           url,
-          viewUrl,
+          viewerUrl,
           blobName,
           owner: address,
           size: fileBuffer.length,
