@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, memo } from 'react';
+import { useState, useCallback, useRef, memo, useEffect } from 'react';
 import { useToast } from './Toast';
 
 interface UploadedFile {
@@ -22,12 +22,47 @@ export const ShareTab = memo(() => {
   const [currentFileName, setCurrentFileName] = useState('');
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [targetProgress, setTargetProgress] = useState(0);
+  const [displayProgress, setDisplayProgress] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const animationRef = useRef<number | null>(null);
   const { showToast } = useToast();
+
+  // Smooth animation for progress bar
+  useEffect(() => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+
+    const animate = () => {
+      setDisplayProgress(prev => {
+        const diff = targetProgress - prev;
+        // If we're resetting (going from high to 0), snap immediately
+        if (targetProgress === 0 && prev > 50) {
+          return 0;
+        }
+        // Smooth animation toward target
+        if (Math.abs(diff) < 0.5) {
+          return targetProgress;
+        }
+        // Faster when catching up, slower when close
+        const speed = Math.max(0.5, Math.abs(diff) * 0.15);
+        return prev + (diff > 0 ? speed : -speed);
+      });
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [targetProgress]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -136,7 +171,8 @@ export const ShareTab = memo(() => {
     setIsUploading(true);
     setTotalFiles(validFiles.length);
     setCurrentFileIndex(0);
-    setUploadProgress(0);
+    setTargetProgress(0);
+    setDisplayProgress(0);
 
     // Generate a new session ID for this batch
     const sessionId = generateSessionId();
@@ -148,34 +184,38 @@ export const ShareTab = memo(() => {
       for (let i = 0; i < validFiles.length; i++) {
         const file = validFiles[i];
 
-        // Reset progress for each file - use functional updates to ensure state changes
+        // Reset progress for each file
         setCurrentFileIndex(i + 1);
         setCurrentFileName(file.name);
-        setUploadProgress(0);
+        setTargetProgress(0);
+        setDisplayProgress(0);
 
         // Small delay to ensure UI updates before starting upload
-        await new Promise(r => setTimeout(r, 50));
+        await new Promise(r => setTimeout(r, 100));
 
         try {
           const uploaded = await uploadFile(file, sessionId, (percent) => {
-            setUploadProgress(percent);
+            setTargetProgress(percent);
           });
 
-          // Show 100% briefly
-          setUploadProgress(100);
+          // Animate to 100%
+          setTargetProgress(100);
+
+          // Wait for animation to reach 100%
+          await new Promise(r => setTimeout(r, 500));
+
           newFiles.push(uploaded);
           showToast({ type: 'success', message: `Uploaded ${file.name}` });
 
-          // Delay before next file to show 100% state
+          // Delay before next file
           if (i < validFiles.length - 1) {
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 300));
           }
         } catch (err) {
           showToast({
             type: 'error',
             message: `Failed: ${file.name}`
           });
-          // Still delay before next file on error
           if (i < validFiles.length - 1) {
             await new Promise(r => setTimeout(r, 300));
           }
@@ -190,7 +230,8 @@ export const ShareTab = memo(() => {
       await new Promise(r => setTimeout(r, 500));
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      setTargetProgress(0);
+      setDisplayProgress(0);
       setCurrentFileName('');
       setTotalFiles(0);
       setCurrentFileIndex(0);
@@ -303,16 +344,16 @@ export const ShareTab = memo(() => {
         </button>
 
         {isUploading ? (() => {
-          // ASCII terminal progress bar
-          const barWidth = 20;
-          const filled = Math.round((uploadProgress / 100) * barWidth);
+          // ASCII terminal progress bar - wider for better visibility
+          const barWidth = 28;
+          const progressPercent = Math.round(displayProgress);
+          const filled = Math.round((displayProgress / 100) * barWidth);
           const empty = barWidth - filled;
           const bar = '█'.repeat(filled) + '░'.repeat(empty);
 
           return (
             <div style={{
               width: '100%',
-              maxWidth: '340px',
               margin: '0 auto',
               fontFamily: 'monospace',
             }}>
@@ -343,25 +384,19 @@ export const ShareTab = memo(() => {
 
               {/* Terminal ASCII progress bar */}
               <div style={{
-                background: 'var(--background1)',
+                background: 'var(--background0)',
                 border: '1px solid var(--background2)',
-                borderRadius: '4px',
-                padding: '0.75rem 1rem',
+                padding: '1rem',
                 textAlign: 'center',
               }}>
                 <div style={{
-                  fontSize: '1.1rem',
-                  letterSpacing: '1px',
+                  fontSize: '1rem',
+                  letterSpacing: '0px',
                   color: '#F25D94',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
                 }}>
-                  [{bar}]
-                </div>
-                <div style={{
-                  color: 'var(--foreground0)',
-                  fontSize: '0.9rem',
-                  marginTop: '0.5rem',
-                }}>
-                  {uploadProgress}%
+                  [{bar}] {progressPercent}%
                 </div>
               </div>
             </div>
