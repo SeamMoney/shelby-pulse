@@ -584,6 +584,7 @@ export function createRouter(
       res.json({
         success: true,
         url: result.url,
+        viewUrl: result.viewUrl,
         blobName: result.blobName,
         size: result.size,
         expiresAt: result.expiresAt,
@@ -608,6 +609,73 @@ export function createRouter(
       allowedTypes: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "avif", "mp4", "webm", "mov", "avi", "mkv", "pdf"],
       expiration: "1 year",
     });
+  });
+
+  /**
+   * GET /api/share/view/:address/:filename
+   * Proxy file from Shelby Protocol with Content-Disposition: inline
+   * This allows files to be displayed in browser instead of downloaded
+   */
+  router.get("/share/view/:address/:filename", async (req, res) => {
+    try {
+      const { address, filename } = req.params;
+
+      if (!address || !filename) {
+        return res.status(400).json({ error: "address and filename are required" });
+      }
+
+      // Determine content type from file extension
+      const ext = filename.split('.').pop()?.toLowerCase() || '';
+      const contentTypeMap: Record<string, string> = {
+        // Images
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        svg: 'image/svg+xml',
+        ico: 'image/x-icon',
+        avif: 'image/avif',
+        // Videos
+        mp4: 'video/mp4',
+        webm: 'video/webm',
+        mov: 'video/quicktime',
+        avi: 'video/x-msvideo',
+        mkv: 'video/x-matroska',
+        // Documents
+        pdf: 'application/pdf',
+      };
+
+      const contentType = contentTypeMap[ext] || 'application/octet-stream';
+
+      // Fetch from Shelby Protocol
+      const shelbyUrl = `https://api.shelbynet.shelby.xyz/shelby/v1/blobs/${address}/${encodeURIComponent(filename)}`;
+
+      logger.info({ shelbyUrl, contentType }, "Proxying file for inline view");
+
+      const response = await fetch(shelbyUrl);
+
+      if (!response.ok) {
+        logger.error({ status: response.status, shelbyUrl }, "Failed to fetch from Shelby");
+        return res.status(response.status).json({
+          error: `Failed to fetch file: ${response.statusText}`
+        });
+      }
+
+      // Set headers for inline display
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+      // Cache for 1 hour (files are immutable on Shelby)
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+
+      // Stream the response
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error) {
+      logger.error({ error }, "Failed to proxy file for viewing");
+      res.status(500).json({ error: "Failed to fetch file" });
+    }
   });
 
   return router;
