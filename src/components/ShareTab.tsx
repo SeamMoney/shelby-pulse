@@ -83,6 +83,14 @@ export const ShareTab = memo(() => {
       formData.append('sessionId', sessionId);
 
       const xhr = new XMLHttpRequest();
+      let settled = false;
+
+      const settle = (fn: () => void) => {
+        if (!settled) {
+          settled = true;
+          fn();
+        }
+      };
 
       // Track upload progress - cap at 99% until server responds
       xhr.upload.onprogress = (event) => {
@@ -93,42 +101,49 @@ export const ShareTab = memo(() => {
       };
 
       xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            const viewerUrl = data.viewerUrl
-              ? `${window.location.origin}${data.viewerUrl}`
-              : data.url;
-            resolve({
-              name: file.name,
-              size: file.size,
-              url: data.url,
-              viewerUrl,
-              uploadedAt: new Date(),
-              sessionId,
-            });
-          } catch {
-            reject(new Error('Invalid response from server'));
+        settle(() => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              const viewerUrl = data.viewerUrl
+                ? `${window.location.origin}${data.viewerUrl}`
+                : data.url;
+              resolve({
+                name: file.name,
+                size: file.size,
+                url: data.url,
+                viewerUrl,
+                uploadedAt: new Date(),
+                sessionId,
+              });
+            } catch {
+              reject(new Error('Invalid response from server'));
+            }
+          } else {
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              reject(new Error(errorData.error || `Upload failed (${xhr.status})`));
+            } catch {
+              reject(new Error(`Upload failed (${xhr.status})`));
+            }
           }
-        } else {
-          try {
-            const errorData = JSON.parse(xhr.responseText);
-            reject(new Error(errorData.error || `Upload failed (${xhr.status})`));
-          } catch {
-            reject(new Error(`Upload failed (${xhr.status})`));
-          }
-        }
+        });
       };
 
       xhr.onerror = () => {
-        reject(new Error('Network error - check your connection'));
+        settle(() => reject(new Error('Network error - check your connection')));
       };
 
       xhr.ontimeout = () => {
-        reject(new Error('Upload timed out'));
+        settle(() => reject(new Error('Upload timed out')));
       };
 
-      xhr.timeout = 5 * 60 * 1000;
+      xhr.onabort = () => {
+        settle(() => reject(new Error('Upload was cancelled')));
+      };
+
+      // 10 minute timeout for large files on mobile
+      xhr.timeout = 10 * 60 * 1000;
 
       xhr.open('POST', '/api/share/upload');
       xhr.send(formData);
@@ -164,51 +179,62 @@ export const ShareTab = memo(() => {
       return true;
     });
 
+    if (validQueue.length === 0) {
+      setIsUploading(false);
+      return;
+    }
+
     setUploadQueue(validQueue);
 
     const newFiles: UploadedFile[] = [];
 
-    // Upload files sequentially with individual progress tracking
-    for (let i = 0; i < validQueue.length; i++) {
-      const item = validQueue[i];
+    try {
+      // Upload files sequentially with individual progress tracking
+      for (let i = 0; i < validQueue.length; i++) {
+        const item = validQueue[i];
 
-      // Update status to uploading
-      setUploadQueue(prev => prev.map((q, idx) =>
-        idx === i ? { ...q, status: 'uploading' } : q
-      ));
+        // Update status to uploading
+        setUploadQueue(prev => prev.map((q, idx) =>
+          idx === i ? { ...q, status: 'uploading' } : q
+        ));
 
-      try {
-        const uploaded = await uploadFile(item.file, sessionId, (percent) => {
+        try {
+          const uploaded = await uploadFile(item.file, sessionId, (percent) => {
+            setUploadQueue(prev => prev.map((q, idx) =>
+              idx === i ? { ...q, progress: percent } : q
+            ));
+          });
+
+          // Mark as complete with 100%
           setUploadQueue(prev => prev.map((q, idx) =>
-            idx === i ? { ...q, progress: percent } : q
+            idx === i ? { ...q, progress: 100, status: 'complete' } : q
           ));
-        });
 
-        // Mark as complete with 100%
-        setUploadQueue(prev => prev.map((q, idx) =>
-          idx === i ? { ...q, progress: 100, status: 'complete' } : q
-        ));
-
-        newFiles.push(uploaded);
-        showToast({ type: 'success', message: `Uploaded ${item.file.name}` });
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        setUploadQueue(prev => prev.map((q, idx) =>
-          idx === i ? { ...q, status: 'error', error: errorMsg } : q
-        ));
-        showToast({
-          type: 'error',
-          message: `Failed: ${item.file.name}`
-        });
+          newFiles.push(uploaded);
+          showToast({ type: 'success', message: `Uploaded ${item.file.name}` });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          setUploadQueue(prev => prev.map((q, idx) =>
+            idx === i ? { ...q, status: 'error', error: errorMsg } : q
+          ));
+          showToast({
+            type: 'error',
+            message: `Failed: ${item.file.name}`
+          });
+        }
       }
+
+      if (newFiles.length > 0) {
+        setUploadedFiles(prev => [...newFiles, ...prev]);
+      }
+
+      // Brief delay before resetting to show completed state
+      await new Promise(r => setTimeout(r, 800));
+    } finally {
+      // Always reset uploading state
+      setIsUploading(false);
+      setUploadQueue([]);
     }
-
-    setUploadedFiles(prev => [...newFiles, ...prev]);
-
-    // Brief delay before resetting to show completed state
-    await new Promise(r => setTimeout(r, 800));
-    setIsUploading(false);
-    setUploadQueue([]);
   }, [showToast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
