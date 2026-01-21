@@ -104,6 +104,13 @@ export const ShareTab = memo(() => {
     setUploadProgress(0);
     setUploadStatus('Uploading...');
 
+    // For iOS Safari: open window synchronously from user gesture, update URL later
+    // This prevents popup blockers from blocking the window.open() call
+    let viewerWindow: Window | null = null;
+    if (files.length === 1) {
+      viewerWindow = window.open('about:blank', '_blank');
+    }
+
     const newFiles: UploadedFile[] = [];
     const totalFiles = files.length;
 
@@ -130,12 +137,7 @@ export const ShareTab = memo(() => {
       try {
         setUploadStatus(`Uploading ${file.name}...`);
 
-        // Track upload start time for minimum animation duration
-        const uploadStartTime = Date.now();
-        let lastProgress = 0;
-
         const uploaded = await uploadFile(file, (percent) => {
-          lastProgress = percent;
           // For multiple files, show progress as: completed files + current file progress
           const baseProgress = (i / totalFiles) * 100;
           const fileProgress = (percent / totalFiles);
@@ -147,29 +149,29 @@ export const ShareTab = memo(() => {
           }
         });
 
-        // Ensure minimum 800ms animation for small files so users see progress
-        const elapsed = Date.now() - uploadStartTime;
-        if (elapsed < 800 && lastProgress > 0) {
-          // Animate to 100% over remaining time
-          const remaining = 800 - elapsed;
-          const steps = 10;
-          const stepTime = remaining / steps;
-          const currentProgress = ((i / totalFiles) * 100) + (lastProgress / totalFiles);
-          const targetProgress = ((i + 1) / totalFiles) * 100;
-
-          for (let s = 1; s <= steps; s++) {
-            await new Promise(r => setTimeout(r, stepTime));
-            setUploadProgress(Math.round(currentProgress + ((targetProgress - currentProgress) * (s / steps))));
-          }
-        }
-
         newFiles.push(uploaded);
-        setUploadProgress(((i + 1) / totalFiles) * 100);
+
+        // Show 100% completion
+        setUploadProgress(100);
+        setUploadStatus('Complete!');
+
+        // Brief pause to show 100%
+        await new Promise(r => setTimeout(r, 300));
+
         showToast({ type: 'success', message: `Uploaded ${file.name}` });
 
-        // Auto-open the viewer in a new tab
-        window.open(uploaded.viewerUrl, '_blank');
+        // Navigate the pre-opened window to the viewer URL (for single file)
+        if (viewerWindow && totalFiles === 1) {
+          viewerWindow.location.href = uploaded.viewerUrl;
+        } else if (totalFiles > 1) {
+          // For multiple files, open each in new tab
+          window.open(uploaded.viewerUrl, '_blank');
+        }
       } catch (err) {
+        // Close the blank window if upload failed
+        if (viewerWindow) {
+          viewerWindow.close();
+        }
         showToast({
           type: 'error',
           message: `Failed to upload ${file.name}: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -178,6 +180,9 @@ export const ShareTab = memo(() => {
     }
 
     setUploadedFiles(prev => [...newFiles, ...prev]);
+
+    // Brief delay before resetting to show completion state
+    await new Promise(r => setTimeout(r, 500));
     setIsUploading(false);
     setUploadProgress(0);
   }, [showToast]);
@@ -249,96 +254,53 @@ export const ShareTab = memo(() => {
           transform: isDragging ? 'scale(1.02)' : 'scale(1)',
         }}
       >
-        {/* Animated rings - AirDrop style */}
-        {isDragging && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  width: `${80 + i * 40}px`,
-                  height: `${80 + i * 40}px`,
-                  border: '1px solid var(--pink)',
-                  borderRadius: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  opacity: 0.6 - i * 0.15,
-                  animation: `pulse ${1 + i * 0.3}s ease-in-out infinite`,
-                  background: 'transparent',
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Upload Icon */}
-        <div style={{
-          position: 'relative',
-          width: '80px',
-          height: '80px',
-          margin: '0 auto 1.5rem',
-          background: 'linear-gradient(135deg, #F25D94 0%, #7D56F4 100%)',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: isDragging
-            ? '0 0 40px rgba(242, 93, 148, 0.5)'
-            : '0 4px 20px rgba(0, 0, 0, 0.3)',
-          transition: 'all 0.3s ease',
-          zIndex: 1,
-        }}>
+        {/* Upload Button - TUI styled */}
+        <button
+          is-="button"
+          variant-="accent"
+          style={{
+            position: 'relative',
+            margin: '0 auto 1.5rem',
+            padding: '1rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '1rem',
+            zIndex: 1,
+            transform: isDragging ? 'scale(1.05)' : 'scale(1)',
+            transition: 'transform 0.2s ease',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <svg
-            width="36"
-            height="36"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="2.5"
+            stroke="currentColor"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{
-              transform: isDragging ? 'translateY(-4px)' : 'translateY(0)',
-              transition: 'transform 0.3s ease',
-            }}
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-        </div>
+          Upload
+        </button>
 
         {isUploading ? (
-          <column gap-="1">
-            <span style={{ color: 'var(--foreground0)', fontSize: '1.1rem' }}>
+          <column gap-="1" style={{ width: '100%', maxWidth: '250px', margin: '0 auto' }}>
+            <span style={{ color: 'var(--foreground0)', fontSize: '0.9rem', textAlign: 'center' }}>
               {uploadStatus}
             </span>
-            <div style={{
-              width: '200px',
-              height: '4px',
-              background: 'var(--background2)',
-              borderRadius: '2px',
-              margin: '0.5rem auto',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                width: `${uploadProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, var(--pink) 0%, var(--purple) 100%)',
-                borderRadius: '2px',
-                transition: 'width 0.3s ease',
-              }} />
+            <div className="progress-bar" style={{ margin: '0.5rem 0' }}>
+              <div
+                className="progress-fill"
+                style={{ width: `${uploadProgress}%` }}
+              />
             </div>
-            <span style={{ color: 'var(--foreground2)', fontSize: '0.85rem' }}>
+            <span style={{ color: 'var(--foreground2)', fontSize: '0.85rem', textAlign: 'center' }}>
               {Math.round(uploadProgress)}%
             </span>
           </column>
@@ -463,19 +425,6 @@ export const ShareTab = memo(() => {
         </column>
       )}
 
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 0.4;
-          }
-          50% {
-            transform: translate(-50%, -50%) scale(1.1);
-            opacity: 0.2;
-          }
-        }
-      `}</style>
     </column>
   );
 });
