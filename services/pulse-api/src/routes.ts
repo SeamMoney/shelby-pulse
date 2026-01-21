@@ -762,103 +762,195 @@ export function createRouter(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0d0d0d">
+  <meta name="theme-color" content="#1a1625">
   <title>Shared Folder - Shelby Share</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --root: #1a1625;
+      --background0: #0d0d0d;
+      --background1: #151515;
+      --background2: #252525;
+      --foreground0: #e0e0e0;
+      --foreground1: #c0c0c0;
+      --foreground2: #808080;
+      --accent: #F25D94;
+      --pink: #F25D94;
+      --purple: #7D56F4;
+      --green: #00C896;
+      --red: #ff5f56;
+      --yellow: #ffbd2e;
+    }
+
     body {
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      background: #0d0d0d;
-      color: #e0e0e0;
+      font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', Monaco, monospace;
+      background: linear-gradient(135deg, var(--root) 0%, #0d0a14 100%);
+      color: var(--foreground0);
       min-height: 100vh;
       padding: 1rem;
+      display: flex;
+      justify-content: center;
     }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
+    /* Terminal Emulator */
+    .terminal-emulator {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Header */
-    header {
-      text-align: center;
-      padding: 1.5rem 0 1rem;
-      border-bottom: 1px solid #333;
-      margin-bottom: 1.5rem;
+    .terminal {
+      background: var(--background0);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--background2);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     }
-    .brand {
-      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-    .subtitle { color: #666; font-size: 0.85rem; }
 
-    /* Folder info */
-    .folder-header {
+    /* Terminal Header */
+    .terminal-header {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 1rem;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-    }
-    .folder-icon {
-      font-size: 2rem;
-    }
-    .folder-info h1 {
-      font-size: 1rem;
-      color: #F25D94;
-      margin-bottom: 0.25rem;
-    }
-    .folder-stats {
-      font-size: 0.8rem;
-      color: #888;
-    }
-    .folder-stats span {
-      margin-right: 1rem;
+      background: var(--background1);
+      border-bottom: 1px solid var(--background2);
+      min-height: 44px;
     }
 
-    /* Copy link button */
-    .copy-section {
+    .dots {
       display: flex;
       gap: 0.5rem;
-      margin-bottom: 1.5rem;
+      padding: 0 1rem;
     }
-    .link-display {
+    .dot-red { color: var(--red); }
+    .dot-yellow { color: var(--yellow); }
+    .dot-green { color: var(--green); }
+
+    .header-title {
       flex: 1;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 6px;
-      padding: 0.6rem 0.75rem;
-      font-size: 0.75rem;
-      color: #888;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .btn-copy {
-      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 0.6rem 1rem;
-      font-family: inherit;
-      font-size: 0.8rem;
-      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 0.35rem;
-      transition: opacity 0.15s;
+      justify-content: center;
     }
-    .btn-copy:hover { opacity: 0.9; }
 
-    /* File list */
+    .badge {
+      background: var(--background2);
+      color: var(--foreground1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .tab-nav {
+      display: flex;
+    }
+    .tab-nav a, .tab-nav button {
+      background: none;
+      border: none;
+      border-left: 1px solid var(--background2);
+      color: var(--foreground2);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      transition: color 0.2s, background-color 0.2s;
+    }
+    .tab-nav a:hover, .tab-nav button:hover {
+      color: var(--foreground0);
+      background: var(--background1);
+    }
+    .tab-nav .active {
+      color: var(--accent);
+      background: var(--background1);
+    }
+
+    /* Status Bar */
+    .status-bar {
+      padding: 0.5rem 1rem;
+      background: var(--background0);
+      border-bottom: 1px solid var(--background2);
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .badge-success {
+      background: rgba(0, 200, 150, 0.15);
+      color: var(--green);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    /* Terminal Content */
+    .terminal-content {
+      padding: 1rem;
+      background: var(--background1);
+      min-height: 400px;
+    }
+
+    /* Folder Section */
+    .folder-section {
+      margin-bottom: 1rem;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      color: var(--foreground0);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .file-count {
+      background: var(--background2);
+      color: var(--foreground2);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    /* Copy Link Section */
+    .copy-section {
+      background: var(--background0);
+      border: 1px solid var(--background2);
+      border-radius: 4px;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .link-display {
+      font-size: 0.7rem;
+      color: var(--foreground2);
+      word-break: break-all;
+      padding: 0.25rem;
+    }
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--background2);
+      color: var(--foreground2);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* File List */
     .file-list {
       display: flex;
       flex-direction: column;
@@ -868,17 +960,16 @@ export function createRouter(
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 8px;
-      transition: border-color 0.15s;
+      padding: 0.6rem 0.75rem;
+      background: var(--background0);
+      border: 1px solid var(--background2);
+      border-radius: 4px;
     }
     .file-item:hover {
-      border-color: #F25D94;
+      border-color: var(--accent);
     }
     .file-icon {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       flex-shrink: 0;
     }
     .file-info {
@@ -886,120 +977,107 @@ export function createRouter(
       min-width: 0;
     }
     .file-name {
-      font-size: 0.9rem;
-      color: #e0e0e0;
+      font-size: 0.85rem;
+      color: var(--foreground0);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .file-meta {
-      font-size: 0.75rem;
-      color: #666;
+      font-size: 0.7rem;
+      color: var(--foreground2);
       margin-top: 0.125rem;
     }
     .file-actions {
       display: flex;
-      gap: 0;
       flex-shrink: 0;
     }
-    .btn-tab {
+    .file-actions a {
       background: none;
       border: none;
-      border-left: 1px solid #333;
-      color: #888;
+      border-left: 1px solid var(--background2);
+      color: var(--foreground2);
       cursor: pointer;
       font-family: inherit;
-      font-size: 0.8rem;
-      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      padding: 0.4rem 0.6rem;
       text-decoration: none;
-      transition: color 0.2s, background-color 0.2s;
+      transition: color 0.2s;
     }
-    .btn-tab:first-child {
+    .file-actions a:first-child {
       border-left: none;
     }
-    .btn-tab:hover {
-      color: #F25D94;
-      background-color: #1a1a1a;
-    }
-
-    /* Footer */
-    footer {
-      text-align: center;
-      padding: 2rem 0 1rem;
-      color: #444;
-      font-size: 0.75rem;
-    }
-    footer a {
-      color: #F25D94;
-      text-decoration: none;
-    }
-
-    /* ASCII decoration */
-    .ascii-border {
-      color: #333;
-      font-size: 0.7rem;
-      text-align: center;
-      margin: 1rem 0;
-      user-select: none;
+    .file-actions a:hover {
+      color: var(--accent);
     }
 
     @media (max-width: 480px) {
-      body { padding: 0.75rem; }
-      .folder-header { padding: 0.75rem; }
-      .file-item { padding: 0.6rem 0.75rem; }
-      .file-name { font-size: 0.85rem; }
+      body { padding: 0.5rem; }
+      .terminal { border-radius: 8px; }
+      .dots { padding: 0 0.5rem; }
+      .tab-nav a, .tab-nav button { padding: 0.6rem 0.75rem; font-size: 0.8rem; }
+      .terminal-content { padding: 0.75rem; }
+      .file-item { padding: 0.5rem; }
+      .file-name { font-size: 0.8rem; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="brand">Shelby Share</div>
-      <div class="subtitle">Decentralized File Sharing</div>
-    </header>
+  <div class="terminal-emulator">
+    <div class="terminal">
+      <!-- Terminal Header -->
+      <div class="terminal-header">
+        <div class="dots">
+          <span class="dot-red">●</span>
+          <span class="dot-yellow">●</span>
+          <span class="dot-green">●</span>
+        </div>
+        <div class="header-title">
+          <span class="badge">Shelby Share</span>
+        </div>
+        <div class="tab-nav">
+          <button onclick="copyLink()"><span id="copyText">Copy Link</span></button>
+          <a href="/" class="active">Home</a>
+        </div>
+      </div>
 
-    <div class="folder-header">
-      <div class="folder-icon">📁</div>
-      <div class="folder-info">
-        <h1>Shared Folder</h1>
-        <div class="folder-stats">
-          <span>${session.files.length} file${session.files.length !== 1 ? 's' : ''}</span>
-          <span>${formatSize(totalSize)} total</span>
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <span class="badge-success">● SHARED</span>
+        <span style="color: var(--foreground2)">${session.files.length} file${session.files.length !== 1 ? 's' : ''}</span>
+        <span style="color: var(--foreground2)">|</span>
+        <span style="color: var(--foreground2)">${formatSize(totalSize)} total</span>
+      </div>
+
+      <!-- Terminal Content -->
+      <div class="terminal-content">
+        <!-- Copy Section -->
+        <div class="copy-section">
+          <div class="link-display">${req.protocol}://${req.get('host')}${req.originalUrl}</div>
+        </div>
+
+        <!-- Files Section -->
+        <div class="folder-section">
+          <div class="section-header">
+            <span class="section-title">📁 Files</span>
+            <span class="file-count">${session.files.length}</span>
+          </div>
+          <div class="file-list">
+            ${filesHtml}
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="copy-section">
-      <div class="link-display">${req.protocol}://${req.get('host')}${req.originalUrl}</div>
-      <button class="btn-copy" onclick="copyLink()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
-        <span id="copyText">Copy</span>
-      </button>
-    </div>
-
-    <div class="ascii-border">┌${'─'.repeat(40)}┐</div>
-
-    <div class="file-list">
-      ${filesHtml}
-    </div>
-
-    <div class="ascii-border">└${'─'.repeat(40)}┘</div>
-
-    <footer>
-      Stored on <a href="https://shelby.xyz" target="_blank">Shelby Protocol</a>
-    </footer>
   </div>
 
   <script>
     function copyLink() {
-      navigator.clipboard.writeText(window.location.href).then(() => {
+      const url = '${req.protocol}://${req.get('host')}${req.originalUrl}';
+      navigator.clipboard.writeText(url).then(() => {
         const btn = document.getElementById('copyText');
         if (btn) {
           btn.textContent = 'Copied!';
-          setTimeout(() => btn.textContent = 'Copy', 2000);
+          setTimeout(() => btn.textContent = 'Copy Link', 2000);
         }
       });
     }
