@@ -38,12 +38,18 @@ export const ShareTab = memo(() => {
 
       const xhr = new XMLHttpRequest();
 
-      // Track upload progress
+      // Track upload progress - cap at 90% since server processing takes additional time
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
+          // Cap at 90% - the remaining 10% is for server-side processing
+          const percent = Math.round((event.loaded / event.total) * 90);
           onProgress(percent);
         }
+      };
+
+      // When upload to server completes, show 95% while processing
+      xhr.upload.onload = () => {
+        onProgress(95);
       };
 
       xhr.onload = () => {
@@ -129,12 +135,13 @@ export const ShareTab = memo(() => {
           const fileProgress = (percent / totalFiles);
           setUploadProgress(Math.round(baseProgress + fileProgress));
 
-          // When upload to our server completes, show processing status
-          if (percent >= 100) {
-            setUploadStatus(`Processing on Shelby... (this may take a while for large files)`);
+          // When upload to our server completes (95%), show processing status
+          if (percent >= 95) {
+            setUploadStatus(`Processing on Shelby Protocol...`);
           }
         });
         newFiles.push(uploaded);
+        // Only show 100% after server responds successfully
         setUploadProgress(((i + 1) / totalFiles) * 100);
         showToast({ type: 'success', message: `Uploaded ${file.name}` });
       } catch (err) {
@@ -224,6 +231,7 @@ export const ShareTab = memo(() => {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
+          zIndex: 0,
         }}>
           {[1, 2, 3].map((i) => (
             <div
@@ -239,6 +247,7 @@ export const ShareTab = memo(() => {
                 transform: 'translate(-50%, -50%)',
                 opacity: isDragging ? 0.6 - i * 0.15 : 0.3 - i * 0.08,
                 animation: isDragging ? `pulse ${1 + i * 0.3}s ease-in-out infinite` : 'none',
+                background: 'transparent',
               }}
             />
           ))}
@@ -259,6 +268,8 @@ export const ShareTab = memo(() => {
             ? '0 0 40px rgba(242, 93, 148, 0.5)'
             : '0 4px 20px rgba(0, 0, 0, 0.3)',
           transition: 'all 0.3s ease',
+          overflow: 'hidden',
+          zIndex: 1,
         }}>
           <svg
             width="36"
@@ -267,9 +278,12 @@ export const ShareTab = memo(() => {
             fill="none"
             stroke="white"
             strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             style={{
               transform: isDragging ? 'translateY(-4px)' : 'translateY(0)',
               transition: 'transform 0.3s ease',
+              overflow: 'visible',
             }}
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -304,7 +318,7 @@ export const ShareTab = memo(() => {
             </span>
           </column>
         ) : (
-          <column gap-="0">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, border: 'none' }}>
             <span style={{
               color: 'var(--foreground0)',
               fontSize: '1.1rem',
@@ -318,7 +332,7 @@ export const ShareTab = memo(() => {
             <span style={{ color: 'var(--foreground2)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
               Images, Videos, PDFs (max 2GB)
             </span>
-          </column>
+          </div>
         )}
 
         <input
