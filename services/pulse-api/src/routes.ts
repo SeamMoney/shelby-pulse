@@ -749,20 +749,8 @@ export function createRouter(
             <div class="file-meta">${formatSize(file.size)}</div>
           </div>
           <div class="file-actions">
-            <a href="${file.viewerUrl}" target="_blank" class="btn btn-view" title="View">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/>
-                <line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-            </a>
-            <a href="${file.url}" download class="btn btn-download" title="Download">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            </a>
+            <a href="${file.viewerUrl}" target="_blank" class="btn-tab">View</a>
+            <a href="${file.url}" download class="btn-tab">Download</a>
           </div>
         </div>
       `).join('');
@@ -911,34 +899,27 @@ export function createRouter(
     }
     .file-actions {
       display: flex;
-      gap: 0.5rem;
+      gap: 0;
       flex-shrink: 0;
     }
-    .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
+    .btn-tab {
+      background: none;
+      border: none;
+      border-left: 1px solid #333;
+      color: #888;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
       text-decoration: none;
-      transition: all 0.15s;
+      transition: color 0.2s, background-color 0.2s;
     }
-    .btn-view {
-      background: rgba(242, 93, 148, 0.1);
+    .btn-tab:first-child {
+      border-left: none;
+    }
+    .btn-tab:hover {
       color: #F25D94;
-      border: 1px solid #F25D94;
-    }
-    .btn-view:hover {
-      background: rgba(242, 93, 148, 0.2);
-    }
-    .btn-download {
-      background: rgba(125, 86, 244, 0.1);
-      color: #7D56F4;
-      border: 1px solid #7D56F4;
-    }
-    .btn-download:hover {
-      background: rgba(125, 86, 244, 0.2);
+      background-color: #1a1a1a;
     }
 
     /* Footer */
@@ -1192,8 +1173,8 @@ export function createRouter(
               gap: 1rem;
             }
             .pdf-icon { color: #F25D94; margin-bottom: 0.5rem; }
-            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; color: #1a1a1a; }
-            .pdf-hint { color: #666; font-size: 0.9rem; }
+            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; color: #e0e0e0; }
+            .pdf-hint { color: #888; font-size: 0.9rem; }
           }
         `;
       } else {
@@ -1215,9 +1196,9 @@ export function createRouter(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <meta name="theme-color" content="#FFE4F0">
+  <meta name="theme-color" content="#0d0d0d">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>${filename} - Shelby Share</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1226,88 +1207,110 @@ export function createRouter(
       overflow: hidden;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #FFE4F0;
-      color: #1a1a1a;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+      background: #0d0d0d;
+      color: #e0e0e0;
       min-height: 100vh;
       min-height: -webkit-fill-available;
       display: flex;
       flex-direction: column;
     }
 
-    /* Header */
+    /* Header - Terminal style */
     header {
-      padding: 0.875rem 1rem;
-      background: #FFF0F5;
-      border-bottom: 1px solid #FFC2E1;
+      padding: 0;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
+      align-items: stretch;
       flex-shrink: 0;
       z-index: 10;
     }
     .file-info {
       display: flex;
       flex-direction: column;
+      justify-content: center;
       gap: 0.125rem;
       min-width: 0;
       flex: 1;
+      padding: 0.75rem 1rem;
     }
     .file-info h1 {
-      font-size: 0.9rem;
-      font-weight: 600;
+      font-size: 0.85rem;
+      font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #1a1a1a;
+      color: #e0e0e0;
     }
     .brand {
       background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
     }
     .actions {
       display: flex;
-      gap: 0.5rem;
       flex-shrink: 0;
     }
 
-    /* Buttons */
+    /* Tab-style buttons */
+    .btn-tab {
+      background: none;
+      border: none;
+      border-left: 1px solid #333;
+      color: #888;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      transition: color 0.2s, background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-tab:hover {
+      color: #F25D94;
+      background-color: #252525;
+    }
+    .btn-tab svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Legacy btn styles for PDF mobile */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.4rem;
-      padding: 0.6rem 0.875rem;
-      border-radius: 8px;
-      font-size: 0.8rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
       font-weight: 500;
       text-decoration: none;
       cursor: pointer;
       border: none;
       transition: all 0.15s;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+      font-family: inherit;
     }
     .btn-primary {
       background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
       color: white;
+      border-radius: 4px;
     }
-    .btn-primary:hover, .btn-primary:active {
+    .btn-primary:hover {
       opacity: 0.9;
-      transform: scale(0.98);
     }
     .btn-secondary {
-      background: #FFF0F5;
-      color: #1a1a1a;
-      border: 1px solid #FFC2E1;
+      background: #252525;
+      color: #888;
+      border: 1px solid #333;
     }
-    .btn-secondary:hover, .btn-secondary:active {
-      background: #FFE4F0;
+    .btn-secondary:hover {
+      color: #F25D94;
     }
     .btn-large {
       padding: 0.875rem 1.5rem;
@@ -1325,7 +1328,7 @@ export function createRouter(
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       padding: 1rem;
-      background: #FFE4F0;
+      background: #0d0d0d;
     }
 
     /* Media containers */
@@ -1340,36 +1343,34 @@ export function createRouter(
     /* Images */
     .image-container img {
       max-width: 100%;
-      max-height: calc(100vh - 120px);
-      max-height: calc(100dvh - 120px);
+      max-height: calc(100vh - 80px);
+      max-height: calc(100dvh - 80px);
       width: auto;
       height: auto;
       object-fit: contain;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(242, 93, 148, 0.2);
-      border: 1px solid #FFC2E1;
+      border-radius: 4px;
+      border: 1px solid #333;
     }
 
     /* Videos */
     .video-container video {
       max-width: 100%;
-      max-height: calc(100vh - 120px);
-      max-height: calc(100dvh - 120px);
+      max-height: calc(100vh - 80px);
+      max-height: calc(100dvh - 80px);
       width: auto;
       height: auto;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(242, 93, 148, 0.2);
-      border: 1px solid #FFC2E1;
+      border-radius: 4px;
+      border: 1px solid #333;
       background: #000;
     }
 
     /* PDFs */
     .pdf-container iframe {
       width: 100%;
-      height: calc(100vh - 120px);
-      height: calc(100dvh - 120px);
-      border: 1px solid #FFC2E1;
-      border-radius: 12px;
+      height: calc(100vh - 80px);
+      height: calc(100dvh - 80px);
+      border: 1px solid #333;
+      border-radius: 4px;
       background: #fff;
     }
 
@@ -1379,49 +1380,38 @@ export function createRouter(
       flex-direction: column;
       align-items: center;
       gap: 1rem;
-      color: #7D56F4;
+      color: #F25D94;
       text-align: center;
     }
-    .unsupported-content p { font-size: 1rem; color: #1a1a1a; }
+    .unsupported-content p { font-size: 1rem; color: #e0e0e0; }
     .unsupported-content .hint { font-size: 0.875rem; color: #666; }
 
     /* Mobile adjustments */
     @media (max-width: 480px) {
-      header {
-        padding: 0.75rem;
-      }
       .file-info h1 {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
       }
-      .btn {
-        padding: 0.55rem 0.7rem;
-        font-size: 0.75rem;
+      .btn-tab {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
       }
-      .btn span {
+      .btn-tab span {
         display: none;
-      }
-      .btn svg {
-        width: 18px;
-        height: 18px;
       }
       main {
         padding: 0.5rem;
       }
       .image-container img,
       .video-container video {
-        max-height: calc(100vh - 100px);
-        max-height: calc(100dvh - 100px);
-        border-radius: 8px;
+        max-height: calc(100vh - 70px);
+        max-height: calc(100dvh - 70px);
       }
     }
 
     /* Landscape mobile */
     @media (max-height: 500px) and (orientation: landscape) {
-      header {
-        padding: 0.5rem 1rem;
-      }
       .file-info h1 {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
       }
       .brand {
         display: none;
@@ -1446,14 +1436,14 @@ export function createRouter(
       <span class="brand">Shelby Share</span>
     </div>
     <div class="actions">
-      <button class="btn btn-secondary" onclick="copyLink()" aria-label="Copy link">
+      <button class="btn-tab" onclick="copyLink()" aria-label="Copy link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
         </svg>
         <span id="copyText">Copy</span>
       </button>
-      <a href="${downloadUrl}" download="${filename}" class="btn btn-primary" aria-label="Download file">
+      <a href="${downloadUrl}" download="${filename}" class="btn-tab" aria-label="Download file">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
