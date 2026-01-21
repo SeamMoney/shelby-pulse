@@ -129,7 +129,13 @@ export const ShareTab = memo(() => {
 
       try {
         setUploadStatus(`Uploading ${file.name}...`);
+
+        // Track upload start time for minimum animation duration
+        const uploadStartTime = Date.now();
+        let lastProgress = 0;
+
         const uploaded = await uploadFile(file, (percent) => {
+          lastProgress = percent;
           // For multiple files, show progress as: completed files + current file progress
           const baseProgress = (i / totalFiles) * 100;
           const fileProgress = (percent / totalFiles);
@@ -137,13 +143,32 @@ export const ShareTab = memo(() => {
 
           // When upload to our server completes (95%), show processing status
           if (percent >= 95) {
-            setUploadStatus(`Processing on Shelby Protocol...`);
+            setUploadStatus(`Processing...`);
           }
         });
+
+        // Ensure minimum 800ms animation for small files so users see progress
+        const elapsed = Date.now() - uploadStartTime;
+        if (elapsed < 800 && lastProgress > 0) {
+          // Animate to 100% over remaining time
+          const remaining = 800 - elapsed;
+          const steps = 10;
+          const stepTime = remaining / steps;
+          const currentProgress = ((i / totalFiles) * 100) + (lastProgress / totalFiles);
+          const targetProgress = ((i + 1) / totalFiles) * 100;
+
+          for (let s = 1; s <= steps; s++) {
+            await new Promise(r => setTimeout(r, stepTime));
+            setUploadProgress(Math.round(currentProgress + ((targetProgress - currentProgress) * (s / steps))));
+          }
+        }
+
         newFiles.push(uploaded);
-        // Only show 100% after server responds successfully
         setUploadProgress(((i + 1) / totalFiles) * 100);
         showToast({ type: 'success', message: `Uploaded ${file.name}` });
+
+        // Auto-open the viewer in a new tab
+        window.open(uploaded.viewerUrl, '_blank');
       } catch (err) {
         showToast({
           type: 'error',
@@ -437,27 +462,6 @@ export const ShareTab = memo(() => {
           </column>
         </column>
       )}
-
-      {/* Info Box */}
-      <div style={{
-        background: 'var(--background0)',
-        border: '1px solid var(--background2)',
-        borderRadius: '8px',
-        padding: '1rem',
-        marginTop: '0.5rem',
-      }}>
-        <row gap-="1" style={{ alignItems: 'flex-start' }}>
-          <span style={{ color: 'var(--purple)', fontSize: '1.2rem' }}>i</span>
-          <column gap-="0">
-            <span style={{ color: 'var(--foreground0)', fontSize: '0.85rem' }}>
-              Files are stored on Shelby Protocol
-            </span>
-            <span style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-              Decentralized storage on Shelbynet. URLs are permanent and can be used anywhere.
-            </span>
-          </column>
-        </row>
-      </div>
 
       {/* CSS Animations */}
       <style>{`

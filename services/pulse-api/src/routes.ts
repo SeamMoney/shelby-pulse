@@ -768,8 +768,8 @@ export function createRouter(
               padding: 2rem;
               gap: 1rem;
             }
-            .pdf-icon { color: #666; margin-bottom: 0.5rem; }
-            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; }
+            .pdf-icon { color: #F25D94; margin-bottom: 0.5rem; }
+            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; color: #1a1a1a; }
             .pdf-hint { color: #666; font-size: 0.9rem; }
           }
         `;
@@ -792,9 +792,9 @@ export function createRouter(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#FFE4F0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>${filename} - Shelby Share</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -804,8 +804,8 @@ export function createRouter(
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #fff;
+      background: #FFE4F0;
+      color: #1a1a1a;
       min-height: 100vh;
       min-height: -webkit-fill-available;
       display: flex;
@@ -815,8 +815,8 @@ export function createRouter(
     /* Header */
     header {
       padding: 0.875rem 1rem;
-      background: #111;
-      border-bottom: 1px solid #222;
+      background: #FFF0F5;
+      border-bottom: 1px solid #FFC2E1;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -837,10 +837,15 @@ export function createRouter(
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: #1a1a1a;
     }
     .brand {
-      color: #666;
+      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       font-size: 0.75rem;
+      font-weight: 600;
     }
     .actions {
       display: flex;
@@ -866,19 +871,20 @@ export function createRouter(
       touch-action: manipulation;
     }
     .btn-primary {
-      background: #3b82f6;
+      background: linear-gradient(135deg, #F25D94 0%, #7D56F4 100%);
       color: white;
     }
     .btn-primary:hover, .btn-primary:active {
-      background: #2563eb;
+      opacity: 0.9;
+      transform: scale(0.98);
     }
     .btn-secondary {
-      background: #222;
-      color: #fff;
-      border: 1px solid #333;
+      background: #FFF0F5;
+      color: #1a1a1a;
+      border: 1px solid #FFC2E1;
     }
     .btn-secondary:hover, .btn-secondary:active {
-      background: #333;
+      background: #FFE4F0;
     }
     .btn-large {
       padding: 0.875rem 1.5rem;
@@ -896,6 +902,7 @@ export function createRouter(
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       padding: 1rem;
+      background: #FFE4F0;
     }
 
     /* Media containers */
@@ -915,8 +922,9 @@ export function createRouter(
       width: auto;
       height: auto;
       object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(242, 93, 148, 0.2);
+      border: 1px solid #FFC2E1;
     }
 
     /* Videos */
@@ -926,8 +934,9 @@ export function createRouter(
       max-height: calc(100dvh - 120px);
       width: auto;
       height: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(242, 93, 148, 0.2);
+      border: 1px solid #FFC2E1;
       background: #000;
     }
 
@@ -936,8 +945,8 @@ export function createRouter(
       width: 100%;
       height: calc(100vh - 120px);
       height: calc(100dvh - 120px);
-      border: none;
-      border-radius: 8px;
+      border: 1px solid #FFC2E1;
+      border-radius: 12px;
       background: #fff;
     }
 
@@ -947,11 +956,11 @@ export function createRouter(
       flex-direction: column;
       align-items: center;
       gap: 1rem;
-      color: #666;
+      color: #7D56F4;
       text-align: center;
     }
-    .unsupported-content p { font-size: 1rem; }
-    .unsupported-content .hint { font-size: 0.875rem; color: #444; }
+    .unsupported-content p { font-size: 1rem; color: #1a1a1a; }
+    .unsupported-content .hint { font-size: 0.875rem; color: #666; }
 
     /* Mobile adjustments */
     @media (max-width: 480px) {
@@ -979,7 +988,7 @@ export function createRouter(
       .video-container video {
         max-height: calc(100vh - 100px);
         max-height: calc(100dvh - 100px);
-        border-radius: 4px;
+        border-radius: 8px;
       }
     }
 
