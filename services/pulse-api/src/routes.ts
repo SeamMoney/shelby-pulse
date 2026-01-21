@@ -704,84 +704,172 @@ export function createRouter(
       const viewUrl = `/api/share/view/${address}/${encodeURIComponent(filename)}`;
       const downloadUrl = `https://api.shelbynet.shelby.xyz/shelby/v1/blobs/${address}/${encodeURIComponent(filename)}`;
 
-      // Generate the appropriate embed element
+      // Generate the appropriate embed element based on file type
       let embedHtml = '';
+      let extraStyles = '';
+      let extraScripts = '';
+
       if (isImage) {
-        embedHtml = `<img src="${viewUrl}" alt="${filename}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />`;
+        embedHtml = `
+          <div class="media-container image-container">
+            <img src="${viewUrl}" alt="${filename}" id="mainImage" />
+          </div>`;
       } else if (isVideo) {
-        embedHtml = `<video src="${viewUrl}" controls autoplay style="max-width: 100%; max-height: 80vh;"></video>`;
+        embedHtml = `
+          <div class="media-container video-container">
+            <video src="${viewUrl}" controls playsinline webkit-playsinline id="mainVideo"></video>
+          </div>`;
+        extraScripts = `
+          // Auto-play video when loaded (muted for mobile autoplay policy)
+          const video = document.getElementById('mainVideo');
+          video.muted = true;
+          video.play().catch(() => {});
+          // Show controls to unmute
+          video.addEventListener('click', () => { video.muted = false; });
+        `;
       } else if (isPdf) {
-        embedHtml = `<iframe src="${viewUrl}" style="width: 100%; height: 80vh; border: none;"></iframe>`;
+        // For mobile, we need a different approach since iframes with PDFs don't work well
+        embedHtml = `
+          <div class="media-container pdf-container">
+            <iframe src="${viewUrl}" id="pdfFrame" class="pdf-desktop"></iframe>
+            <div class="pdf-mobile">
+              <div class="pdf-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <p class="pdf-filename">${filename}</p>
+              <p class="pdf-hint">Tap the button below to view or download</p>
+              <a href="${viewUrl}" target="_blank" class="btn btn-primary btn-large">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Open PDF
+              </a>
+            </div>
+          </div>`;
+        extraStyles = `
+          .pdf-desktop { display: block; }
+          .pdf-mobile { display: none; }
+          @media (max-width: 768px) {
+            .pdf-desktop { display: none; }
+            .pdf-mobile {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              padding: 2rem;
+              gap: 1rem;
+            }
+            .pdf-icon { color: #666; margin-bottom: 0.5rem; }
+            .pdf-filename { font-size: 1.1rem; font-weight: 500; word-break: break-all; }
+            .pdf-hint { color: #666; font-size: 0.9rem; }
+          }
+        `;
       } else {
-        embedHtml = `<p>Preview not available for this file type.</p>`;
+        embedHtml = `
+          <div class="media-container unsupported">
+            <div class="unsupported-content">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
+              </svg>
+              <p>${filename}</p>
+              <p class="hint">Preview not available</p>
+            </div>
+          </div>`;
       }
 
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>${filename} - Shelby Share</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0a0a0a;
       color: #fff;
       min-height: 100vh;
+      min-height: -webkit-fill-available;
       display: flex;
       flex-direction: column;
     }
+
+    /* Header */
     header {
-      padding: 1rem 1.5rem;
+      padding: 0.875rem 1rem;
       background: #111;
       border-bottom: 1px solid #222;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
+      gap: 0.75rem;
+      flex-shrink: 0;
+      z-index: 10;
     }
     .file-info {
       display: flex;
-      align-items: center;
-      gap: 0.75rem;
+      flex-direction: column;
+      gap: 0.125rem;
       min-width: 0;
+      flex: 1;
     }
     .file-info h1 {
-      font-size: 1rem;
-      font-weight: 500;
+      font-size: 0.9rem;
+      font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 400px;
     }
     .brand {
       color: #666;
-      font-size: 0.875rem;
+      font-size: 0.75rem;
     }
     .actions {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.5rem;
+      flex-shrink: 0;
     }
+
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.625rem 1rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.6rem 0.875rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
       font-weight: 500;
       text-decoration: none;
       cursor: pointer;
       border: none;
       transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .btn-primary {
       background: #3b82f6;
       color: white;
     }
-    .btn-primary:hover {
+    .btn-primary:hover, .btn-primary:active {
       background: #2563eb;
     }
     .btn-secondary {
@@ -789,29 +877,134 @@ export function createRouter(
       color: #fff;
       border: 1px solid #333;
     }
-    .btn-secondary:hover {
+    .btn-secondary:hover, .btn-secondary:active {
       background: #333;
     }
+    .btn-large {
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+      gap: 0.5rem;
+    }
+    .btn svg { flex-shrink: 0; }
+
+    /* Main content area */
     main {
       flex: 1;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 2rem;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 1rem;
     }
-    .content {
+
+    /* Media containers */
+    .media-container {
       display: flex;
       justify-content: center;
       align-items: center;
       width: 100%;
       height: 100%;
     }
-    img, video {
+
+    /* Images */
+    .image-container img {
+      max-width: 100%;
+      max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
       border-radius: 8px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.5);
     }
-    svg { flex-shrink: 0; }
+
+    /* Videos */
+    .video-container video {
+      max-width: 100%;
+      max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      background: #000;
+    }
+
+    /* PDFs */
+    .pdf-container iframe {
+      width: 100%;
+      height: calc(100vh - 120px);
+      height: calc(100dvh - 120px);
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    /* Unsupported files */
+    .unsupported-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: #666;
+      text-align: center;
+    }
+    .unsupported-content p { font-size: 1rem; }
+    .unsupported-content .hint { font-size: 0.875rem; color: #444; }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      header {
+        padding: 0.75rem;
+      }
+      .file-info h1 {
+        font-size: 0.85rem;
+      }
+      .btn {
+        padding: 0.55rem 0.7rem;
+        font-size: 0.75rem;
+      }
+      .btn span {
+        display: none;
+      }
+      .btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      main {
+        padding: 0.5rem;
+      }
+      .image-container img,
+      .video-container video {
+        max-height: calc(100vh - 100px);
+        max-height: calc(100dvh - 100px);
+        border-radius: 4px;
+      }
+    }
+
+    /* Landscape mobile */
+    @media (max-height: 500px) and (orientation: landscape) {
+      header {
+        padding: 0.5rem 1rem;
+      }
+      .file-info h1 {
+        font-size: 0.8rem;
+      }
+      .brand {
+        display: none;
+      }
+      main {
+        padding: 0.5rem;
+      }
+      .image-container img,
+      .video-container video {
+        max-height: calc(100vh - 70px);
+        max-height: calc(100dvh - 70px);
+      }
+    }
+
+    ${extraStyles}
   </style>
 </head>
 <body>
@@ -821,36 +1014,50 @@ export function createRouter(
       <span class="brand">Shelby Share</span>
     </div>
     <div class="actions">
-      <button class="btn btn-secondary" onclick="copyLink()">
+      <button class="btn btn-secondary" onclick="copyLink()" aria-label="Copy link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
         </svg>
-        <span id="copyText">Copy Link</span>
+        <span id="copyText">Copy</span>
       </button>
-      <a href="${downloadUrl}" download="${filename}" class="btn btn-primary">
+      <a href="${downloadUrl}" download="${filename}" class="btn btn-primary" aria-label="Download file">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Download
+        <span>Download</span>
       </a>
     </div>
   </header>
   <main>
-    <div class="content">
-      ${embedHtml}
-    </div>
+    ${embedHtml}
   </main>
   <script>
     function copyLink() {
       navigator.clipboard.writeText(window.location.href).then(() => {
         const btn = document.getElementById('copyText');
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy Link', 2000);
+        if (btn) {
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
+      }).catch(() => {
+        // Fallback for older browsers
+        const input = document.createElement('input');
+        input.value = window.location.href;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        const btn = document.getElementById('copyText');
+        if (btn) {
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
       });
     }
+    ${extraScripts}
   </script>
 </body>
 </html>`;
