@@ -18,31 +18,48 @@ interface FileUploadProgress {
 }
 
 // ASCII-style terminal progress bar
-const AsciiProgressBar = memo(({ percent, width = 20, label }: { percent: number; width?: number; label?: string }) => {
+const AsciiProgressBar = memo(({ percent, width = 12, label, status }: {
+  percent: number;
+  width?: number;
+  label?: string;
+  status?: 'pending' | 'uploading' | 'complete' | 'error';
+}) => {
   const filled = Math.round((Math.min(100, percent) / 100) * width);
   const empty = width - filled;
   const bar = '█'.repeat(filled) + '░'.repeat(empty);
 
   return (
-    <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      {label && (
+    <div style={{
+      fontFamily: 'monospace',
+      fontSize: '0.75rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.25rem',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+        {label && (
+          <span style={{
+            color: 'var(--foreground0)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            flex: 1,
+            minWidth: 0,
+          }}>
+            {label}
+          </span>
+        )}
         <span style={{
-          color: 'var(--foreground2)',
-          minWidth: '120px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          color: status === 'complete' ? 'var(--green)' : status === 'error' ? 'var(--pink)' : 'var(--foreground2)',
+          flexShrink: 0,
+          fontSize: '0.7rem',
         }}>
-          {label}
+          {status === 'complete' ? '✓' : status === 'error' ? '✗' : Math.round(percent) + '%'}
         </span>
-      )}
-      <span style={{ color: '#F25D94' }}>[</span>
-      <span style={{ color: '#F25D94' }}>{bar.slice(0, filled)}</span>
-      <span style={{ color: 'var(--background2)' }}>{bar.slice(filled)}</span>
-      <span style={{ color: '#F25D94' }}>]</span>
-      <span style={{ color: 'var(--foreground0)', minWidth: '40px', textAlign: 'right' }}>
-        {Math.round(percent)}%
-      </span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span style={{ color: '#F25D94' }}>[{bar}]</span>
+      </div>
     </div>
   );
 });
@@ -267,7 +284,7 @@ export const ShareTab = memo(() => {
   };
 
   return (
-    <column gap-="2" style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <column gap-="2" style={{ maxWidth: '800px', margin: '0 auto', overflow: 'hidden' }}>
       {/* Header */}
       <column gap-="1" style={{ textAlign: 'center', padding: '1rem 0' }}>
         <h2 style={{
@@ -343,44 +360,37 @@ export const ShareTab = memo(() => {
         </button>
 
         {isUploading && uploadQueue.length > 0 ? (
-          <column gap-="0.5" style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+          <div style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }}>
             <span style={{
               color: 'var(--foreground0)',
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               textAlign: 'center',
               fontFamily: 'monospace',
-              marginBottom: '0.5rem',
+              display: 'block',
+              marginBottom: '0.75rem',
             }}>
-              ▶ Uploading {uploadQueue.length} file{uploadQueue.length !== 1 ? 's' : ''}...
+              ▶ Uploading {uploadQueue.length} file{uploadQueue.length !== 1 ? 's' : ''}
             </span>
-            {/* Individual file progress bars */}
             <div style={{
               background: 'var(--background1)',
               border: '1px solid var(--background2)',
               borderRadius: '8px',
               padding: '0.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
             }}>
               {uploadQueue.map((item, idx) => (
-                <div key={idx} style={{ marginBottom: idx < uploadQueue.length - 1 ? '0.5rem' : 0 }}>
-                  <AsciiProgressBar
-                    percent={item.progress}
-                    width={16}
-                    label={item.file.name.length > 15 ? item.file.name.slice(0, 12) + '...' : item.file.name}
-                  />
-                  {item.status === 'error' && (
-                    <span style={{ color: 'var(--pink)', fontSize: '0.75rem', fontFamily: 'monospace', marginLeft: '120px' }}>
-                      ✗ {item.error}
-                    </span>
-                  )}
-                  {item.status === 'complete' && (
-                    <span style={{ color: 'var(--green)', fontSize: '0.75rem', fontFamily: 'monospace', marginLeft: '120px' }}>
-                      ✓ Complete
-                    </span>
-                  )}
-                </div>
+                <AsciiProgressBar
+                  key={idx}
+                  percent={item.progress}
+                  width={12}
+                  label={item.file.name}
+                  status={item.status}
+                />
               ))}
             </div>
-          </column>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, border: 'none' }}>
             <span style={{
@@ -429,51 +439,47 @@ export const ShareTab = memo(() => {
           background: 'var(--background1)',
           border: '1px solid var(--background2)',
           borderRadius: '8px',
-          padding: '1rem',
+          padding: '0.75rem',
         }}>
-          <row style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <row gap-="0.5" style={{ alignItems: 'center' }}>
-              <span style={{ fontFamily: 'monospace', color: '#F25D94', fontSize: '1.1rem' }}>📁</span>
-              <span style={{ color: 'var(--foreground0)', fontWeight: 500, fontFamily: 'monospace' }}>
-                Session Folder
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '1rem' }}>📁</span>
+              <span style={{ color: 'var(--foreground0)', fontWeight: 500, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                Folder
               </span>
-            </row>
-            <span is-="badge" variant-="pink">
+            </div>
+            <span is-="badge" variant-="pink" style={{ fontSize: '0.7rem' }}>
               {uploadedFiles.filter(f => f.sessionId === currentSessionId).length} files
             </span>
-          </row>
+          </div>
           <div style={{
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
             gap: '0.5rem',
-            background: 'var(--background0)',
-            padding: '0.5rem 0.75rem',
-            borderRadius: '6px',
-            border: '1px solid var(--background2)',
           }}>
-            <span style={{
+            <div style={{
+              background: 'var(--background0)',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid var(--background2)',
               fontFamily: 'monospace',
-              fontSize: '0.8rem',
+              fontSize: '0.65rem',
               color: 'var(--foreground2)',
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              wordBreak: 'break-all',
             }}>
               {`${window.location.origin}/api/share/folder/${currentSessionId}`}
-            </span>
+            </div>
             <button
               is-="button"
               variant-="accent"
-              size-="half"
               onClick={() => copyToClipboard(`${window.location.origin}/api/share/folder/${currentSessionId}`)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%', padding: '0.5rem' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
-              Copy Link
+              Copy Folder Link
             </button>
           </div>
         </div>
@@ -481,17 +487,17 @@ export const ShareTab = memo(() => {
 
       {/* Uploaded Files */}
       {uploadedFiles.length > 0 && (
-        <column gap-="1">
-          <row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--foreground0)', fontWeight: 500, fontFamily: 'monospace' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'var(--foreground0)', fontWeight: 500, fontFamily: 'monospace', fontSize: '0.85rem' }}>
               ▸ Uploaded Files
             </span>
-            <span is-="badge" variant-="background2">
+            <span is-="badge" variant-="background2" style={{ fontSize: '0.7rem' }}>
               {uploadedFiles.length} file{uploadedFiles.length !== 1 ? 's' : ''}
             </span>
-          </row>
+          </div>
 
-          <column gap-="1">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {uploadedFiles.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
@@ -499,86 +505,95 @@ export const ShareTab = memo(() => {
                   background: 'var(--background0)',
                   border: '1px solid var(--background2)',
                   borderRadius: '8px',
-                  padding: '0.75rem 1rem',
+                  padding: '0.75rem',
                 }}
               >
-                <row style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <column gap-="0" style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{
-                      color: 'var(--foreground0)',
-                      fontSize: '0.9rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {file.name}
-                    </span>
-                    <span style={{ color: 'var(--foreground2)', fontSize: '0.75rem' }}>
-                      {formatFileSize(file.size)}
-                    </span>
-                  </column>
-                  <row gap-="0.5" style={{ flexShrink: 0 }}>
-                    <a
-                      href={file.viewerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      is-="button"
-                      variant-="accent"
-                      size-="half"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                      View
-                    </a>
-                    <button
-                      is-="button"
-                      variant-="background2"
-                      size-="half"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyToClipboard(file.viewerUrl);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                      Copy
-                    </button>
-                  </row>
-                </row>
+                {/* File name and size */}
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <div style={{
+                    color: 'var(--foreground0)',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {file.name}
+                  </div>
+                  <div style={{ color: 'var(--foreground2)', fontSize: '0.7rem' }}>
+                    {formatFileSize(file.size)}
+                  </div>
+                </div>
+
+                {/* URL display */}
                 <div style={{
-                  marginTop: '0.5rem',
-                  padding: '0.5rem',
+                  padding: '0.4rem',
                   background: 'var(--background1)',
                   borderRadius: '4px',
-                  fontSize: '0.7rem',
+                  fontSize: '0.6rem',
                   fontFamily: 'monospace',
                   color: 'var(--foreground2)',
                   wordBreak: 'break-all',
-                  userSelect: 'all',
+                  marginBottom: '0.5rem',
                 }}>
                   {file.viewerUrl}
                 </div>
+
+                {/* Buttons - full width on mobile */}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <a
+                    href={file.viewerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    is-="button"
+                    variant-="accent"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      textDecoration: 'none',
+                      padding: '0.5rem',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    View
+                  </a>
+                  <button
+                    is-="button"
+                    variant-="background2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(file.viewerUrl);
+                    }}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      padding: '0.5rem',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy
+                  </button>
+                </div>
               </div>
             ))}
-          </column>
-        </column>
+          </div>
+        </div>
       )}
 
     </column>
