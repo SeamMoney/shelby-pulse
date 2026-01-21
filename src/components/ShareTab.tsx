@@ -225,33 +225,35 @@ export const ShareTab = memo(() => {
         }}
       >
         {/* Animated rings - AirDrop style */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: `${80 + i * 40}px`,
-                height: `${80 + i * 40}px`,
-                border: `1px solid ${isDragging ? 'var(--pink)' : 'var(--background2)'}`,
-                borderRadius: '50%',
-                transform: 'translate(-50%, -50%)',
-                opacity: isDragging ? 0.6 - i * 0.15 : 0.3 - i * 0.08,
-                animation: isDragging ? `pulse ${1 + i * 0.3}s ease-in-out infinite` : 'none',
-                background: 'transparent',
-              }}
-            />
-          ))}
-        </div>
+        {isDragging && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: `${80 + i * 40}px`,
+                  height: `${80 + i * 40}px`,
+                  border: '1px solid var(--pink)',
+                  borderRadius: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  opacity: 0.6 - i * 0.15,
+                  animation: `pulse ${1 + i * 0.3}s ease-in-out infinite`,
+                  background: 'transparent',
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Upload Icon */}
         <div style={{
@@ -283,7 +285,6 @@ export const ShareTab = memo(() => {
             style={{
               transform: isDragging ? 'translateY(-4px)' : 'translateY(0)',
               transition: 'transform 0.3s ease',
-              overflow: 'visible',
             }}
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
