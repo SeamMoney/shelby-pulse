@@ -27,22 +27,23 @@ export class UploadService {
   private lastFundTime = 0;
   private readonly FUND_COOLDOWN_MS = 60 * 1000; // 1 minute between fund attempts
 
-  constructor(privateKey?: string) {
+  constructor(privateKey?: string, apiKey?: string) {
     if (privateKey) {
-      this.initialize(privateKey);
+      this.initialize(privateKey, apiKey);
     }
   }
 
-  private initialize(privateKey: string): void {
+  private initialize(privateKey: string, apiKey?: string): void {
     try {
       const pk = new Ed25519PrivateKey(privateKey);
       this.account = Account.fromPrivateKey({ privateKey: pk });
       this.client = new ShelbyNodeClient({
         network: Network.SHELBYNET,
+        apiKey: apiKey || undefined,
       });
       this.isInitialized = true;
       logger.info(
-        { address: this.account.accountAddress.toString() },
+        { address: this.account.accountAddress.toString(), hasApiKey: !!apiKey },
         "Upload service initialized"
       );
     } catch (error) {

@@ -21,6 +21,8 @@ const configSchema = z.object({
   FARMING_WALLET_ADDRESS: z.string().optional().default(""),
   // Private key for server-managed uploads (Shelby Share feature)
   SHELBY_PRIVATE_KEY: z.string().optional().default(""),
+  // Shelby API key for RPC access (bypasses rate limits)
+  SHELBY_API_KEY: z.string().optional().default(""),
 });
 
 export type ApiConfig = z.infer<typeof configSchema>;

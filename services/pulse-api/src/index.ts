@@ -37,10 +37,10 @@ async function main() {
   // Initialize Upload Service for Shelby Share feature
   let uploadService: UploadService | undefined;
   if (config.SHELBY_PRIVATE_KEY) {
-    uploadService = new UploadService(config.SHELBY_PRIVATE_KEY);
+    uploadService = new UploadService(config.SHELBY_PRIVATE_KEY, config.SHELBY_API_KEY);
     if (uploadService.isAvailable()) {
       logger.info(
-        { address: uploadService.getAddress() },
+        { address: uploadService.getAddress(), hasApiKey: !!config.SHELBY_API_KEY },
         "Upload service initialized for Shelby Share"
       );
     } else {
