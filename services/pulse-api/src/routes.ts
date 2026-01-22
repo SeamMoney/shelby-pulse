@@ -641,10 +641,10 @@ export function createRouter(
       });
     } catch (error) {
       cleanup();
-      logger.error({ error }, "Failed to upload file");
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Upload failed",
-      });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ errMsg, errStack }, "Failed to upload file");
+      res.status(500).json({ error: errMsg });
     }
   });
 

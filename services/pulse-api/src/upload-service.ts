@@ -144,7 +144,9 @@ export class UploadService {
         expiresAt,
       };
     } catch (error) {
-      logger.error({ error, blobName }, "Failed to upload file");
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ errMsg, errStack, blobName }, "Failed to upload file");
 
       // If it's an insufficient funds error, try to fund and retry once
       if (
