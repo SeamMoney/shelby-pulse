@@ -145,7 +145,12 @@ export const ShareTab = memo(() => {
       // 10 minute timeout for large files on mobile
       xhr.timeout = 10 * 60 * 1000;
 
-      xhr.open('POST', '/api/share/upload');
+      // Upload directly to API server to bypass Vercel's 4.5MB proxy limit
+      const apiUrl = window.location.hostname === 'localhost'
+        ? '/api/share/upload'
+        : 'https://shelby.cash.trading/api/share/upload';
+
+      xhr.open('POST', apiUrl);
       xhr.send(formData);
     });
   };
