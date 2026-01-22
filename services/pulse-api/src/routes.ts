@@ -1,5 +1,8 @@
 import { Router } from "express";
 import multer from "multer";
+import fs from "fs";
+import os from "os";
+import path from "path";
 import type { DataService } from "./data-service";
 import type { FarmingService } from "./farming-service";
 import type { GitHubFarmingService } from "./github-farming";
@@ -27,31 +30,24 @@ interface Session {
 // Store sessions in memory (they persist until server restart)
 const sessions = new Map<string, Session>();
 
-// Configure multer for memory storage (no disk writes)
+// Configure multer for disk storage (handles large files without OOM)
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      cb(null, `shelby-upload-${uniqueSuffix}${path.extname(file.originalname)}`);
+    },
+  }),
   limits: {
     fileSize: 2 * 1024 * 1024 * 1024, // 2GB max
     files: 5, // Max 5 files per request
   },
   fileFilter: (req, file, cb) => {
-    // Allow images, videos, and common file types
     const allowedTypes = [
-      // Images
-      "image/png",
-      "image/jpeg",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-      "image/x-icon",
-      "image/avif",
-      // Videos
-      "video/mp4",
-      "video/webm",
-      "video/quicktime",
-      "video/x-msvideo",
-      "video/x-matroska",
-      // Documents
+      "image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml",
+      "image/x-icon", "image/avif",
+      "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska",
       "application/pdf",
     ];
     if (allowedTypes.includes(file.mimetype)) {
@@ -588,13 +584,19 @@ export function createRouter(
       });
     }
 
-    try {
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ error: "No file provided" });
-      }
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: "No file provided" });
+    }
 
-      // Get session ID from request body (optional)
+    const tempPath = file.path;
+    const cleanup = () => {
+      fs.unlink(tempPath, (err) => {
+        if (err) logger.warn({ err, tempPath }, "Failed to cleanup temp file");
+      });
+    };
+
+    try {
       const sessionId = req.body.sessionId;
 
       logger.info(
@@ -602,7 +604,9 @@ export function createRouter(
         "Received file for upload"
       );
 
-      const result = await uploadService.uploadFile(file.buffer, file.originalname);
+      const fileBuffer = await fs.promises.readFile(tempPath);
+      const result = await uploadService.uploadFile(fileBuffer, file.originalname);
+      cleanup();
 
       // If a session ID was provided, add the file to the session
       if (sessionId) {
@@ -636,6 +640,7 @@ export function createRouter(
         sessionId,
       });
     } catch (error) {
+      cleanup();
       logger.error({ error }, "Failed to upload file");
       res.status(500).json({
         error: error instanceof Error ? error.message : "Upload failed",
